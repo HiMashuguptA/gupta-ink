@@ -1,26 +1,100 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --ink: #1f2a6e;
+  --ink-deep: #141c4d;
+  --ink-soft: #e8ebf8;
+  --nib: #e9a23b;
+  --nib-soft: #fdf1dc;
+  --paper: #f6f7fb;
+  --card: #ffffff;
+  --graphite: #1c2030;
+  --muted: #5d6478;
+  --rule: #cfd9f2;
+  --margin: #d9534a;
+  --ok: #1f8a5b;
+  --line: #e3e6ef;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --ink: #9fb0ff;
+    --ink-deep: #c9d2ff;
+    --ink-soft: #1e2547;
+    --nib: #f0b55a;
+    --nib-soft: #3a2c14;
+    --paper: #0f1220;
+    --card: #181c2e;
+    --graphite: #eef0f7;
+    --muted: #a3a9bd;
+    --rule: #26304f;
+    --margin: #f07a70;
+    --ok: #4cc58d;
+    --line: #272c42;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@theme inline {
+  --color-ink: var(--ink);
+  --color-ink-deep: var(--ink-deep);
+  --color-ink-soft: var(--ink-soft);
+  --color-nib: var(--nib);
+  --color-nib-soft: var(--nib-soft);
+  --color-paper: var(--paper);
+  --color-card: var(--card);
+  --color-graphite: var(--graphite);
+  --color-muted: var(--muted);
+  --color-rule: var(--rule);
+  --color-margin: var(--margin);
+  --color-ok: var(--ok);
+  --color-line: var(--line);
+  --font-display: "Bricolage Grotesque Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Figtree Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-hand: "Caveat", cursive;
 }
+
+html { -webkit-tap-highlight-color: transparent; }
+body {
+  background: var(--paper);
+  color: var(--graphite);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+h1, h2, h3, .font-display { font-family: var(--font-display); letter-spacing: -0.01em; }
+
+:focus-visible { outline: 2px solid var(--nib); outline-offset: 2px; border-radius: 6px; }
+
+/* Notebook ruled paper, used sparingly (hero, login, empty states) */
+.ruled {
+  background-color: var(--card);
+  background-image:
+    linear-gradient(90deg, transparent 27px, var(--margin) 27px, var(--margin) 28.5px, transparent 28.5px),
+    repeating-linear-gradient(180deg, transparent 0 27px, var(--rule) 27px 28px);
+}
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { scrollbar-width: none; }
+
+/* Skeleton shimmer */
+.skeleton {
+  background: linear-gradient(90deg, var(--line) 0%, color-mix(in srgb, var(--line) 40%, var(--card)) 50%, var(--line) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.3s linear infinite;
+  border-radius: 10px;
+}
+@keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+/* Logo stroke draw */
+.ink-draw { stroke-dasharray: 1; stroke-dashoffset: 1; animation: draw 1.4s cubic-bezier(.65,0,.35,1) forwards; }
+@keyframes draw { to { stroke-dashoffset: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
+  .ink-draw { stroke-dashoffset: 0; }
+}
+
+/* We draw our own clear button in the search box */
+input[type="search"]::-webkit-search-cancel-button,
+input[type="search"]::-webkit-search-decoration { -webkit-appearance: none; appearance: none; display: none; }

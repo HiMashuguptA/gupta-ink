@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 520" role="img">
+  <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a61e4d"/><stop offset="1" stop-color="#e64980"/></linearGradient></defs>
+  <rect width="1200" height="520" fill="url(#g)"/>
+  <line x1="0" y1="28" x2="1200" y2="28" stroke="#fff" stroke-opacity=".07"/><line x1="0" y1="56" x2="1200" y2="56" stroke="#fff" stroke-opacity=".07"/><line x1="0" y1="84" x2="1200" y2="84" stroke="#fff" stroke-opacity=".07"/><line x1="0" y1="112" x2="1200" y2="112" stroke="#fff" stroke-opacity=".07"/><line x1="0" y1="140" x2="1200" y2="140" stroke="#fff" stroke-opacity=".07"/><line x1="0" y1="168" x2="1200" y2="168" stroke="#fff" stroke-opacity=".07"/><line x1="0" y1="196" x2="1200" y2="196" stroke="#fff" stroke-opacity=".07"/><line x1="0" y1="224" x2="1200" y2="224" stroke="#fff" stroke-opacity=".07"/><line x1="0" y1="252" x2="1200" y2="252" stroke="#fff" stroke-opacity=".07"/><line x1="0" y1="280" x2="1200" y2="280" stroke="#fff" stroke-opacity=".07"/><line x1="0" y1="308" x2="1200" y2="308" stroke="#fff" stroke-opacity=".07"/><line x1="0" y1="336" x2="1200" y2="336" stroke="#fff" stroke-opacity=".07"/><line x1="0" y1="364" x2="1200" y2="364" stroke="#fff" stroke-opacity=".07"/><line x1="0" y1="392" x2="1200" y2="392" stroke="#fff" stroke-opacity=".07"/><line x1="0" y1="420" x2="1200" y2="420" stroke="#fff" stroke-opacity=".07"/><line x1="0" y1="448" x2="1200" y2="448" stroke="#fff" stroke-opacity=".07"/><line x1="0" y1="476" x2="1200" y2="476" stroke="#fff" stroke-opacity=".07"/><line x1="0" y1="504" x2="1200" y2="504" stroke="#fff" stroke-opacity=".07"/>
+  <line x1="70" y1="0" x2="70" y2="520" stroke="#ff8787" stroke-opacity=".5" stroke-width="3"/>
+  <g transform="translate(610 -60) scale(1.12)">
+    <rect x="170" y="260" width="260" height="200" rx="16" fill="#ffe066"/>
+    <rect x="150" y="220" width="300" height="60" rx="14" fill="rgb(217,190,87)"/>
+    <rect x="285" y="220" width="30" height="240" fill="#e9a23b"/>
+    <path d="M300 220 c-60 -70 -110 -20 -60 0z M300 220 c60 -70 110 -20 60 0z" fill="#e9a23b"/></g>
+</svg>

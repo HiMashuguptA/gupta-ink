@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" role="img">
+  <rect width="600" height="600" rx="48" fill="rgb(251,228,228)"/>
+  <ellipse cx="300" cy="520" rx="180" ry="22" fill="rgb(112,25,25)" opacity=".10"/>
+  
+    <rect x="175" y="130" width="270" height="350" rx="16" fill="#e03131"/>
+    <path d="M160 160 q22 -14 34 0" stroke="#5b6170" stroke-width="7" fill="none" stroke-linecap="round"/><path d="M160 200 q22 -14 34 0" stroke="#5b6170" stroke-width="7" fill="none" stroke-linecap="round"/><path d="M160 240 q22 -14 34 0" stroke="#5b6170" stroke-width="7" fill="none" stroke-linecap="round"/><path d="M160 280 q22 -14 34 0" stroke="#5b6170" stroke-width="7" fill="none" stroke-linecap="round"/><path d="M160 320 q22 -14 34 0" stroke="#5b6170" stroke-width="7" fill="none" stroke-linecap="round"/><path d="M160 360 q22 -14 34 0" stroke="#5b6170" stroke-width="7" fill="none" stroke-linecap="round"/><path d="M160 400 q22 -14 34 0" stroke="#5b6170" stroke-width="7" fill="none" stroke-linecap="round"/><path d="M160 440 q22 -14 34 0" stroke="#5b6170" stroke-width="7" fill="none" stroke-linecap="round"/>
+    <rect x="235" y="180" width="160" height="10" rx="5" fill="#fff" opacity=".7"/>
+    <rect x="235" y="205" width="110" height="10" rx="5" fill="#fff" opacity=".7"/>
+</svg>

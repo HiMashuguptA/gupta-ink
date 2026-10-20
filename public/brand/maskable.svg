@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-8 -8 80 80" role="img" aria-label="Gupta Ink">
+  <defs>
+    <linearGradient id="t" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#33409a"/><stop offset="1" stop-color="#141c4d"/></linearGradient>
+    <linearGradient id="n" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffd98c"/><stop offset=".55" stop-color="#e9a23b"/><stop offset="1" stop-color="#b9741c"/></linearGradient>
+    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+  </defs>
+  
+  <rect width="64" height="64" fill="url(#t)"/>
+  <path d="M2 18 a16 16 0 0 1 16 -16 h28 a16 16 0 0 1 16 16 v6 c-16 6 -44 6 -60 0z" fill="url(#g)"/>
+  <path d="M45.5 19.5 A15.5 15.5 0 1 0 47.5 35 H42" fill="none" stroke="#0c1236" stroke-opacity=".45" stroke-width="6.5" stroke-linecap="round" transform="translate(0 1.6)"/>
+  <path d="M45.5 19.5 A15.5 15.5 0 1 0 47.5 35 H42" fill="none" stroke="#f6f7fb" stroke-width="6.5" stroke-linecap="round"/>
+  <path d="M25 35 L38 28 Q47 35 38 42 Z" fill="url(#n)"/>
+  <path d="M25.8 35 H37" stroke="#141c4d" stroke-width="1.1" stroke-linecap="round"/>
+  <circle cx="38.4" cy="35" r="1.8" fill="#141c4d"/>
+  <path d="M31.5 31.2 l4.5 -2" stroke="#fff" stroke-opacity=".7" stroke-width="1" stroke-linecap="round"/>
+</svg>

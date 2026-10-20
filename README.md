@@ -1,36 +1,57 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Gupta Ink
 
-## Getting Started
+Quick-commerce stationery app for Gupta Enterprises, Khedi Market, Kohima.
+Next.js 15 + Supabase (free tier). Customer app, admin panel and delivery agent portal in one codebase.
 
-First, run the development server:
+## Run it locally
+
+You need Node.js 20 or newer.
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000. The `.env.local` file already points at the GuptaEnterprises Supabase project, and the dummy catalogue (35 products, 48 variants, 10 categories, 3 coupons) is loaded.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## One-time setup: Google sign-in
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Sign-in won't work until Google is switched on in Supabase (about 10 minutes, free):
 
-## Learn More
+1. In Google Cloud Console, create a project, then **APIs & Services > Credentials > Create credentials > OAuth client ID**, type **Web application**.
+2. Under **Authorised redirect URIs** add: `https://tctsibxbatywwzqoaweu.supabase.co/auth/v1/callback`
+3. Copy the Client ID and Client secret.
+4. In the Supabase dashboard: **Authentication > Sign In / Providers > Google**, turn it on and paste both values.
+5. In **Authentication > URL Configuration**, set Site URL to `http://localhost:3000` and add `http://localhost:3000/auth/callback` to Redirect URLs. Add your real domain the same way when you launch.
 
-To learn more about Next.js, take a look at the following resources:
+The first time premiumservice9366@gmail.com signs in, it becomes admin automatically.
+To make the delivery agent: they sign in once, then the admin opens **Account > Open admin panel > Users and roles** and sets their role to "Delivery agent".
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## What's built (Phases 0 and 1)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- **Database:** 29 tables with Row Level Security on every one, a sign-up trigger (owner email becomes admin, referral code, wallet), protected owner account, rate limits, audit log, realtime, and five storage buckets (images only, 5 MB max).
+- **Brand:** Gupta Ink logo (a "G" written as one pen stroke ending in a gold nib), animated version, PWA icons.
+- **Customer app:** animated Google sign-in page, 5-second welcome film for new users, referral sheet, location prompt with map pin and 15 km check, home page with admin-controlled carousel and sections, typo-tolerant search with live suggestions, category listings with filters and sorting, product pages with linked variants, cart with fly-to-cart animation, wishlist, account, notifications (live), store-hours notices, skeleton loading.
+- **Admin:** overview (SKUs, low stock, most-searched terms) and users and roles.
+- **Policies:** privacy, terms, delivery, cancellation and returns pages.
 
-## Deploy on Vercel
+## Next phases
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+2. Checkout: addresses, road-distance check (OSRM), quick/scheduled/pickup, slots, coupons, SuperCoins, fines, COD and YouPI UPI, live order status.
+3. Delivery agent portal: accept, live location, emailed delivery OTP.
+4. Returns and refunds, SuperCoin crediting and expiry, referral rewards, reviews, coupon builder.
+5. Admin dashboards and charts, product and carousel editors, spend analysis.
+6. Security tests, deployment to Cloudflare and your domain.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Project layout
+
+- `src/app/(shop)` customer pages, `src/app/admin` admin, `src/app/agent` agent portal
+- `src/components` UI, `src/lib` data access, `src/content/policies.ts` policy text
+- `supabase/migrations` database schema (applied to the live project), `supabase/seed.sql` dummy catalogue
+- `scripts/generate-catalog.mjs` regenerates the dummy product illustrations and seed data
+
+## Notes
+
+- The Supabase project is in the Sydney region, not Mumbai. The privacy policy says so. Moving to Mumbai means creating a new project and re-running the migrations.
+- Reset the database password in Supabase (Project Settings > Database), since it was shared in chat. The app doesn't use it.
+- Never put the service-role key in a `NEXT_PUBLIC_` variable.

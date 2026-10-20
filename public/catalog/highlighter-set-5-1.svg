@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" role="img">
+  <rect width="600" height="600" rx="48" fill="rgb(254,243,222)"/>
+  <ellipse cx="300" cy="520" rx="180" ry="22" fill="rgb(123,80,0)" opacity=".10"/>
+  
+    <g transform="translate(-124 0)">
+      <rect x="282" y="160" width="38" height="250" rx="12" fill="#ffd84a"/>
+      <rect x="282" y="160" width="38" height="70" rx="12" fill="rgb(209,177,61)"/>
+      <path d="M286 410 h30 l-4 34 h-22 z" fill="rgb(179,151,52)"/></g><g transform="translate(-62 0)">
+      <rect x="282" y="160" width="38" height="250" rx="12" fill="#7fe08a"/>
+      <rect x="282" y="160" width="38" height="70" rx="12" fill="rgb(104,184,113)"/>
+      <path d="M286 410 h30 l-4 34 h-22 z" fill="rgb(89,157,97)"/></g><g transform="translate(0 0)">
+      <rect x="282" y="160" width="38" height="250" rx="12" fill="#ff8fb1"/>
+      <rect x="282" y="160" width="38" height="70" rx="12" fill="rgb(209,117,145)"/>
+      <path d="M286 410 h30 l-4 34 h-22 z" fill="rgb(179,100,124)"/></g><g transform="translate(62 0)">
+      <rect x="282" y="160" width="38" height="250" rx="12" fill="#7cc8ff"/>
+      <rect x="282" y="160" width="38" height="70" rx="12" fill="rgb(102,164,209)"/>
+      <path d="M286 410 h30 l-4 34 h-22 z" fill="rgb(87,140,179)"/></g><g transform="translate(124 0)">
+      <rect x="282" y="160" width="38" height="250" rx="12" fill="#ffad5c"/>
+      <rect x="282" y="160" width="38" height="70" rx="12" fill="rgb(209,142,75)"/>
+      <path d="M286 410 h30 l-4 34 h-22 z" fill="rgb(179,121,64)"/></g>
+</svg>

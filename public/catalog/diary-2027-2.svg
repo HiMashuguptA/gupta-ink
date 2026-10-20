@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" role="img">
+  <rect width="600" height="600" rx="48" fill="rgb(239,228,232)"/>
+  <ellipse cx="300" cy="520" rx="180" ry="22" fill="rgb(67,23,38)" opacity=".10"/>
+  
+    <rect x="175" y="110" width="250" height="380" rx="20" fill="#862e4b"/>
+    <rect x="395" y="110" width="30" height="380" rx="10" fill="rgb(101,35,56)"/>
+    <rect x="330" y="90" width="18" height="140" rx="4" fill="#e9a23b"/>
+    <text x="275" y="300" text-anchor="middle" font-family="Georgia, serif" font-size="58" font-weight="700" fill="#fff" opacity=".9">2027</text>
+</svg>
