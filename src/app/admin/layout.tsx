@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getSessionProfile } from "@/lib/supabase/server";
 import { Logo } from "@/components/brand/Logo";
 import { AdminLive } from "./AdminLive";
+import { LiveRefresh } from "@/components/live/LiveRefresh";
 
 export const metadata = { title: { default: "Admin", template: "%s | Gupta Ink admin" } };
 
@@ -37,6 +38,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       </aside>
       <main className="min-w-0 p-4 md:p-8">{children}</main>
       <AdminLive userId={user.id} />
+      {/* Any admin page re-renders itself when orders, payments, returns, reviews or stock change */}
+      <LiveRefresh id="admin" waitMs={900} watch={[{ table: "orders" }, { table: "payments" }, { table: "returns" }, { table: "reviews" }, { table: "products", event: "UPDATE" }]} />
     </div>
   );
 }

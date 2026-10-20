@@ -1,4 +1,5 @@
 "use client";
+import { refreshCatalog } from "@/app/actions/admin";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase/client";
@@ -19,6 +20,7 @@ export function ReturnActions({ ret, isPickupOrder, agents }: { ret: ReturnRow; 
     setBusy(false);
     if (error) return setMsg({ ok: false, text: error.message });
     setMsg({ ok: true, text: ok });
+    void refreshCatalog(); // restocked items show in the shop again
     router.refresh();
   };
   const reject = () => {

@@ -89,6 +89,13 @@ That's all. The database sends the email itself, so the key never touches the we
 
 Until YouPI is installed on the store PC, customers pay your UPI ID (himanshugupta123456@ybl) by scanning the QR code or tapping "Open UPI app", with the order number as the note. They then enter the 12-digit UTR. The order shows under **Awaiting UPI** or **Needs action** on the admin board; check your bank app, then press **Payment received, confirm order**. Phase 6 replaces this with YouPI's automatic confirmation.
 
+## Live updates and speed
+
+- Screens update by themselves: the admin panel (orders, payments, returns, reviews, stock), the customer's orders, order page, coins, spending and the notification bell, the delivery partner's jobs, and product pages (new reviews, stock). If the live connection drops, pages re-check when you come back to the tab and every 45 seconds.
+- The shop catalogue is cached for speed and refreshed the moment an admin edits something, an order is placed or cancelled, items are restocked, or a review is added or hidden.
+- Each page makes one database call to identify the signed-in person (no separate call to the sign-in server).
+- Ordering empties the cart in the database in the same step as the order, so it stays empty on every device.
+
 ## Notes
 
 - Road distance uses the free public OSRM server (`OSRM_URL`). If it's down, the app falls back to straight-line distance × 1.4 and marks it approximate. The result is signed with `DISTANCE_SIGNING_KEY`, which must match the `distance_hmac` secret in Supabase Vault, so customers can't fake their distance.

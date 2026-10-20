@@ -1,4 +1,5 @@
 "use client";
+import { reviewsChanged } from "@/app/actions/admin";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
@@ -11,7 +12,7 @@ export function HideReviewButton({ id, hidden }: { id: string; hidden: boolean }
     setBusy(true);
     const { error } = await supabaseBrowser().rpc("admin_hide_review", { p_review: id, p_hidden: !hidden });
     setBusy(false);
-    if (!error) router.refresh();
+    if (!error) { void reviewsChanged(); router.refresh(); }
   };
   return (
     <button onClick={flip} disabled={busy} className="inline-flex h-9 items-center gap-1.5 rounded-full border border-line px-3 text-sm font-semibold disabled:opacity-50">

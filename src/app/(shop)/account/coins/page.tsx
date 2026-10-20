@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import clsx from "clsx";
 import { ChevronLeft, Coins, Clock, Gift, ShoppingBag, Hourglass } from "lucide-react";
 import { getSessionProfile } from "@/lib/supabase/server";
+import { LiveRefresh } from "@/components/live/LiveRefresh";
 import { getSettings } from "@/lib/catalog";
 import { ReferralCard } from "@/components/account/ReferralCard";
 
@@ -36,6 +37,7 @@ export default async function CoinsPage() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 pt-4 pb-8">
+      <LiveRefresh at={Date.now()} id={`acct-coins-${user.id}`} watch={[{ table: "coin_ledger", filter: `user_id=eq.${user.id}` }, { table: "wallets", filter: `user_id=eq.${user.id}` }, { table: "referrals" }, { table: "orders", filter: `user_id=eq.${user.id}` }]} />
       <div className="flex items-center gap-2">
         <Link href="/account" className="grid size-9 place-items-center rounded-full hover:bg-ink-soft" aria-label="Account"><ChevronLeft className="size-5" /></Link>
         <h1 className="text-2xl font-extrabold">SuperCoins</h1>

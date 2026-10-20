@@ -1,6 +1,7 @@
 "use client";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { supabaseBrowser } from "@/lib/supabase/client";
+import { useLive } from "@/lib/live";
 import { useSession } from "./SessionProvider";
 import type { ProductCard } from "@/lib/types";
 
@@ -51,6 +52,10 @@ function readLocal(): CartLine[] {
   }
 }
 
+function writeLocal(lines: CartLine[]) {
+  try { localStorage.setItem(KEY, JSON.stringify(lines)); } catch { /* storage unavailable */ }
+}
+
 function lineFrom(p: ProductCard, qty: number): CartLine {
   return {
     product_id: p.id, qty, name: p.name, slug: p.slug, variant_label: p.variant_label,
@@ -75,8 +80,15 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   // Persist on this device
   useEffect(() => {
     if (!loaded.current) return;
-    try { localStorage.setItem(KEY, JSON.stringify(lines)); } catch { /* storage unavailable */ }
+    writeLocal(lines);
   }, [lines]);
+
+  // Another tab on this device changed the cart
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => { if (e.key === KEY) setLines(readLocal()); };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
 
   // On sign-in: merge the server cart with this device's cart
   useEffect(() => {
@@ -115,10 +127,34 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   // (React runs state-updater functions later, so they can't return a result).
   const linesRef = useRef<CartLine[]>([]);
   linesRef.current = lines;
+  const lastLocal = useRef(0);
   const commit = useCallback((next: CartLine[]) => {
     linesRef.current = next;
+    lastLocal.current = Date.now();
     setLines(next);
   }, []);
+
+  // Signed in: the saved cart is the source of truth across devices. When it changes
+  // elsewhere (another phone, or an order emptying it), take the server's version,
+  // unless this screen changed the cart a moment ago and its own save is still landing.
+  const pullServer = useCallback(async () => {
+    if (!user) return;
+    if (Date.now() - lastLocal.current < 2500) return;
+    const { data: server } = await sb.from("cart_items").select("product_id, qty").eq("user_id", user.id);
+    const rows = server ?? [];
+    if (Date.now() - lastLocal.current < 2500) return;
+    const ids = rows.map((r) => r.product_id);
+    const { data: products } = ids.length ? await sb.from("product_cards").select("*").in("id", ids) : { data: [] };
+    const next: CartLine[] = [];
+    for (const r of rows) {
+      const p = (products ?? [] as ProductCard[]).find((x) => (x as ProductCard).id === r.product_id) as ProductCard | undefined;
+      if (p) next.push(lineFrom(p, Math.min(r.qty, Math.max(1, capFor(p)))));
+    }
+    const same = next.length === linesRef.current.length && next.every((n) => linesRef.current.some((l) => l.product_id === n.product_id && l.qty === n.qty));
+    if (!same) { linesRef.current = next; setLines(next); }
+  }, [user, sb]);
+  useLive(`cart-${user?.id ?? "guest"}`, user ? [{ table: "cart_items", filter: `user_id=eq.${user.id}` }] : [], () => void pullServer(),
+    { enabled: !!user, waitMs: 800 });
 
   const add = useCallback(
     (p: ProductCard, qty = 1) => {
@@ -149,9 +185,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const remove = useCallback((id: string) => setQty(id, 0), [setQty]);
   const clear = useCallback(() => {
-    setLines([]);
+    commit([]);
+    writeLocal([]); // before any navigation, so a reload can't bring it back
     if (user) void sb.from("cart_items").delete().eq("user_id", user.id);
-  }, [user, sb]);
+  }, [user, sb, commit]);
 
   // Refresh prices and stock from the server (prices shown in cart are always current)
   const refreshPrices = useCallback(async () => {

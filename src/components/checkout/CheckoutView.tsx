@@ -1,4 +1,5 @@
 "use client";
+import { catalogChanged } from "@/app/actions/admin";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -122,6 +123,7 @@ export function CheckoutView({ addresses: initialAddresses, slots, coupons, radi
     }
     const r = data as { order_id: string };
     clear();
+    void catalogChanged(); // stock moved
     startNav();
     router.replace(`/orders/${r.order_id}?placed=1`);
   }, [quote, blocking, method, sb, payload, note, toast, clear, router]);

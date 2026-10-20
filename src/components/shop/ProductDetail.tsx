@@ -1,7 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
 import { Star, RotateCcw, Truck, Store, ShieldCheck } from "lucide-react";
 import clsx from "clsx";
 import { rupees } from "@/lib/format";
@@ -10,6 +9,7 @@ import { useSession } from "@/components/providers/SessionProvider";
 import type { GroupCard } from "@/lib/types";
 import { AddButton } from "./AddButton";
 import { WishlistHeart } from "./WishlistHeart";
+import { ProductGallery } from "./ProductGallery";
 
 export function ProductDetail({ card, description, returnable }: { card: GroupCard; description: string | null; returnable: boolean }) {
   const params = useSearchParams();
@@ -33,15 +33,10 @@ export function ProductDetail({ card, description, returnable }: { card: GroupCa
   return (
     <div className="grid gap-6 md:grid-cols-2 md:gap-10">
       <div data-product-card className="relative">
-        <div className="relative aspect-square overflow-hidden rounded-3xl border border-line bg-card">
-          <AnimatePresence mode="wait">
-            <motion.img key={v.id} src={v.images[0] ?? "/brand/logo.svg"} alt={`${card.name}${v.variant_label ? `, ${v.variant_label}` : ""}`}
-              initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}
-              className="size-full object-cover" />
-          </AnimatePresence>
-          {v.discount_pct >= 5 && <span className="absolute left-3 top-3 rounded-lg bg-margin px-2 py-1 text-xs font-bold text-white">{v.discount_pct}% off</span>}
+        <ProductGallery images={v.images} alt={`${card.name}${v.variant_label ? `, ${v.variant_label}` : ""}`} resetKey={v.id}>
+          {v.discount_pct >= 5 && <span className="pointer-events-none absolute left-3 top-3 rounded-lg bg-margin px-2 py-1 text-xs font-bold text-white">{v.discount_pct}% off</span>}
           <WishlistHeart productId={v.id} className="absolute right-3 top-3 size-10" />
-        </div>
+        </ProductGallery>
       </div>
 
       <div>

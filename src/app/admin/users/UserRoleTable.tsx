@@ -1,4 +1,5 @@
 "use client";
+import { useSynced } from "@/lib/live";
 import { useMemo, useState } from "react";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import type { Role } from "@/lib/types";
@@ -8,7 +9,7 @@ const LABELS: Record<Role, string> = { customer: "Customer", admin: "Admin", del
 const OWNER = "premiumservice9366@gmail.com";
 
 export function UserRoleTable({ users: initial, me }: { users: U[]; me: string }) {
-  const [users, setUsers] = useState(initial);
+  const [users, setUsers] = useSynced(initial);
   const [q, setQ] = useState("");
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const shown = useMemo(() => {

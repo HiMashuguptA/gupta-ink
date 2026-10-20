@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ChevronLeft, MapPin, Phone, Mail } from "lucide-react";
 import clsx from "clsx";
 import { getSessionProfile } from "@/lib/supabase/server";
+import { productLinks } from "@/lib/catalog";
 import { rupees } from "@/lib/format";
 import { STATUS_LABEL, statusTone, when, type OrderRow } from "@/lib/orders";
 import { AdminOrderActions } from "./AdminOrderActions";
@@ -17,12 +18,13 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
   if (!order) notFound();
   const o = order as unknown as OrderRow;
   const [items, events, payment, customer, agents] = await Promise.all([
-    supabase.from("order_items").select("id, name, variant_label, image_url, price_paise, qty, hsn, gst_rate").eq("order_id", id),
+    supabase.from("order_items").select("id, product_id, name, variant_label, image_url, price_paise, qty, hsn, gst_rate").eq("order_id", id),
     supabase.from("order_events").select("id, status, note, created_at").eq("order_id", id).order("created_at"),
     supabase.from("payments").select("utr, status, method, amount_paise").eq("order_id", id).maybeSingle(),
     supabase.from("profiles").select("name, email, phone").eq("id", o.user_id).single(),
     supabase.from("profiles").select("id, name, phone, agent_online").eq("role", "delivery_agent").order("name"),
   ]);
+  const links = await productLinks((items.data ?? []).map((i) => i.product_id));
 
   return (
     <div className="max-w-5xl">
@@ -41,7 +43,7 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
                 <li key={it.id} className="flex items-center gap-3 p-3">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={it.image_url ?? "/brand/logo.svg"} alt="" className="size-12 rounded-lg" />
-                  <div className="min-w-0 flex-1 text-sm"><p className="font-semibold">{it.name}</p><p className="text-muted">{it.variant_label} × <b className="text-graphite">{it.qty}</b></p></div>
+                  <div className="min-w-0 flex-1 text-sm"><p className="font-semibold">{links[it.product_id] ? <Link href={links[it.product_id]} target="_blank" className="text-ink hover:underline">{it.name}</Link> : it.name}</p><p className="text-muted">{it.variant_label} × <b className="text-graphite">{it.qty}</b></p></div>
                   <p className="text-sm font-semibold">{rupees(it.price_paise * it.qty)}</p>
                 </li>
               ))}

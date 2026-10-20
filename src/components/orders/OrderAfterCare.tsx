@@ -1,5 +1,8 @@
 "use client";
 import { useState } from "react";
+import Link from "next/link";
+import { useSynced } from "@/lib/live";
+import { storageUrl } from "@/lib/format";
 import { useRouter } from "next/navigation";
 import clsx from "clsx";
 import { RotateCcw, Star, ReceiptText, ExternalLink } from "lucide-react";
@@ -13,13 +16,13 @@ export type ReturnWithProof = ReturnRow & { proof_url: string | null };
 
 const day = (t: string) => new Date(t).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
 
-export function OrderAfterCare({ order, items, returns, reviews: initialReviews, cancelProofUrl }: {
-  order: OrderRow; items: OrderItem[]; returns: ReturnWithProof[]; reviews: MyReview[]; cancelProofUrl: string | null;
+export function OrderAfterCare({ order, items, returns, reviews: initialReviews, cancelProofUrl, links }: {
+  order: OrderRow; items: OrderItem[]; returns: ReturnWithProof[]; reviews: MyReview[]; cancelProofUrl: string | null; links: Record<string, string>;
 }) {
   const router = useRouter();
   const [returnOpen, setReturnOpen] = useState(false);
   const [reviewing, setReviewing] = useState<OrderItem | null>(null);
-  const [reviews, setReviews] = useState(initialReviews);
+  const [reviews, setReviews] = useSynced(initialReviews);
   const done = ["delivered", "collected", "completed"].includes(order.status);
   const windowOpen = done && !!order.return_window_ends_at && new Date(order.return_window_ends_at).getTime() > Date.now();
 
@@ -42,13 +45,41 @@ export function OrderAfterCare({ order, items, returns, reviews: initialReviews,
             {items.map((it) => {
               const r = reviews.find((x) => x.order_item_id === it.id);
               return (
-                <li key={it.id} className="flex items-center gap-3 py-2.5">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={it.image_url ?? "/brand/logo.svg"} alt="" className="size-10 rounded-lg" />
-                  <p className="min-w-0 flex-1 truncate text-sm font-semibold">{it.name}</p>
-                  <button onClick={() => setReviewing(it)} className="flex items-center gap-0.5 rounded-full px-2 py-1 hover:bg-ink-soft" aria-label={r ? `Edit your ${r.stars}-star review of ${it.name}` : `Rate ${it.name}`}>
-                    {[1, 2, 3, 4, 5].map((n) => <Star key={n} className={clsx("size-5", r && n <= r.stars ? "fill-nib text-nib" : "text-line")} />)}
-                  </button>
+                <li key={it.id} className="py-2.5">
+                  <div className="flex items-center gap-3">
+                    {links[it.product_id] ? (
+                      <Link href={links[it.product_id]} className="flex min-w-0 flex-1 items-center gap-3" aria-label={`Open ${it.name}`}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={it.image_url ?? "/brand/logo.svg"} alt="" className="size-10 rounded-lg" />
+                        <span className="min-w-0 flex-1 truncate text-sm font-semibold text-ink">{it.name}</span>
+                      </Link>
+                    ) : (
+                      <span className="flex min-w-0 flex-1 items-center gap-3">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={it.image_url ?? "/brand/logo.svg"} alt="" className="size-10 rounded-lg" />
+                        <span className="min-w-0 flex-1 truncate text-sm font-semibold">{it.name}</span>
+                      </span>
+                    )}
+                    <button onClick={() => setReviewing(it)} className="flex items-center gap-0.5 rounded-full px-2 py-1 hover:bg-ink-soft" aria-label={r ? `Edit your ${r.stars}-star review of ${it.name}` : `Rate ${it.name}`}>
+                      {[1, 2, 3, 4, 5].map((n) => <Star key={n} className={clsx("size-5", r && n <= r.stars ? "fill-nib text-nib" : "text-line")} />)}
+                    </button>
+                  </div>
+                  {r && (r.comment || r.photos.length > 0) && (
+                    <div className="ml-[52px] mt-1.5 text-sm">
+                      {r.comment && <p className="text-muted">&ldquo;{r.comment}&rdquo;</p>}
+                      {r.photos.length > 0 && (
+                        <div className="mt-1.5 flex gap-1.5">
+                          {r.photos.map((ph) => (
+                            <a key={ph} href={storageUrl("reviews", ph)} target="_blank" rel="noopener noreferrer">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={storageUrl("reviews", ph)} alt="Your review photo" className="size-12 rounded-lg object-cover" />
+                            </a>
+                          ))}
+                        </div>
+                      )}
+                      <button onClick={() => setReviewing(it)} className="mt-1 text-xs font-semibold text-ink">Edit review</button>
+                    </div>
+                  )}
                 </li>
               );
             })}

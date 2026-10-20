@@ -1,13 +1,14 @@
 "use client";
+import { useSynced } from "@/lib/live";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabaseBrowser } from "@/lib/supabase/client";
 
 type N = { id: string; type: string; title: string; body: string | null; link: string | null; read_at: string | null; created_at: string };
 
 export function NotificationList({ initial, userId }: { initial: N[]; userId: string }) {
-  const [items, setItems] = useState(initial);
+  const [items, setItems] = useSynced(initial);
   const sb = supabaseBrowser();
 
   useEffect(() => {
@@ -18,7 +19,7 @@ export function NotificationList({ initial, userId }: { initial: N[]; userId: st
         (p) => setItems((all) => [p.new as N, ...all]))
       .subscribe();
     return () => { void sb.removeChannel(ch); };
-  }, [sb, userId, initial]);
+  }, [sb, userId, initial, setItems]);
 
   if (!items.length) {
     return (

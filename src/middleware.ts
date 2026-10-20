@@ -21,9 +21,11 @@ export async function middleware(req: NextRequest) {
     },
   );
 
-  // Refreshes the session cookie when needed and verifies the token locally (no auth-server round trip)
-  const { data } = await supabase.auth.getClaims();
-  const user = data?.claims?.sub ? { id: data.claims.sub } : null;
+  // Refreshes the session cookie when it's about to expire. Reading it needs no network call.
+  // This only decides whether to send someone to the sign-in page; every page and the
+  // database verify the sign-in properly before showing or changing anything.
+  const { data } = await supabase.auth.getSession();
+  const user = data.session ? true : null; // presence only; don't trust the unverified contents here
   const path = req.nextUrl.pathname;
 
   if (!user && PROTECTED.some((p) => path === p || path.startsWith(p + "/"))) {

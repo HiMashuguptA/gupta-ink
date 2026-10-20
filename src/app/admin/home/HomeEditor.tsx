@@ -1,4 +1,5 @@
 "use client";
+import { useSynced } from "@/lib/live";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import clsx from "clsx";
@@ -28,8 +29,8 @@ export function HomeEditor({ banners: initialBanners, sections: initialSections,
 }) {
   const sb = supabaseBrowser();
   const router = useRouter();
-  const [banners, setBanners] = useState(initialBanners);
-  const [sections, setSections] = useState(initialSections);
+  const [banners, setBanners] = useSynced(initialBanners);
+  const [sections, setSections] = useSynced(initialSections);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);

@@ -13,8 +13,11 @@ export function SessionProvider({ initialUser, initialProfile, children }: { ini
   const [profile, setProfile] = useState(initialProfile);
   const sb = supabaseBrowser();
 
+  // Reads the session saved in this browser (no network call); the server and the
+  // database still verify the sign-in on every request that matters.
   const refresh = useCallback(async () => {
-    const { data: { user: u } } = await sb.auth.getUser();
+    const { data: { session } } = await sb.auth.getSession();
+    const u = session?.user;
     const user = u ? { id: u.id, email: u.email ?? null } : null;
     setUser(user);
     if (!user) return setProfile(null);
@@ -27,11 +30,14 @@ export function SessionProvider({ initialUser, initialProfile, children }: { ini
   }, [sb]);
 
   useEffect(() => {
-    const { data: sub } = sb.auth.onAuthStateChange((event) => {
-      if (event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "USER_UPDATED") void refresh();
+    // The library re-announces SIGNED_IN whenever the tab regains focus; only act on real changes.
+    let current = initialUser?.id ?? null;
+    const { data: sub } = sb.auth.onAuthStateChange((event, session) => {
+      const id = session?.user?.id ?? null;
+      if (event === "USER_UPDATED" || id !== current) { current = id; void refresh(); }
     });
     return () => sub.subscription.unsubscribe();
-  }, [sb, refresh]);
+  }, [sb, refresh, initialUser?.id]);
 
   const signOut = useCallback(async () => {
     await sb.auth.signOut();

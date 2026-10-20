@@ -1,4 +1,5 @@
 "use client";
+import { refreshCatalog } from "@/app/actions/admin";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase/client";
@@ -39,6 +40,7 @@ export function AdminOrderActions({ order, utr, agents }: { order: OrderRow; utr
     setBusy(false);
     if (error) return setMsg({ ok: false, text: error.message });
     setMsg({ ok: true, text: ok });
+    void refreshCatalog(); // cancellations put stock back
     router.refresh();
   };
 

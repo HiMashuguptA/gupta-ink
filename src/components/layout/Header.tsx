@@ -1,7 +1,8 @@
 "use client";
 import Link from "next/link";
 import { Suspense, useEffect, useState } from "react";
-import { ChevronDown, ShoppingBag, UserRound, Bell, Store } from "lucide-react";
+import { ChevronDown, ShoppingBag, UserRound, Store } from "lucide-react";
+import { NotificationBell } from "./NotificationBell";
 import { Logo } from "@/components/brand/Logo";
 import { SearchBox } from "./SearchBox";
 import { useLocation } from "@/components/providers/LocationProvider";
@@ -48,11 +49,7 @@ export function Header({ eta, deliveryOpen }: { eta: string; deliveryOpen: boole
         </button>
         <div className="hidden w-[420px] md:block"><Suspense><SearchBox id="search-desktop" /></Suspense></div>
         <nav className="flex items-center gap-1">
-          {user && (
-            <Link href="/account/notifications" className="grid size-10 place-items-center rounded-full hover:bg-ink-soft" aria-label="Notifications">
-              <Bell className="size-5 text-graphite" />
-            </Link>
-          )}
+          {user && <NotificationBell userId={user.id} />}
           <Link href="/cart" data-cart-target className="relative hidden size-10 place-items-center rounded-full hover:bg-ink-soft md:grid" aria-label={`Cart, ${count} items`}>
             <ShoppingBag className="size-5 text-graphite" />
             {count > 0 && <span className="absolute -right-0.5 -top-0.5 grid min-w-5 place-items-center rounded-full bg-nib px-1 text-[11px] font-bold text-ink-deep">{count}</span>}

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { getSessionProfile } from "@/lib/supabase/server";
+import { LiveRefresh } from "@/components/live/LiveRefresh";
 import { rupeesWhole as rupees } from "@/lib/format";
 import { ColumnChart } from "@/components/charts/ColumnChart";
 import { BarList } from "@/components/charts/BarList";
@@ -20,6 +21,7 @@ export default async function SpendingPage() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 pt-4 pb-8">
+      <LiveRefresh at={Date.now()} id={`acct-spending-${user.id}`} watch={[{ table: "orders", filter: `user_id=eq.${user.id}` }, { table: "returns", filter: `user_id=eq.${user.id}` }]} />
       <div className="flex items-center gap-2">
         <Link href="/account" className="grid size-9 place-items-center rounded-full hover:bg-ink-soft" aria-label="Account"><ChevronLeft className="size-5" /></Link>
         <h1 className="text-2xl font-extrabold">My spending</h1>

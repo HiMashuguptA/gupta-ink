@@ -1,4 +1,5 @@
 "use client";
+import { catalogChanged } from "@/app/actions/admin";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
@@ -33,6 +34,7 @@ export function CancelDialog({ open, onClose, order, onCancelled }: { open: bool
     if (error) return toast({ kind: "error", title: "Couldn't cancel", body: error.message });
     const r = data as { fine_paise: number; refund_paise: number };
     onCancelled();
+    void catalogChanged(); // stock came back
     onClose();
     toast({ kind: "ok", title: `Order ${order.order_no} cancelled`,
       body: r.fine_paise > 0 ? `A ${rupees(r.fine_paise)} fine will be added to your next order.` : r.refund_paise > 0 ? `Refund of ${rupees(r.refund_paise)} on its way.` : "No charge for this cancellation." });

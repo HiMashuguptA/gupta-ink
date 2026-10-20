@@ -4,6 +4,7 @@ import { Star } from "lucide-react";
 import { getProduct } from "@/lib/catalog";
 import { ProductDetail } from "@/components/shop/ProductDetail";
 import { Rail } from "@/components/shop/Rail";
+import { LiveRefresh } from "@/components/live/LiveRefresh";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -19,6 +20,9 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
 
   return (
     <div className="pt-4">
+      {/* New reviews and stock changes show without reloading */}
+      <LiveRefresh at={Date.now()} id={`product-${p.card.group_id}`} waitMs={1500}
+        watch={[{ table: "reviews", filter: `group_id=eq.${p.card.group_id}` }, { table: "products", filter: `group_id=eq.${p.card.group_id}` }]} />
       <div className="px-4">
         <Suspense>
           <ProductDetail card={p.card} description={p.description} returnable={p.card.returnable} />
@@ -40,7 +44,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                 {r.photos.length > 0 && (
                   <div className="mt-2 flex gap-2">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    {r.photos.map((ph) => <img key={ph} src={ph} alt="Customer photo" className="size-16 rounded-lg object-cover" />)}
+                    {r.photos.map((ph) => <a key={ph} href={ph} target="_blank" rel="noopener noreferrer"><img src={ph} alt="Customer photo" className="size-16 rounded-lg object-cover hover:opacity-90" /></a>)}
                   </div>
                 )}
                 <p className="mt-2 text-xs text-muted">{r.reviewer_name ? `${r.reviewer_name} · ` : ""}Verified purchase · {new Date(r.created_at).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", year: "numeric" })}</p>

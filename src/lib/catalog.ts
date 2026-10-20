@@ -11,7 +11,8 @@ import type { Banner, Category, GroupCard, HomeSection, ProductCard, StoreSettin
  * so changes appear immediately. This keeps page loads to a single cache read instead
  * of several round trips to the database.
  */
-const CACHE = { revalidate: 60, tags: ["catalog"] };
+// Edits, orders and reviews refresh this cache on purpose (see app/actions/admin.ts); the timer is a backstop.
+const CACHE = { revalidate: 300, tags: ["catalog"] };
 
 const allCards = unstable_cache(
   async (): Promise<ProductCard[]> => {
@@ -131,7 +132,7 @@ const reviewsFor = unstable_cache(
       .map((r) => ({ ...r, photos: r.photos.map((ph) => storageUrl("reviews", ph)) }));
   },
   ["reviews-v2"],
-  { revalidate: 60, tags: ["catalog", "reviews"] },
+  { revalidate: 300, tags: ["catalog", "reviews"] },
 );
 
 export async function getProduct(slug: string) {
@@ -175,4 +176,13 @@ export async function searchCatalog(q: string) {
   // Search terms are logged for signed-in shoppers only (rate limited on the server)
   if (session.user) await session.supabase.rpc("log_search", { p_term: term, p_results: matches.length });
   return { matches, related };
+}
+
+/** Shop links for ordered items (from the cached catalogue; items no longer on sale get none). */
+export async function productLinks(ids: string[]): Promise<Record<string, string>> {
+  if (!ids.length) return {};
+  const want = new Set(ids);
+  const links: Record<string, string> = {};
+  for (const c of await allCards()) if (want.has(c.id)) links[c.id] = `/p/${c.slug}?v=${c.id}`;
+  return links;
 }

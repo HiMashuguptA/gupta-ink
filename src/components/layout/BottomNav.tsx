@@ -23,7 +23,7 @@ export function BottomNav() {
           const on = href === "/" ? path === "/" : path.startsWith(href);
           return (
             <li key={href}>
-              <Link href={href} className={clsx("flex flex-col items-center gap-0.5 py-2 text-[11px] font-semibold", on ? "text-ink" : "text-muted")} aria-current={on ? "page" : undefined}>
+              <Link href={href} prefetch className={clsx("flex flex-col items-center gap-0.5 py-2 text-[11px] font-semibold", on ? "text-ink" : "text-muted")} aria-current={on ? "page" : undefined}>
                 <span className="relative" {...(cart ? { "data-cart-target": "" } : {})}>
                   <Icon className={clsx("size-[22px]", on && "stroke-[2.4]")} />
                   {cart && count > 0 && (

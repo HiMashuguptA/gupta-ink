@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import clsx from "clsx";
 import { ChevronLeft, Phone, Mail, MapPin } from "lucide-react";
 import { getSessionProfile } from "@/lib/supabase/server";
+import { productLinks } from "@/lib/catalog";
 import { rupees } from "@/lib/format";
 import { RETURN_LABEL, returnTone, type ReturnRow } from "@/lib/returns";
 import { ReturnActions } from "./ReturnActions";
@@ -24,6 +25,9 @@ export default async function AdminReturn({ params }: { params: Promise<{ id: st
     r.refund_proof_path ? supabase.storage.from("refund-proofs").createSignedUrl(r.refund_proof_path, 3600) : Promise.resolve({ data: null }),
   ]);
   const a = r.pickup_address;
+  const { data: oi } = await supabase.from("order_items").select("id, product_id").in("id", r.items.map((i) => i.order_item_id));
+  const byProduct = await productLinks((oi ?? []).map((x) => x.product_id));
+  const itemLinks: Record<string, string> = Object.fromEntries((oi ?? []).filter((x) => byProduct[x.product_id]).map((x) => [x.id, byProduct[x.product_id]]));
   const o = order.data;
 
   return (
@@ -43,7 +47,7 @@ export default async function AdminReturn({ params }: { params: Promise<{ id: st
                 <li key={it.order_item_id} className="flex items-center gap-3 p-3">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={it.image_url ?? "/brand/logo.svg"} alt="" className="size-12 rounded-lg" />
-                  <div className="min-w-0 flex-1 text-sm"><p className="font-semibold">{it.name}</p><p className="text-muted">{it.variant_label} × <b className="text-graphite">{it.qty}</b></p></div>
+                  <div className="min-w-0 flex-1 text-sm"><p className="font-semibold">{itemLinks[it.order_item_id] ? <Link href={itemLinks[it.order_item_id]} target="_blank" className="text-ink hover:underline">{it.name}</Link> : it.name}</p><p className="text-muted">{it.variant_label} × <b className="text-graphite">{it.qty}</b></p></div>
                   <p className="text-sm font-semibold">{rupees(it.unit_refund_paise * it.qty)}</p>
                 </li>
               ))}

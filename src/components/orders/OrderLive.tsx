@@ -1,6 +1,8 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { useSynced } from "@/lib/live";
+import { BuyAgain } from "./BuyAgain";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import confetti from "canvas-confetti";
@@ -15,14 +17,14 @@ import { DeliveryTracker } from "./DeliveryTracker";
 import { OrderAfterCare, type ReturnWithProof } from "./OrderAfterCare";
 import type { MyReview } from "./ReviewDialog";
 
-export function OrderLive({ initialOrder, items, initialEvents, initialUtr, upi, storePhone, shop, returns, reviews, cancelProofUrl }: {
+export function OrderLive({ initialOrder, items, initialEvents, initialUtr, upi, storePhone, shop, returns, reviews, cancelProofUrl, links }: {
   initialOrder: OrderRow; items: OrderItem[]; initialEvents: OrderEvent[]; initialUtr: string | null;
   upi: { vpa: string; name: string }; storePhone: string; shop: { lat: number; lng: number };
-  returns: ReturnWithProof[]; reviews: MyReview[]; cancelProofUrl: string | null;
+  returns: ReturnWithProof[]; reviews: MyReview[]; cancelProofUrl: string | null; links: Record<string, string>;
 }) {
-  const [order, setOrder] = useState(initialOrder);
-  const [events, setEvents] = useState(initialEvents);
-  const [utr, setUtr] = useState(initialUtr);
+  const [order, setOrder] = useSynced(initialOrder);
+  const [events, setEvents] = useSynced(initialEvents);
+  const [utr, setUtr] = useSynced(initialUtr);
   const [cancelOpen, setCancelOpen] = useState(false);
   const params = useSearchParams();
   const router = useRouter();
@@ -38,7 +40,7 @@ export function OrderLive({ initialOrder, items, initialEvents, initialUtr, upi,
         (p) => setEvents((e) => (e.some((x) => x.id === (p.new as OrderEvent).id) ? e : [...e, p.new as OrderEvent])))
       .subscribe();
     return () => { void sb.removeChannel(ch); };
-  }, [sb, order.id]);
+  }, [sb, order.id, setOrder, setEvents]);
 
   // Order placed: one celebration, then tidy the URL
   useEffect(() => {
@@ -152,16 +154,25 @@ export function OrderLive({ initialOrder, items, initialEvents, initialUtr, upi,
         </section>
       )}
 
-      <OrderAfterCare order={order} items={items} returns={returns} reviews={reviews} cancelProofUrl={cancelProofUrl} />
+      <OrderAfterCare order={order} items={items} returns={returns} reviews={reviews} cancelProofUrl={cancelProofUrl} links={links} />
 
       <section className="mt-4 rounded-2xl border border-line bg-card" aria-label="Items">
         <ul className="divide-y divide-line">
           {items.map((it) => (
-            <li key={it.id} className="flex items-center gap-3 p-3">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={it.image_url ?? "/brand/logo.svg"} alt="" className="size-12 rounded-lg" />
-              <div className="min-w-0 flex-1 text-sm"><p className="truncate font-semibold">{it.name}</p><p className="text-muted">{it.variant_label} × {it.qty}</p></div>
-              <p className="text-sm font-semibold">{rupees(it.price_paise * it.qty)}</p>
+            <li key={it.id}>
+              {(() => {
+                const body = (
+                  <>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={it.image_url ?? "/brand/logo.svg"} alt="" className="size-12 rounded-lg" />
+                    <div className="min-w-0 flex-1 text-sm"><p className={clsx("truncate font-semibold", links[it.product_id] && "text-ink")}>{it.name}</p><p className="text-muted">{it.variant_label} × {it.qty}</p></div>
+                    <p className="text-sm font-semibold">{rupees(it.price_paise * it.qty)}</p>
+                  </>
+                );
+                return links[it.product_id]
+                  ? <Link href={links[it.product_id]} className="flex items-center gap-3 p-3 hover:bg-paper" aria-label={`Open ${it.name}`}>{body}</Link>
+                  : <div className="flex items-center gap-3 p-3">{body}</div>;
+              })()}
             </li>
           ))}
         </ul>
@@ -181,6 +192,7 @@ export function OrderLive({ initialOrder, items, initialEvents, initialUtr, upi,
 
       <div className="mt-4 flex flex-wrap gap-2 pb-6">
         <a href={`tel:+91${storePhone}`} className="inline-flex h-11 items-center gap-2 rounded-xl border border-line bg-card px-4 text-sm font-semibold"><Phone className="size-4" /> Call the store</a>
+        {["delivered", "collected", "completed", "cancelled"].includes(order.status) && <BuyAgain items={items.map((i) => ({ product_id: i.product_id, qty: i.qty }))} />}
         {CANCELLABLE.includes(order.status) && (
           <button onClick={() => setCancelOpen(true)} className="inline-flex h-11 items-center rounded-xl border border-margin/40 px-4 text-sm font-semibold text-margin">Cancel order</button>
         )}

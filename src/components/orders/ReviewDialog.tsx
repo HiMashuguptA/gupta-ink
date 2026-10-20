@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Star } from "lucide-react";
+import { Star, X } from "lucide-react";
+import { storageUrl } from "@/lib/format";
 import clsx from "clsx";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { useSession } from "@/components/providers/SessionProvider";
@@ -8,6 +9,7 @@ import { useToast } from "@/components/providers/ToastProvider";
 import { uploadPhoto } from "@/lib/upload";
 import { Sheet } from "@/components/ui/Sheet";
 import { PhotoPicker } from "./PhotoPicker";
+import { reviewsChanged } from "@/app/actions/admin";
 
 export type MyReview = { order_item_id: string; stars: number; comment: string | null; photos: string[] };
 const WORDS = ["", "Poor", "Not great", "Okay", "Good", "Love it"];
@@ -22,10 +24,11 @@ export function ReviewDialog({ item, existing, onClose, onSaved }: {
   const [hover, setHover] = useState(0);
   const [comment, setComment] = useState("");
   const [files, setFiles] = useState<File[]>([]);
+  const [kept, setKept] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    setStars(existing?.stars ?? 0); setComment(existing?.comment ?? ""); setFiles([]);
+    setStars(existing?.stars ?? 0); setComment(existing?.comment ?? ""); setFiles([]); setKept(existing?.photos ?? []);
   }, [item, existing]);
 
   const save = async () => {
@@ -33,10 +36,11 @@ export function ReviewDialog({ item, existing, onClose, onSaved }: {
     setBusy(true);
     try {
       const added = await Promise.all(files.map((f) => uploadPhoto("reviews", user.id, f)));
-      const photos = [...(existing?.photos ?? []), ...added].slice(-3);
+      const photos = [...kept, ...added].slice(0, 3);
       const { error } = await sb.rpc("submit_review", { p_item: item.id, p_stars: stars, p_comment: comment.trim() || undefined, p_photos: photos });
       if (error) throw new Error(error.message);
       onSaved({ order_item_id: item.id, stars, comment: comment.trim() || null, photos });
+      void reviewsChanged(); // product page and rating show it straight away
       toast({ kind: "ok", title: "Thanks for the review!" });
       onClose();
     } catch (e) {
@@ -67,7 +71,19 @@ export function ReviewDialog({ item, existing, onClose, onSaved }: {
           </div>
           <textarea value={comment} onChange={(e) => setComment(e.target.value.slice(0, 1000))} rows={3} placeholder="What did you like or dislike? (optional)"
             className="w-full rounded-xl border border-line bg-paper p-3 text-sm outline-none focus:border-ink" aria-label="Review" />
-          <PhotoPicker files={files} onChange={setFiles} max={Math.max(0, 3 - (existing?.photos.length ?? 0))} label="Photos (optional, up to 3)" />
+          {kept.length > 0 && (
+            <div className="flex gap-2">
+              {kept.map((ph) => (
+                <div key={ph} className="relative">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={storageUrl("reviews", ph)} alt="Saved photo" className="size-20 rounded-xl object-cover" />
+                  <button type="button" onClick={() => setKept((k) => k.filter((x) => x !== ph))} aria-label="Remove photo"
+                    className="absolute -right-1.5 -top-1.5 grid size-6 place-items-center rounded-full bg-ink text-white"><X className="size-3.5" /></button>
+                </div>
+              ))}
+            </div>
+          )}
+          <PhotoPicker files={files} onChange={setFiles} max={Math.max(0, 3 - kept.length)} label={kept.length ? "Add more photos" : "Photos (optional, up to 3)"} />
           <p className="text-xs text-muted">Your first name and last initial show with the review.</p>
           <button onClick={save} disabled={!stars || busy} className="h-12 w-full rounded-xl bg-ink font-semibold text-white disabled:opacity-40">{busy ? "Saving…" : "Submit review"}</button>
         </div>

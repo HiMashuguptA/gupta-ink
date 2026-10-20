@@ -1,4 +1,5 @@
 "use client";
+import { useSynced } from "@/lib/live";
 import { useState } from "react";
 import { Pencil, Trash2, Plus } from "lucide-react";
 import { AddressCard } from "@/components/address/AddressCard";
@@ -7,7 +8,7 @@ import { deleteAddress, type SavedAddress } from "@/app/actions/addresses";
 import { useToast } from "@/components/providers/ToastProvider";
 
 export function AddressBook({ initial, radiusKm }: { initial: SavedAddress[]; radiusKm: number }) {
-  const [list, setList] = useState(initial);
+  const [list, setList] = useSynced(initial);
   const [editing, setEditing] = useState<SavedAddress | null>(null);
   const [open, setOpen] = useState(false);
   const toast = useToast();

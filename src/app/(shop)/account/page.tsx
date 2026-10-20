@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ChevronRight, Package, Heart, MapPin, Coins, Bell, ShieldCheck, Bike, LayoutDashboard, FileText, BarChart3 } from "lucide-react";
 import { getSessionProfile } from "@/lib/supabase/server";
+import { LiveRefresh } from "@/components/live/LiveRefresh";
 import { ProfileForm } from "@/components/account/ProfileForm";
 import { ReferralCard } from "@/components/account/ReferralCard";
 import { SignOutButton } from "@/components/account/SignOutButton";
@@ -25,6 +26,7 @@ export default async function AccountPage() {
 
   return (
     <div className="grid gap-5 px-4 pt-4 md:grid-cols-[1fr_1fr]">
+      <LiveRefresh at={Date.now()} id={`acct-account-${user.id}`} watch={[{ table: "wallets", filter: `user_id=eq.${user.id}` }]} />
       <div>
         <div className="flex items-center gap-3">
           {profile.avatar_url && (

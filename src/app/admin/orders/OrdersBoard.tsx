@@ -1,10 +1,9 @@
 "use client";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import { useSynced } from "@/lib/live";
 import clsx from "clsx";
-import { supabaseBrowser } from "@/lib/supabase/client";
 import { rupees } from "@/lib/format";
-import { ADMIN_ORDER_SELECT } from "@/lib/admin-orders";
 import { STATUS_LABEL, statusTone, when, type OrderRow } from "@/lib/orders";
 
 export type BoardOrder = Pick<OrderRow, "id" | "order_no" | "status" | "type" | "payable_paise" | "payment_method" | "payment_status" | "created_at" | "slot_date" | "slot_start" | "slot_end" | "refund_due_paise" | "refunded_at" | "address"> & {
@@ -22,26 +21,10 @@ const TABS = [
 ] as const;
 
 export function OrdersBoard({ initial }: { initial: BoardOrder[] }) {
-  const [orders, setOrders] = useState(initial);
+  // The admin layout refreshes this page whenever an order changes; keep the list in step with it
+  const [orders] = useSynced(initial);
   const [tab, setTab] = useState<(typeof TABS)[number]["key"]>("action");
   const [q, setQ] = useState("");
-
-  const refresh = useCallback(async () => {
-    const since = new Date(Date.now() - 30 * 864e5).toISOString();
-    const { data } = await supabaseBrowser().from("orders").select(ADMIN_ORDER_SELECT).gte("created_at", since).order("created_at", { ascending: false }).limit(300);
-    if (data) setOrders(data as unknown as BoardOrder[]);
-  }, []);
-
-  // Any order change (from customers, agents or other admins) refreshes the board
-  useEffect(() => {
-    const sb = supabaseBrowser();
-    const ch = sb.channel("admin-orders-board")
-      .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, () => void refresh())
-      .subscribe();
-    const onRefresh = () => void refresh();
-    window.addEventListener("gi:admin-refresh", onRefresh);
-    return () => { void sb.removeChannel(ch); window.removeEventListener("gi:admin-refresh", onRefresh); };
-  }, [refresh]);
 
   const counts = useMemo(() => Object.fromEntries(TABS.map((t) => [t.key, orders.filter(t.test).length])), [orders]);
   const shown = useMemo(() => {

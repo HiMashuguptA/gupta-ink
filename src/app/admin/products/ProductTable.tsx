@@ -1,4 +1,5 @@
 "use client";
+import { useSynced } from "@/lib/live";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import clsx from "clsx";
@@ -14,7 +15,7 @@ export function ProductTable({ groups, categories }: { groups: GroupRow[]; categ
   const [q, setQ] = useState("");
   const [cat, setCat] = useState("");
   const [only, setOnly] = useState<"all" | "low" | "hidden">("all");
-  const [rows, setRows] = useState(groups);
+  const [rows, setRows] = useSynced(groups);
   const [saving, setSaving] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const catName = useMemo(() => Object.fromEntries(categories.map((c) => [c.id, c.name])), [categories]);

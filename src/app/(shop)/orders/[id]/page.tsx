@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { getSessionProfile } from "@/lib/supabase/server";
-import { getSettings } from "@/lib/catalog";
+import { getSettings, productLinks } from "@/lib/catalog";
+import { LiveRefresh } from "@/components/live/LiveRefresh";
 import { OrderLive } from "@/components/orders/OrderLive";
 import type { OrderEvent, OrderItem, OrderRow } from "@/lib/orders";
 import type { ReturnRow } from "@/lib/returns";
@@ -28,8 +29,16 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
   const returns = await Promise.all(((rets.data ?? []) as unknown as ReturnRow[]).map(async (r) => ({ ...r, proof_url: await sign(r.refund_proof_path) })));
   const o = order as unknown as OrderRow;
   const cancelProofUrl = await sign(o.refund_proof_path);
+  const links = await productLinks((items.data ?? []).map((i) => i.product_id));
   return (
+    <>
+    {/* Returns, refunds, payment checks and reviews update this page by themselves */}
+    <LiveRefresh at={Date.now()} id={`order-${id}`} watch={[
+      { table: "orders", filter: `id=eq.${id}` }, { table: "returns", filter: `order_id=eq.${id}` },
+      { table: "payments", filter: `order_id=eq.${id}` }, { table: "reviews", filter: `user_id=eq.${user.id}` },
+    ]} />
     <OrderLive
+      links={links}
       initialOrder={o}
       items={(items.data ?? []) as OrderItem[]}
       initialEvents={(events.data ?? []) as OrderEvent[]}
@@ -41,5 +50,6 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
       cancelProofUrl={cancelProofUrl}
       shop={{ lat: settings?.store_lat ?? 25.6669, lng: settings?.store_lng ?? 94.1086 }}
     />
+    </>
   );
 }
