@@ -19,6 +19,8 @@ export type Database = {
           contact_name: string
           contact_phone: string
           created_at: string
+          distance_at: string | null
+          distance_sig: string | null
           for_someone_else: boolean
           house_name: string
           id: string
@@ -35,6 +37,8 @@ export type Database = {
           contact_name: string
           contact_phone: string
           created_at?: string
+          distance_at?: string | null
+          distance_sig?: string | null
           for_someone_else?: boolean
           house_name: string
           id?: string
@@ -51,6 +55,8 @@ export type Database = {
           contact_name?: string
           contact_phone?: string
           created_at?: string
+          distance_at?: string | null
+          distance_sig?: string | null
           for_someone_else?: boolean
           house_name?: string
           id?: string
@@ -293,6 +299,7 @@ export type Database = {
       }
       coin_ledger: {
         Row: {
+          alloc: Json | null
           amount: number
           created_at: string
           entry: Database["public"]["Enums"]["coin_entry"]
@@ -304,6 +311,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          alloc?: Json | null
           amount: number
           created_at?: string
           entry: Database["public"]["Enums"]["coin_entry"]
@@ -315,6 +323,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          alloc?: Json | null
           amount?: number
           created_at?: string
           entry?: Database["public"]["Enums"]["coin_entry"]
@@ -629,10 +638,12 @@ export type Database = {
           agent_id: string | null
           cancel_reason: string | null
           cancel_was_free: boolean | null
+          cancelled_at: string | null
           cancelled_by: string | null
           coins_credited: boolean
           coins_to_earn: number
           coins_used: number
+          confirmed_at: string | null
           coupon_code: string | null
           coupon_discount_paise: number
           created_at: string
@@ -646,10 +657,13 @@ export type Database = {
           order_no: string
           otp_attempts: number
           otp_hash: string | null
+          paid_at: string | null
           payable_paise: number
           payment_method: Database["public"]["Enums"]["payment_method"]
           payment_status: Database["public"]["Enums"]["payment_status"]
           ready_at: string | null
+          refund_due_paise: number
+          refund_upi_id: string | null
           return_window_ends_at: string | null
           road_km: number | null
           slot_date: string | null
@@ -665,10 +679,12 @@ export type Database = {
           agent_id?: string | null
           cancel_reason?: string | null
           cancel_was_free?: boolean | null
+          cancelled_at?: string | null
           cancelled_by?: string | null
           coins_credited?: boolean
           coins_to_earn?: number
           coins_used?: number
+          confirmed_at?: string | null
           coupon_code?: string | null
           coupon_discount_paise?: number
           created_at?: string
@@ -682,10 +698,13 @@ export type Database = {
           order_no?: string
           otp_attempts?: number
           otp_hash?: string | null
+          paid_at?: string | null
           payable_paise: number
           payment_method: Database["public"]["Enums"]["payment_method"]
           payment_status?: Database["public"]["Enums"]["payment_status"]
           ready_at?: string | null
+          refund_due_paise?: number
+          refund_upi_id?: string | null
           return_window_ends_at?: string | null
           road_km?: number | null
           slot_date?: string | null
@@ -701,10 +720,12 @@ export type Database = {
           agent_id?: string | null
           cancel_reason?: string | null
           cancel_was_free?: boolean | null
+          cancelled_at?: string | null
           cancelled_by?: string | null
           coins_credited?: boolean
           coins_to_earn?: number
           coins_used?: number
+          confirmed_at?: string | null
           coupon_code?: string | null
           coupon_discount_paise?: number
           created_at?: string
@@ -718,10 +739,13 @@ export type Database = {
           order_no?: string
           otp_attempts?: number
           otp_hash?: string | null
+          paid_at?: string | null
           payable_paise?: number
           payment_method?: Database["public"]["Enums"]["payment_method"]
           payment_status?: Database["public"]["Enums"]["payment_status"]
           ready_at?: string | null
+          refund_due_paise?: number
+          refund_upi_id?: string | null
           return_window_ends_at?: string | null
           road_km?: number | null
           slot_date?: string | null
@@ -1560,6 +1584,7 @@ export type Database = {
           tags: string[] | null
           unit: string | null
           variant_label: string | null
+          variant_sort: number | null
           view_count: number | null
         }
         Relationships: [
@@ -1581,20 +1606,48 @@ export type Database = {
       }
     }
     Functions: {
-      search_products: {
-        Args: { p_q: string; p_limit?: number }
-        Returns: {
-          id: string; group_id: string; name: string; slug: string; brand: string | null; variant_label: string | null; colour: string | null
-          images: string[]; mrp_paise: number; price_paise: number; discount_pct: number; stock: number; unit: string
-          category_id: string; category_name: string; category_slug: string; rating_avg: number; rating_count: number; sold_count: number; score: number
-        }[]
+      _cancel_order: {
+        Args: {
+          p_by: string
+          p_customer: boolean
+          p_order: string
+          p_reason: string
+          p_refund_upi?: string
+        }
+        Returns: Json
       }
-      search_suggestions: {
-        Args: { p_q: string }
-        Returns: { kind: string; label: string; slug: string; group_id: string | null; category_slug: string; image: string | null }[]
+      _distance_sig_ok: {
+        Args: { a: Database["public"]["Tables"]["addresses"]["Row"] }
+        Returns: boolean
       }
-      log_search: { Args: { p_term: string; p_results: number }; Returns: undefined }
-      track_view: { Args: { p_group: string }; Returns: undefined }
+      _expire_pickups: { Args: never; Returns: number }
+      _expire_unpaid_upi: { Args: never; Returns: number }
+      _inr: { Args: { p: number }; Returns: string }
+      _ist_now: { Args: never; Returns: string }
+      _price_order: { Args: { p: Json; p_user: string }; Returns: Json }
+      _status_message: {
+        Args: {
+          o: Database["public"]["Tables"]["orders"]["Row"]
+          st: Database["public"]["Enums"]["order_status"]
+        }
+        Returns: string[]
+      }
+      admin_assign_agent: {
+        Args: { p_agent: string; p_order: string }
+        Returns: undefined
+      }
+      admin_mark_paid: {
+        Args: { p_order: string; p_utr?: string }
+        Returns: undefined
+      }
+      admin_set_order_status: {
+        Args: {
+          p_note?: string
+          p_order: string
+          p_status: Database["public"]["Enums"]["order_status"]
+        }
+        Returns: undefined
+      }
       admin_set_role: {
         Args: {
           p_reason?: string
@@ -1614,6 +1667,24 @@ export type Database = {
         Returns: undefined
       }
       can_see_order: { Args: { o: string }; Returns: boolean }
+      cancel_order: {
+        Args: { p_order: string; p_reason: string; p_refund_upi?: string }
+        Returns: Json
+      }
+      cancel_preview: { Args: never; Returns: Json }
+      checkout_slots: {
+        Args: never
+        Returns: {
+          available: number
+          booked: number
+          capacity: number
+          open: boolean
+          reason: string
+          slot_date: string
+          window_end: string
+          window_start: string
+        }[]
+      }
       finish_onboarding: {
         Args: { p_skip_referral?: boolean; p_welcome_seen?: boolean }
         Returns: undefined
@@ -1626,6 +1697,10 @@ export type Database = {
       is_active_user: { Args: never; Returns: boolean }
       is_admin: { Args: never; Returns: boolean }
       is_agent: { Args: never; Returns: boolean }
+      log_search: {
+        Args: { p_results: number; p_term: string }
+        Returns: undefined
+      }
       my_role: {
         Args: never
         Returns: Database["public"]["Enums"]["user_role"]
@@ -1649,7 +1724,50 @@ export type Database = {
         }
         Returns: undefined
       }
+      place_order: { Args: { p: Json }; Returns: Json }
+      quote_order: { Args: { p: Json }; Returns: Json }
       require_active: { Args: never; Returns: undefined }
+      search_products: {
+        Args: { p_limit?: number; p_q: string }
+        Returns: {
+          brand: string
+          category_id: string
+          category_name: string
+          category_slug: string
+          colour: string
+          discount_pct: number
+          group_id: string
+          id: string
+          images: string[]
+          mrp_paise: number
+          name: string
+          price_paise: number
+          rating_avg: number
+          rating_count: number
+          score: number
+          slug: string
+          sold_count: number
+          stock: number
+          unit: string
+          variant_label: string
+        }[]
+      }
+      search_suggestions: {
+        Args: { p_q: string }
+        Returns: {
+          category_slug: string
+          group_id: string
+          image: string
+          kind: string
+          label: string
+          slug: string
+        }[]
+      }
+      submit_upi_utr: {
+        Args: { p_order: string; p_utr: string }
+        Returns: undefined
+      }
+      track_view: { Args: { p_group: string }; Returns: undefined }
     }
     Enums: {
       coin_entry:

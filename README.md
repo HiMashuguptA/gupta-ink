@@ -36,17 +36,18 @@ Sign-in won't work until Google is switched on in Supabase (about 10 minutes, fr
 The first time premiumservice9366@gmail.com signs in, it becomes admin automatically.
 To make the delivery agent: they sign in once, then the admin opens **Account > Open admin panel > Users and roles** and sets their role to "Delivery agent".
 
-## What's built (Phases 0 and 1)
+## What's built (Phases 0 to 2)
 
 - **Database:** 29 tables with Row Level Security on every one, a sign-up trigger (owner email becomes admin, referral code, wallet), protected owner account, rate limits, audit log, realtime, and five storage buckets (images only, 5 MB max).
 - **Brand:** Gupta Ink logo (a "G" written as one pen stroke ending in a gold nib), animated version, PWA icons.
 - **Customer app:** animated Google sign-in page, 5-second welcome film for new users, referral sheet, location prompt with map pin and 15 km check, home page with admin-controlled carousel and sections, typo-tolerant search with live suggestions, category listings with filters and sorting, product pages with linked variants, cart with fly-to-cart animation, wishlist, account, notifications (live), store-hours notices, skeleton loading.
-- **Admin:** overview (SKUs, low stock, most-searched terms) and users and roles.
+- **Checkout (Phase 2):** saved addresses with map pin, GPS and road distance from the store (OSRM; outside 15 km means pickup only); quick delivery, scheduled 2-hour slots for the next 7 days, or store pickup; coupons, SuperCoins, pending cancellation fines and the ₹99 minimum all priced by the database, never the browser; UPI, cash on delivery or pay at counter.
+- **Orders (Phase 2):** live order page with timeline and celebration, UPI payment by QR code or app link with a 30-minute timer, cancellation with the 3-free-per-week rule and refund UPI ID, order history. Unpaid UPI orders cancel themselves after 30 minutes and uncollected pickups after 48 hours.
+- **Admin:** overview (today's orders and revenue, open orders, refunds to pay, SKUs, low stock, most-searched terms), a live orders board that chimes on new orders, order detail with verify payment, assign delivery partner, move status and cancel, and users and roles.
 - **Policies:** privacy, terms, delivery, cancellation and returns pages.
 
 ## Next phases
 
-2. Checkout: addresses, road-distance check (OSRM), quick/scheduled/pickup, slots, coupons, SuperCoins, fines, COD and YouPI UPI, live order status.
 3. Delivery agent portal: accept, live location, emailed delivery OTP.
 4. Returns and refunds, SuperCoin crediting and expiry, referral rewards, reviews, coupon builder.
 5. Admin dashboards and charts, product and carousel editors, spend analysis.
@@ -59,7 +60,13 @@ To make the delivery agent: they sign in once, then the admin opens **Account > 
 - `supabase/migrations` database schema (applied to the live project), `supabase/seed.sql` dummy catalogue
 - `scripts/generate-catalog.mjs` regenerates the dummy product illustrations and seed data
 
+## How UPI works for now
+
+Until YouPI is installed on the store PC, customers pay your UPI ID (himanshugupta123456@ybl) by scanning the QR code or tapping "Open UPI app", with the order number as the note. They then enter the 12-digit UTR. The order shows under **Awaiting UPI** or **Needs action** on the admin board; check your bank app, then press **Payment received, confirm order**. Phase 6 replaces this with YouPI's automatic confirmation.
+
 ## Notes
+
+- Road distance uses the free public OSRM server (`OSRM_URL`). If it's down, the app falls back to straight-line distance × 1.4 and marks it approximate. The result is signed with `DISTANCE_SIGNING_KEY`, which must match the `distance_hmac` secret in Supabase Vault, so customers can't fake their distance.
 
 - The Supabase project is in the Sydney region, not Mumbai. The privacy policy says so. Moving to Mumbai means creating a new project and re-running the migrations.
 - Reset the database password in Supabase (Project Settings > Database), since it was shared in chat. The app doesn't use it.

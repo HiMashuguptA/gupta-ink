@@ -1,17 +1,27 @@
-import Link from "next/link";
+import { redirect } from "next/navigation";
+import { getSessionProfile } from "@/lib/supabase/server";
+import { getSettings } from "@/lib/catalog";
+import { CheckoutView, type Slot, type CouponOffer } from "@/components/checkout/CheckoutView";
+import type { SavedAddress } from "@/app/actions/addresses";
 
 export const metadata = { title: "Checkout" };
 
-// Phase 2 builds the full checkout here: address and map pin, 15 km road check,
-// quick/scheduled/pickup choice, slots, coupons, SuperCoins, UPI and COD.
-export default function CheckoutPage() {
+export default async function CheckoutPage() {
+  const [{ supabase, user }, settings] = await Promise.all([getSessionProfile(), getSettings()]);
+  if (!user) redirect("/login?next=/cart/checkout");
+  const [addresses, slots, coupons] = await Promise.all([
+    supabase.from("addresses").select("*").eq("user_id", user.id).order("is_default", { ascending: false }).order("created_at", { ascending: false }),
+    supabase.rpc("checkout_slots"),
+    supabase.from("coupons").select("code, title, description, min_order_paise, type").order("min_order_paise"),
+  ]);
   return (
-    <div className="ruled mx-4 mt-6 rounded-3xl p-8 pl-14">
-      <h1 className="text-2xl font-extrabold">Checkout is the next build step</h1>
-      <p className="mt-1 max-w-prose text-muted">
-        Your cart is saved to your account. Address and map pin, delivery slots, coupons, SuperCoins and UPI or cash payment arrive in Phase 2.
-      </p>
-      <Link href="/cart" className="mt-5 inline-flex rounded-xl bg-ink px-5 py-3 font-semibold text-white">Back to cart</Link>
-    </div>
+    <CheckoutView
+      addresses={(addresses.data ?? []) as SavedAddress[]}
+      slots={(slots.data ?? []) as Slot[]}
+      coupons={(coupons.data ?? []) as CouponOffer[]}
+      radiusKm={Number(settings?.delivery_radius_km ?? 15)}
+      storeAddress={settings?.store_address ?? "Khedi Market, Kohima"}
+      storeHours={`${settings?.store_open?.slice(0, 5) ?? "10:00"} to ${settings?.store_close?.slice(0, 5) ?? "17:30"}`}
+    />
   );
 }

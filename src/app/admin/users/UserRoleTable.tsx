@@ -46,7 +46,7 @@ export function UserRoleTable({ users: initial, me }: { users: U[]; me: string }
                   <td className="p-3 font-semibold">{u.name ?? "Not set"}</td>
                   <td className="p-3">{u.email}</td>
                   <td className="p-3">{u.phone ?? "Not set"}</td>
-                  <td className="p-3">{new Date(u.created_at).toLocaleDateString("en-IN")}</td>
+                  <td className="p-3">{new Date(u.created_at).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata" })}</td>
                   <td className="p-3">
                     <select value={u.role} disabled={locked} onChange={(e) => void change(u, e.target.value as Role)}
                       aria-label={`Role for ${u.name ?? u.email}`}

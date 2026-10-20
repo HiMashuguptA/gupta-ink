@@ -16,7 +16,7 @@ export default async function AccountPage() {
   const links = [
     { href: "/orders", label: "Orders", icon: Package },
     { href: "/wishlist", label: "Wishlist", icon: Heart },
-    { href: "/account/addresses", label: "Saved addresses", icon: MapPin, soon: true },
+    { href: "/account/addresses", label: "Saved addresses", icon: MapPin },
     { href: "/account/coins", label: `SuperCoins: ${wallet?.coin_balance ?? 0}`, icon: Coins, soon: true },
     { href: "/account/notifications", label: "Notifications", icon: Bell },
     { href: "/policies/privacy", label: "Privacy and policies", icon: FileText },

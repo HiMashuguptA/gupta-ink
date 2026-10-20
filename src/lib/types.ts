@@ -78,6 +78,13 @@ export type StoreSettings = {
   store_phone: string;
   support_email: string;
   store_address: string;
+  store_upi_id: string;
+  slot_capacity: number;
+  free_cancels_per_week: number;
+  cancel_fine_paise: number;
+  cod_limit_paise: number;
+  upi_daily_cap: number;
+  return_window_days: number;
 };
 
 export type Profile = {

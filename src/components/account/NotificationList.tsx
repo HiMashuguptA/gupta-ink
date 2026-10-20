@@ -39,7 +39,7 @@ export function NotificationList({ initial, userId }: { initial: N[]; userId: st
               <span className="min-w-0">
                 <span className="block font-semibold">{n.title}</span>
                 {n.body && <span className="block text-sm text-muted">{n.body}</span>}
-                <span className="mt-1 block text-xs text-muted">{new Date(n.created_at).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}</span>
+                <span className="mt-1 block text-xs text-muted">{new Date(n.created_at).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", dateStyle: "medium", timeStyle: "short" })}</span>
               </span>
             </Link>
           </motion.li>

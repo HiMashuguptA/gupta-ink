@@ -43,7 +43,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                     {r.photos.map((ph) => <img key={ph} src={ph} alt="Customer photo" className="size-16 rounded-lg object-cover" />)}
                   </div>
                 )}
-                <p className="mt-2 text-xs text-muted">{new Date(r.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</p>
+                <p className="mt-2 text-xs text-muted">{new Date(r.created_at).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", year: "numeric" })}</p>
               </li>
             ))}
           </ul>
