@@ -1,16 +1,17 @@
 "use client";
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { Search, X, LayoutGrid, CornerDownLeft } from "lucide-react";
 import clsx from "clsx";
 import { supabaseBrowser } from "@/lib/supabase/client";
+import { startNav } from "./NavProgress";
 
 type Suggestion = { kind: "product" | "category"; label: string; slug: string; group_id: string | null; category_slug: string; image: string | null };
 
 const HINTS = ["gel pen", "geometry box", "A4 paper", "notebook", "highlighter", "waterproof folder", "cash book"];
 
-export function SearchBox({ autoFocus = false }: { autoFocus?: boolean }) {
+export function SearchBox({ autoFocus = false, id = "search" }: { autoFocus?: boolean; id?: string }) {
   const router = useRouter();
   const params = useSearchParams();
   const [q, setQ] = useState(params.get("q") ?? "");
@@ -18,7 +19,7 @@ export function SearchBox({ autoFocus = false }: { autoFocus?: boolean }) {
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(-1);
   const [hint, setHint] = useState(0);
-  const listId = useId();
+  const listId = `${id}-list`;
   const inputRef = useRef<HTMLInputElement>(null);
   const seq = useRef(0);
 
@@ -53,10 +54,11 @@ export function SearchBox({ autoFocus = false }: { autoFocus?: boolean }) {
     inputRef.current?.blur();
     if (!s) {
       const term = q.trim();
-      if (term.length >= 2) router.push(`/search?q=${encodeURIComponent(term)}`);
+      if (term.length >= 2) { startNav(); router.push(`/search?q=${encodeURIComponent(term)}`); }
       return;
     }
     // Picking a suggested product opens its category with that product highlighted first
+    startNav();
     if (s.kind === "product") router.push(`/c/${s.category_slug}?highlight=${s.group_id}&from=${encodeURIComponent(q.trim())}`);
     else router.push(`/c/${s.slug}`);
   };

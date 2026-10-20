@@ -12,7 +12,16 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:3000. The `.env.local` file already points at the GuptaEnterprises Supabase project, and the dummy catalogue (35 products, 48 variants, 10 categories, 3 coupons) is loaded.
+Open http://localhost:3000.
+
+**Speed note:** `npm run dev` compiles each page the first time you open it, so first visits are slow in development. To feel the real speed customers will get, run the production version:
+
+```bash
+npm run build
+npm start
+```
+
+Every page load also talks to Supabase in Sydney. Moving the project to the Mumbai region would cut that delay by roughly two thirds (see Notes). The `.env.local` file already points at the GuptaEnterprises Supabase project, and the dummy catalogue (35 products, 48 variants, 10 categories, 3 coupons) is loaded.
 
 ## One-time setup: Google sign-in
 

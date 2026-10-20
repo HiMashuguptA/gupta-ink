@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { redirect } from "next/navigation";
 import { getSessionProfile } from "@/lib/supabase/server";
 import { getSettings } from "@/lib/catalog";
 import { storeStatus } from "@/lib/hours";
@@ -11,6 +12,7 @@ import type { Profile } from "@/lib/types";
 
 export default async function ShopLayout({ children }: { children: React.ReactNode }) {
   const [{ user, profile }, settings] = await Promise.all([getSessionProfile(), getSettings()]);
+  if (profile?.role === "blocked") redirect("/blocked");
   const status = storeStatus(settings);
   const store = {
     lat: settings?.store_lat ?? 25.668,

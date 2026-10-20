@@ -1,127 +1,177 @@
 import "server-only";
-import { supabaseServer } from "./supabase/server";
+import { unstable_cache } from "next/cache";
+import { supabasePublic } from "./supabase/public";
+import { supabaseServer, getSessionProfile } from "./supabase/server";
 import { groupCards } from "./format";
 import type { Banner, Category, GroupCard, HomeSection, ProductCard, StoreSettings } from "./types";
 
-const CARD = "*";
+/**
+ * Catalogue data is public and the same for every shopper, so it is fetched once
+ * and cached for 60 seconds (tag "catalog"). Admin edits call revalidateTag("catalog")
+ * so changes appear immediately. This keeps page loads to a single cache read instead
+ * of several round trips to the database.
+ */
+const CACHE = { revalidate: 60, tags: ["catalog"] };
 
-export async function getSettings(): Promise<StoreSettings | null> {
-  const sb = await supabaseServer();
-  const { data } = await sb.from("settings").select("*").eq("id", 1).single();
-  return data as StoreSettings | null;
-}
+const allCards = unstable_cache(
+  async (): Promise<ProductCard[]> => {
+    const sb = supabasePublic();
+    const out: ProductCard[] = [];
+    // Page through in 1000-row chunks (PostgREST's default cap)
+    for (let from = 0; ; from += 1000) {
+      const { data, error } = await sb.from("product_cards").select("*").order("sold_count", { ascending: false }).range(from, from + 999);
+      if (error) throw error;
+      out.push(...((data ?? []) as ProductCard[]));
+      if (!data || data.length < 1000) break;
+    }
+    return out;
+  },
+  ["all-cards-v2"],
+  CACHE,
+);
 
-export async function getCategories(): Promise<Category[]> {
-  const sb = await supabaseServer();
-  const { data } = await sb.from("categories").select("id, name, slug, image_url, icon, sort").order("sort");
-  return (data ?? []) as Category[];
-}
+const groupInfo = unstable_cache(
+  async () => {
+    const { data } = await supabasePublic().from("product_groups").select("id, description, returnable");
+    return Object.fromEntries((data ?? []).map((g) => [g.id, g])) as Record<string, { id: string; description: string | null; returnable: boolean }>;
+  },
+  ["group-info-v1"],
+  CACHE,
+);
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- PostgREST builder generics are too deep to name here
-type Q = any;
-export const COLLECTIONS: Record<string, { title: string; order: keyof ProductCard; filter?: (q: Q) => Q }> = {
-  featured: { title: "Picked for you", order: "sold_count", filter: (q) => q.eq("featured", true) },
-  top_discounts: { title: "Biggest savings", order: "discount_pct", filter: (q) => q.gt("discount_pct", 0) },
-  top_rated: { title: "Top rated", order: "rating_avg" },
-  most_purchased: { title: "Most bought in Kohima", order: "sold_count" },
-  trending: { title: "Trending this week", order: "view_count" },
-  monsoon: { title: "Monsoon ready", order: "sold_count", filter: (q) => q.eq("seasonal_tag", "monsoon") },
+export const getSettings = unstable_cache(
+  async (): Promise<StoreSettings | null> => {
+    const { data } = await supabasePublic().from("settings").select("*").eq("id", 1).single();
+    return data as StoreSettings | null;
+  },
+  ["settings-v1"],
+  CACHE,
+);
+
+export const getCategories = unstable_cache(
+  async (): Promise<Category[]> => {
+    const { data } = await supabasePublic().from("categories").select("id, name, slug, image_url, icon, sort").order("sort");
+    return (data ?? []) as Category[];
+  },
+  ["categories-v1"],
+  CACHE,
+);
+
+const homeContent = unstable_cache(
+  async () => {
+    const sb = supabasePublic();
+    const [sections, banners] = await Promise.all([
+      sb.from("home_sections").select("*").eq("visible", true).order("position"),
+      sb.from("banners").select("*").order("position"),
+    ]);
+    return { sections: (sections.data ?? []) as HomeSection[], banners: (banners.data ?? []) as Banner[] };
+  },
+  ["home-content-v1"],
+  CACHE,
+);
+
+type Collection = { title: string; pick: (c: ProductCard) => boolean; sort: (a: ProductCard, b: ProductCard) => number };
+export const COLLECTIONS: Record<string, Collection> = {
+  featured: { title: "Picked for you", pick: (c) => c.featured, sort: (a, b) => b.sold_count - a.sold_count },
+  top_discounts: { title: "Biggest savings", pick: (c) => c.discount_pct > 0, sort: (a, b) => b.discount_pct - a.discount_pct },
+  top_rated: { title: "Top rated", pick: () => true, sort: (a, b) => Number(b.rating_avg) - Number(a.rating_avg) || b.rating_count - a.rating_count },
+  most_purchased: { title: "Most bought in Kohima", pick: () => true, sort: (a, b) => b.sold_count - a.sold_count },
+  trending: { title: "Trending this week", pick: () => true, sort: (a, b) => b.view_count - a.view_count },
+  monsoon: { title: "Monsoon ready", pick: (c) => c.seasonal_tag === "monsoon", sort: (a, b) => b.sold_count - a.sold_count },
 };
 
-export async function getCollection(key: string, limit = 12): Promise<GroupCard[]> {
+function collectionFrom(cards: ProductCard[], key: string, limit: number): GroupCard[] {
   const c = COLLECTIONS[key];
   if (!c) return [];
-  const sb = await supabaseServer();
-  let q = sb.from("product_cards").select(CARD);
-  if (c.filter) q = c.filter(q);
-  const { data } = await q.order(c.order as string, { ascending: false }).limit(limit * 3);
-  return groupCards((data ?? []) as ProductCard[]).slice(0, limit);
+  // Group first so every card shows its default variant, then rank groups
+  const groups = groupCards(cards).filter((g) => g.variants.some(c.pick));
+  return groups.sort(c.sort).slice(0, limit);
+}
+
+export async function getCollection(key: string, limit = 12) {
+  return collectionFrom(await allCards(), key, limit);
 }
 
 export async function getHome() {
-  const sb = await supabaseServer();
-  const [sections, banners, categories, featured, discounts, rated, bought, trending, seasonal] = await Promise.all([
-    sb.from("home_sections").select("*").eq("visible", true).order("position"),
-    sb.from("banners").select("*").order("position"),
-    getCategories(),
-    getCollection("featured"),
-    getCollection("top_discounts"),
-    getCollection("top_rated"),
-    getCollection("most_purchased"),
-    getCollection("trending"),
-    getCollection("monsoon"),
-  ]);
-  const all = (banners.data ?? []) as Banner[];
+  const [cards, content, categories] = await Promise.all([allCards(), homeContent(), getCategories()]);
+  const rails: Record<string, GroupCard[]> = {};
+  for (const key of ["featured", "top_discounts", "top_rated", "most_purchased", "trending"]) rails[key] = collectionFrom(cards, key, 12);
+  rails.seasonal = collectionFrom(cards, "monsoon", 12);
   return {
-    sections: (sections.data ?? []) as HomeSection[],
-    hero: all.filter((b) => b.placement === "hero"),
-    promos: all.filter((b) => b.placement === "promo"),
+    sections: content.sections,
+    hero: content.banners.filter((b) => b.placement === "hero"),
+    promos: content.banners.filter((b) => b.placement === "promo"),
     categories,
-    rails: { featured, top_discounts: discounts, top_rated: rated, most_purchased: bought, trending, seasonal } as Record<string, GroupCard[]>,
+    rails,
   };
 }
 
 export async function getRecentlyViewed(userId: string): Promise<GroupCard[]> {
   const sb = await supabaseServer();
-  const { data: recent } = await sb
-    .from("recently_viewed").select("group_id, viewed_at").eq("user_id", userId)
-    .order("viewed_at", { ascending: false }).limit(12);
-  const ids = (recent ?? []).map((r) => r.group_id);
-  if (!ids.length) return [];
-  const { data } = await sb.from("product_cards").select(CARD).in("group_id", ids);
-  const cards = groupCards((data ?? []) as ProductCard[]);
-  return ids.map((id) => cards.find((c) => c.group_id === id)).filter(Boolean) as GroupCard[];
+  const [{ data: recent }, cards] = await Promise.all([
+    sb.from("recently_viewed").select("group_id, viewed_at").eq("user_id", userId).order("viewed_at", { ascending: false }).limit(12),
+    allCards(),
+  ]);
+  const groups = groupCards(cards);
+  return (recent ?? []).map((r) => groups.find((g) => g.group_id === r.group_id)).filter(Boolean) as GroupCard[];
 }
 
 export async function getCategoryProducts(slug: string) {
-  const sb = await supabaseServer();
-  const { data: category } = await sb.from("categories").select("id, name, slug, image_url, icon, sort").eq("slug", slug).single();
+  const [categories, cards] = await Promise.all([getCategories(), allCards()]);
+  const category = categories.find((c) => c.slug === slug);
   if (!category) return null;
-  const { data } = await sb.from("product_cards").select(CARD).eq("category_id", category.id).order("sold_count", { ascending: false });
-  return { category: category as Category, products: groupCards((data ?? []) as ProductCard[]) };
+  return { category, products: groupCards(cards.filter((c) => c.category_id === category.id)) };
 }
 
+const reviewsFor = unstable_cache(
+  async (groupId: string) => {
+    const { data } = await supabasePublic().from("reviews").select("id, stars, comment, photos, created_at")
+      .eq("group_id", groupId).order("created_at", { ascending: false }).limit(10);
+    return (data ?? []) as { id: string; stars: number; comment: string | null; photos: string[]; created_at: string }[];
+  },
+  ["reviews-v1"],
+  { revalidate: 60, tags: ["catalog", "reviews"] },
+);
+
 export async function getProduct(slug: string) {
-  const sb = await supabaseServer();
-  const { data: rows } = await sb.from("product_cards").select(CARD).eq("slug", slug);
-  if (!rows?.length) return null;
-  const card = groupCards(rows as ProductCard[])[0];
-  const [{ data: group }, { data: similarRows }, { data: reviews }] = await Promise.all([
-    sb.from("product_groups").select("id, description, returnable").eq("id", card.group_id).single(),
-    sb.from("product_cards").select(CARD).eq("category_id", card.category_id).neq("group_id", card.group_id).order("sold_count", { ascending: false }).limit(24),
-    sb.from("reviews").select("id, stars, comment, photos, created_at").eq("group_id", card.group_id).order("created_at", { ascending: false }).limit(10),
-  ]);
+  const [cards, info] = await Promise.all([allCards(), groupInfo()]);
+  const rows = cards.filter((c) => c.slug === slug);
+  if (!rows.length) return null;
+  const card = groupCards(rows)[0];
+  const reviews = await reviewsFor(card.group_id);
   return {
     card,
-    description: (group?.description as string | null) ?? null,
-    similar: groupCards((similarRows ?? []) as ProductCard[]).slice(0, 10),
-    reviews: (reviews ?? []) as { id: string; stars: number; comment: string | null; photos: string[]; created_at: string }[],
+    description: info[card.group_id]?.description ?? null,
+    similar: groupCards(cards.filter((c) => c.category_id === card.category_id && c.group_id !== card.group_id)).slice(0, 10),
+    reviews,
   };
 }
 
+const searchIds = unstable_cache(
+  async (q: string) => {
+    const { data, error } = await supabasePublic().rpc("search_products", { p_q: q, p_limit: 60 });
+    if (error) throw error;
+    return (data ?? []).map((r) => r.id);
+  },
+  ["search-v1"],
+  CACHE,
+);
+
 /** Search with exact/fuzzy matches first, then same-category suggestions. */
 export async function searchCatalog(q: string) {
-  const sb = await supabaseServer();
-  const { data, error } = await sb.rpc("search_products", { p_q: q, p_limit: 60 });
-  let rows = (data ?? []) as (ProductCard & { score: number })[];
-  if (error) {
-    // Fallback while the search function is not installed: simple name/tag match.
-    // Only letters, digits, spaces and hyphens reach the filter (prevents filter injection)
-    const safe = q.replace(/[^\p{L}\p{N}\s-]/gu, "").trim().slice(0, 60);
-    const like = `%${safe}%`;
-    const { data: fb } = await sb.from("product_cards").select(CARD).or(`name.ilike.${like},brand.ilike.${like},category_name.ilike.${like}`).limit(60);
-    rows = (fb ?? []) as (ProductCard & { score: number })[];
-  }
-  const matches = groupCards(rows as ProductCard[], "first");
+  const term = q.trim().toLowerCase().slice(0, 80);
+  const [ids, cards, session] = await Promise.all([searchIds(term).catch(() => [] as string[]), allCards(), getSessionProfile()]);
+  // Hydrate full product rows (stock limits, units, etc.) in the ranked order
+  const byId = new Map(cards.map((c) => [c.id, c]));
+  const rows = ids.map((id) => byId.get(id)).filter(Boolean) as ProductCard[];
+  const matches = groupCards(rows, "first");
   let related: GroupCard[] = [];
   if (matches.length) {
-    const catIds = [...new Set(matches.slice(0, 3).map((m) => m.category_id))];
-    const { data: rel } = await sb.from("product_cards").select(CARD).in("category_id", catIds).order("sold_count", { ascending: false }).limit(40);
+    const catIds = new Set(matches.slice(0, 3).map((m) => m.category_id));
     const seen = new Set(matches.map((m) => m.group_id));
-    related = groupCards((rel ?? []) as ProductCard[]).filter((g) => !seen.has(g.group_id)).slice(0, 12);
+    related = groupCards(cards.filter((c) => catIds.has(c.category_id) && !seen.has(c.group_id))).slice(0, 12);
   }
   // Search terms are logged for signed-in shoppers only (rate limited on the server)
-  const { data: { user } } = await sb.auth.getUser();
-  if (user) await sb.rpc("log_search", { p_term: q, p_results: matches.length });
+  if (session.user) await session.supabase.rpc("log_search", { p_term: term, p_results: matches.length });
   return { matches, related };
 }

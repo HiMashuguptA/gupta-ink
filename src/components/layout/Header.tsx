@@ -34,8 +34,7 @@ export function Header({ eta, deliveryOpen }: { eta: string; deliveryOpen: boole
     <header className="sticky top-0 z-40 border-b border-line bg-paper/95 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 pt-3">
         <Link href="/" className="shrink-0" aria-label="Gupta Ink home">
-          <span className="sm:hidden"><Logo size={34} wordmark={false} /></span>
-          <span className="hidden sm:inline-flex"><Logo size={34} /></span>
+          <Logo size={34} wordmark="responsive" />
         </Link>
         <button onClick={() => setSheet(true)} className="min-w-0 flex-1 text-left sm:ml-4" aria-label="Change delivery location">
           <span className={`flex items-center gap-1 font-display text-[15px] font-bold leading-tight ${outOfRange ? "text-margin" : "text-graphite"}`}>
@@ -47,7 +46,7 @@ export function Header({ eta, deliveryOpen }: { eta: string; deliveryOpen: boole
             <ChevronDown className="size-3.5 shrink-0" />
           </span>
         </button>
-        <div className="hidden w-[420px] md:block"><Suspense><SearchBox /></Suspense></div>
+        <div className="hidden w-[420px] md:block"><Suspense><SearchBox id="search-desktop" /></Suspense></div>
         <nav className="flex items-center gap-1">
           {user && (
             <Link href="/account/notifications" className="grid size-10 place-items-center rounded-full hover:bg-ink-soft" aria-label="Notifications">
@@ -68,7 +67,7 @@ export function Header({ eta, deliveryOpen }: { eta: string; deliveryOpen: boole
           </Link>
         </nav>
       </div>
-      <div className="mx-auto max-w-6xl px-4 pb-3 pt-2.5 md:hidden"><Suspense><SearchBox /></Suspense></div>
+      <div className="mx-auto max-w-6xl px-4 pb-3 pt-2.5 md:hidden"><Suspense><SearchBox id="search-mobile" /></Suspense></div>
       <div className="hidden pb-3 md:block" />
       <LocationSheet open={sheet} onClose={() => { setSheet(false); dismiss(); }} />
     </header>

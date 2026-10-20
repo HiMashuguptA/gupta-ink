@@ -1,19 +1,21 @@
 "use client";
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
-import type { User } from "@supabase/supabase-js";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import type { Profile } from "@/lib/types";
 
-type Ctx = { user: User | null; profile: Profile | null; refresh: () => Promise<void>; signOut: () => Promise<void> };
+export type SessionUser = { id: string; email: string | null };
+
+type Ctx = { user: SessionUser | null; profile: Profile | null; refresh: () => Promise<void>; signOut: () => Promise<void> };
 const SessionCtx = createContext<Ctx>({ user: null, profile: null, refresh: async () => {}, signOut: async () => {} });
 
-export function SessionProvider({ initialUser, initialProfile, children }: { initialUser: User | null; initialProfile: Profile | null; children: React.ReactNode }) {
+export function SessionProvider({ initialUser, initialProfile, children }: { initialUser: SessionUser | null; initialProfile: Profile | null; children: React.ReactNode }) {
   const [user, setUser] = useState(initialUser);
   const [profile, setProfile] = useState(initialProfile);
   const sb = supabaseBrowser();
 
   const refresh = useCallback(async () => {
-    const { data: { user } } = await sb.auth.getUser();
+    const { data: { user: u } } = await sb.auth.getUser();
+    const user = u ? { id: u.id, email: u.email ?? null } : null;
     setUser(user);
     if (!user) return setProfile(null);
     const { data } = await sb

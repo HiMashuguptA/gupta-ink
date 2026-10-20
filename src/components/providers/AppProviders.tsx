@@ -1,6 +1,5 @@
 "use client";
-import type { User } from "@supabase/supabase-js";
-import { SessionProvider } from "./SessionProvider";
+import { SessionProvider, type SessionUser } from "./SessionProvider";
 import { ToastProvider } from "./ToastProvider";
 import { CartProvider } from "./CartProvider";
 import { LocationProvider } from "./LocationProvider";
@@ -11,7 +10,7 @@ import type { Profile } from "@/lib/types";
 export function AppProviders({
   user, profile, store, children,
 }: {
-  user: User | null;
+  user: SessionUser | null;
   profile: Profile | null;
   store: { lat: number; lng: number; radiusKm: number };
   children: React.ReactNode;

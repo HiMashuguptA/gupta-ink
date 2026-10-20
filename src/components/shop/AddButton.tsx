@@ -3,7 +3,7 @@ import { useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Minus, Plus } from "lucide-react";
 import clsx from "clsx";
-import { useCart } from "@/components/providers/CartProvider";
+import { useCart, capFor } from "@/components/providers/CartProvider";
 import { useFly } from "@/components/providers/FlyProvider";
 import { useToast } from "@/components/providers/ToastProvider";
 import type { ProductCard } from "@/lib/types";
@@ -14,14 +14,14 @@ export function AddButton({ product, size = "sm", className }: { product: Produc
   const toast = useToast();
   const ref = useRef<HTMLDivElement>(null);
   const qty = qtyOf(product.id);
-  const out = product.stock <= 0;
+  const out = capFor(product) <= 0;
 
   const onAdd = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     const ok = add(product, 1);
     if (!ok) {
-      toast({ kind: "error", title: `Only ${Math.min(product.stock, product.max_per_order)} per order`, body: "That's the most we can send in one order." });
+      toast({ kind: "error", title: `Only ${capFor(product)} per order`, body: "That's the most we can send in one order." });
       return;
     }
     const card = (e.currentTarget as HTMLElement).closest("[data-product-card]")?.querySelector("img");

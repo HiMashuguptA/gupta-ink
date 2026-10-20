@@ -1,10 +1,9 @@
-import { useId } from "react";
 import clsx from "clsx";
 
 type Props = {
   size?: number;
   animated?: boolean;
-  wordmark?: boolean;
+  wordmark?: boolean | "responsive";
   className?: string;
   tone?: "ink" | "light";
 };
@@ -14,9 +13,9 @@ type Props = {
  * ends in a gold nib, set on an ink-blue tile with soft depth.
  */
 export function LogoMark({ size = 40, animated = false, className }: { size?: number; animated?: boolean; className?: string }) {
-  // Unique gradient ids: several logos can be on one page, some hidden by CSS
-  const uid = useId().replace(/:/g, "");
-  const tile = `gi-tile-${uid}`, nib = `gi-nib-${uid}`, gloss = `gi-gloss-${uid}`;
+  // Fixed gradient ids. Never hide a LogoMark with display:none (use a hidden
+  // wordmark instead): a hidden SVG's gradients don't render for other copies.
+  const tile = "gi-tile", nib = "gi-nib", gloss = "gi-gloss";
   return (
     <svg
       width={size}
@@ -92,6 +91,7 @@ export function Logo({ size = 36, animated = false, wordmark = true, className, 
         <span
           className={clsx(
             "font-display font-bold leading-none tracking-tight",
+            wordmark === "responsive" && "hidden sm:inline",
             tone === "ink" ? "text-ink-deep" : "text-white",
           )}
           style={{ fontSize: size * 0.56 }}

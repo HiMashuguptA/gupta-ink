@@ -33,10 +33,19 @@ type Ctx = {
 const CartCtx = createContext<Ctx | null>(null);
 const KEY = "gi-cart-v1";
 
+const num = (v: unknown, fallback: number) => (typeof v === "number" && Number.isFinite(v) ? v : fallback);
+
+/** Most units one order may hold for a product (per-order limit and stock, with safe defaults). */
+export function capFor(p: { max_per_order?: number | null; stock?: number | null }) {
+  return Math.max(0, Math.min(num(p.max_per_order, 20), num(p.stock, 0)));
+}
+
 function readLocal(): CartLine[] {
   try {
     const raw = localStorage.getItem(KEY);
-    return raw ? (JSON.parse(raw) as CartLine[]) : [];
+    const parsed = raw ? (JSON.parse(raw) as CartLine[]) : [];
+    // Drop anything malformed (for example a NaN quantity saved by an older version)
+    return parsed.filter((l) => l && typeof l.product_id === "string" && Number.isInteger(l.qty) && l.qty > 0 && Number.isFinite(l.price_paise));
   } catch {
     return [];
   }
@@ -46,7 +55,7 @@ function lineFrom(p: ProductCard, qty: number): CartLine {
   return {
     product_id: p.id, qty, name: p.name, slug: p.slug, variant_label: p.variant_label,
     image: p.images?.[0] ?? null, price_paise: p.price_paise, mrp_paise: p.mrp_paise,
-    max_per_order: p.max_per_order, stock: p.stock,
+    max_per_order: num(p.max_per_order, 20), stock: num(p.stock, 0),
   };
 }
 
@@ -83,7 +92,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       for (const p of (products ?? []) as ProductCard[]) {
         const s = server?.find((x) => x.product_id === p.id)?.qty ?? 0;
         const l = local.find((x) => x.product_id === p.id)?.qty ?? 0;
-        const qty = Math.min(Math.max(s, l), p.max_per_order, p.stock);
+        const qty = Math.min(Math.max(s, l), capFor(p));
         if (qty > 0) merged.push(lineFrom(p, qty));
       }
       setLines(merged);
@@ -102,34 +111,40 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     [user, sb],
   );
 
+  // Keep a live copy of the cart so add/setQty can decide synchronously
+  // (React runs state-updater functions later, so they can't return a result).
+  const linesRef = useRef<CartLine[]>([]);
+  linesRef.current = lines;
+  const commit = useCallback((next: CartLine[]) => {
+    linesRef.current = next;
+    setLines(next);
+  }, []);
+
   const add = useCallback(
     (p: ProductCard, qty = 1) => {
-      const cap = Math.min(p.max_per_order, p.stock);
-      let ok = true;
-      setLines((all) => {
-        const existing = all.find((l) => l.product_id === p.id);
-        const next = Math.min((existing?.qty ?? 0) + qty, cap);
-        if (next === (existing?.qty ?? 0)) { ok = false; return all; }
-        pushServer(p.id, next);
-        if (existing) return all.map((l) => (l.product_id === p.id ? { ...lineFrom(p, next) } : l));
-        return [...all, lineFrom(p, next)];
-      });
-      return ok;
+      const all = linesRef.current;
+      const existing = all.find((l) => l.product_id === p.id);
+      const have = existing?.qty ?? 0;
+      const next = Math.min(have + qty, capFor(p));
+      if (!Number.isFinite(next) || next <= have) return false;
+      commit(existing ? all.map((l) => (l.product_id === p.id ? lineFrom(p, next) : l)) : [...all, lineFrom(p, next)]);
+      pushServer(p.id, next);
+      return true;
     },
-    [pushServer],
+    [pushServer, commit],
   );
 
   const setQty = useCallback(
     (id: string, qty: number) => {
-      setLines((all) => {
-        const line = all.find((l) => l.product_id === id);
-        if (!line) return all;
-        const next = Math.max(0, Math.min(qty, line.max_per_order, line.stock));
-        pushServer(id, next);
-        return next === 0 ? all.filter((l) => l.product_id !== id) : all.map((l) => (l.product_id === id ? { ...l, qty: next } : l));
-      });
+      const all = linesRef.current;
+      const line = all.find((l) => l.product_id === id);
+      if (!line) return;
+      const next = Math.max(0, Math.min(Math.floor(num(qty, 0)), capFor(line)));
+      if (next === line.qty) return;
+      commit(next === 0 ? all.filter((l) => l.product_id !== id) : all.map((l) => (l.product_id === id ? { ...l, qty: next } : l)));
+      pushServer(id, next);
     },
-    [pushServer],
+    [pushServer, commit],
   );
 
   const remove = useCallback((id: string) => setQty(id, 0), [setQty]);
@@ -148,7 +163,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       all.flatMap((l) => {
         const p = fresh.find((f) => f.id === l.product_id);
         if (!p) return [];
-        const qty = Math.min(l.qty, p.max_per_order, p.stock);
+        const qty = Math.min(l.qty, capFor(p));
         return qty > 0 ? [lineFrom(p, qty)] : [{ ...lineFrom(p, l.qty), stock: 0 }];
       }),
     );
@@ -160,7 +175,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     const mrpTotal = lines.reduce((a, l) => a + l.qty * l.mrp_paise, 0);
     return {
       lines, count, itemsTotal, mrpTotal,
-      qtyOf: (id) => lines.find((l) => l.product_id === id)?.qty ?? 0,
+      qtyOf: (id) => num(lines.find((l) => l.product_id === id)?.qty, 0),
       add, setQty, remove, clear, refreshPrices,
     };
   }, [lines, add, setQty, remove, clear, refreshPrices]);

@@ -21,7 +21,9 @@ export async function middleware(req: NextRequest) {
     },
   );
 
-  const { data: { user } } = await supabase.auth.getUser();
+  // Refreshes the session cookie when needed and verifies the token locally (no auth-server round trip)
+  const { data } = await supabase.auth.getClaims();
+  const user = data?.claims?.sub ? { id: data.claims.sub } : null;
   const path = req.nextUrl.pathname;
 
   if (!user && PROTECTED.some((p) => path === p || path.startsWith(p + "/"))) {
@@ -31,18 +33,9 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Role gates (the database enforces these too; this just keeps people on the right screens)
-  if (user) {
-    const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
-    const role = profile?.role;
-    if (role === "blocked" && path !== "/blocked" && !path.startsWith("/policies")) {
-      return NextResponse.redirect(new URL("/blocked", req.url));
-    }
-    if (path.startsWith("/admin") && role !== "admin") return NextResponse.redirect(new URL("/", req.url));
-    if (path.startsWith("/agent") && role !== "delivery_agent" && role !== "admin") {
-      return NextResponse.redirect(new URL("/", req.url));
-    }
-  }
+  // Role checks (admin, agent, blocked) happen in the page layouts, which already load
+  // the profile, and in the database itself. Doing them here would add a database
+  // round trip to every single request.
 
   // Security headers
   res.headers.set("X-Frame-Options", "DENY");

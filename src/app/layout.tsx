@@ -3,6 +3,8 @@ import "@fontsource-variable/bricolage-grotesque";
 import "@fontsource-variable/figtree";
 import "@fontsource/caveat/600.css";
 import "./globals.css";
+import { Suspense } from "react";
+import { NavProgress } from "@/components/layout/NavProgress";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
@@ -27,7 +29,10 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en-IN">
-      <body className="min-h-dvh antialiased">{children}</body>
+      <body className="min-h-dvh antialiased">
+        <Suspense><NavProgress /></Suspense>
+        {children}
+      </body>
     </html>
   );
 }

@@ -1,11 +1,10 @@
-import { supabaseServer } from "@/lib/supabase/server";
+import { getSessionProfile } from "@/lib/supabase/server";
 import { UserRoleTable } from "./UserRoleTable";
 
 export const metadata = { title: "Users and roles" };
 
 export default async function UsersPage() {
-  const sb = await supabaseServer();
-  const { data: { user } } = await sb.auth.getUser();
+  const { supabase: sb, user } = await getSessionProfile();
   const { data } = await sb.from("profiles").select("id, name, email, phone, role, created_at").order("created_at", { ascending: false }).limit(500);
   return (
     <div>
