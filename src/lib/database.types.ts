@@ -1630,6 +1630,8 @@ export type Database = {
       }
     }
     Functions: {
+      admin_report: { Args: { p_from: string; p_to: string }; Returns: Json }
+      my_spending: { Args: Record<PropertyKey, never>; Returns: Json }
       return_options: { Args: { p_order: string }; Returns: Json }
       request_return: { Args: { p_items: Json; p_order: string; p_photos: string[]; p_reason: string; p_refund_upi: string }; Returns: string }
       admin_review_return: { Args: { p_approve: boolean; p_note?: string; p_return: string }; Returns: undefined }

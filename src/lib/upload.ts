@@ -19,7 +19,7 @@ async function compress(file: File, max = 1600): Promise<Blob> {
 }
 
 /** Uploads into the caller's own folder of a bucket and returns the stored path. */
-export async function uploadPhoto(bucket: "returns" | "reviews" | "refund-proofs", folder: string, file: File): Promise<string> {
+export async function uploadPhoto(bucket: "returns" | "reviews" | "refund-proofs" | "products" | "banners", folder: string, file: File): Promise<string> {
   const blob = await compress(file);
   const ext = blob.type === "image/webp" ? "webp" : blob.type === "image/png" ? "png" : "jpg";
   const path = `${folder}/${crypto.randomUUID()}.${ext}`;

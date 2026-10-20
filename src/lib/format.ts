@@ -51,3 +51,18 @@ export function linkFor(type: string, value: string | null) {
 /** Public URL for a file in a public storage bucket (full URLs pass through). */
 export const storageUrl = (bucket: string, path: string) =>
   path.startsWith("http") ? path : `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${bucket}/${path}`;
+
+/** Short rupee label for chart axes: ₹850, ₹1.2k, ₹3.4L. Input in paise. */
+export function rupeesShort(paise: number) {
+  const r = paise / 100;
+  if (r >= 1e5) return `₹${(r / 1e5).toFixed(r >= 1e6 ? 0 : 1).replace(/\.0$/, "")}L`;
+  if (r >= 1e3) return `₹${(r / 1e3).toFixed(r >= 1e4 ? 0 : 1).replace(/\.0$/, "")}k`;
+  return `₹${Math.round(r)}`;
+}
+
+/** "Gel Pen 0.5mm!" -> "gel-pen-0-5mm" */
+export const slugify = (s: string) =>
+  s.toLowerCase().normalize("NFKD").replace(/[^\w\s-]/g, " ").trim().replace(/[\s_-]+/g, "-").replace(/^-|-$/g, "").slice(0, 60);
+
+/** Whole-rupee amount for reports and totals: ₹96,776. Input in paise. */
+export const rupeesWhole = (paise: number) => `₹${Math.round(paise / 100).toLocaleString("en-IN")}`;

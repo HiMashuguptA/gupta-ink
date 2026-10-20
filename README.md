@@ -36,7 +36,7 @@ Sign-in won't work until Google is switched on in Supabase (about 10 minutes, fr
 The first time premiumservice9366@gmail.com signs in, it becomes admin automatically.
 To make the delivery agent: they sign in once, then the admin opens **Account > Open admin panel > Users and roles** and sets their role to "Delivery agent".
 
-## What's built (Phases 0 to 4)
+## What's built (Phases 0 to 5)
 
 - **Database:** 29 tables with Row Level Security on every one, a sign-up trigger (owner email becomes admin, referral code, wallet), protected owner account, rate limits, audit log, realtime, and five storage buckets (images only, 5 MB max).
 - **Brand:** Gupta Ink logo (a "G" written as one pen stroke ending in a gold nib), animated version, PWA icons.
@@ -50,13 +50,15 @@ To make the delivery agent: they sign in once, then the admin opens **Account > 
 - **Referrals (Phase 4):** when a referred friend's first order passes its return window, both people get 50 coins automatically.
 - **Reviews (Phase 4):** buyers rate each item (stars, comment, up to 3 photos) from their order page; product ratings update straight away. Admin can hide a review.
 - **Coupon builder (Phase 4):** admin creates and edits coupons: percent, flat or free delivery; caps, minimum order, start and end dates, total and per-customer limits, first order only, chosen categories, or chosen customers by email; on/off switch.
+- **Reports (Phase 5):** sales, orders, average order and customers with change against the previous period; sales per day (or week), sales by category, busiest hours, delivery and payment mix, best sellers, top customers by spend, coupon and coin cost, refunds and cancellations. Pick 7, 30, 90 days, a year, or any dates. Every chart has a table view.
+- **Editors (Phase 5):** Products (search, filter, low stock, quick stock and on/off changes; full editor with variants, prices, GST, HSN, colours and photo upload), Home page (carousel banners and promo tiles with pictures, links, schedule and order; rename, reorder or hide sections), Store settings (pause orders, hours, delivery slots, holidays, fees, limits, coin, cancellation and return rules).
+- **My spending (Phase 5):** customers see what they spent, what they saved, the last 6 months and their top categories.
 - **Admin:** overview (today's orders and revenue, open orders, refunds to pay, SKUs, low stock, most-searched terms), a live orders board that chimes on new orders, order detail with verify payment, assign delivery partner, move status and cancel, and users and roles.
 - **Policies:** privacy, terms, delivery, cancellation and returns pages.
 
 ## Next phases
 
 3. Delivery agent portal: accept, live location, emailed delivery OTP.
-5. Admin dashboards and charts, product and carousel editors, spend analysis.
 6. Security tests, deployment to Cloudflare and your domain.
 
 ## Project layout

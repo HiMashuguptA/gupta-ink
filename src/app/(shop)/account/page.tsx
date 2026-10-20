@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ChevronRight, Package, Heart, MapPin, Coins, Bell, ShieldCheck, Bike, LayoutDashboard, FileText } from "lucide-react";
+import { ChevronRight, Package, Heart, MapPin, Coins, Bell, ShieldCheck, Bike, LayoutDashboard, FileText, BarChart3 } from "lucide-react";
 import { getSessionProfile } from "@/lib/supabase/server";
 import { ProfileForm } from "@/components/account/ProfileForm";
 import { ReferralCard } from "@/components/account/ReferralCard";
@@ -18,6 +18,7 @@ export default async function AccountPage() {
     { href: "/wishlist", label: "Wishlist", icon: Heart },
     { href: "/account/addresses", label: "Saved addresses", icon: MapPin },
     { href: "/account/coins", label: `SuperCoins and referrals: ${wallet?.coin_balance ?? 0} coins`, icon: Coins },
+    { href: "/account/spending", label: "My spending", icon: BarChart3 },
     { href: "/account/notifications", label: "Notifications", icon: Bell },
     { href: "/policies/privacy", label: "Privacy and policies", icon: FileText },
   ];
