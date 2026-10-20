@@ -75,7 +75,7 @@ export function CancelDialog({ open, onClose, order, onCancelled }: { open: bool
             )}
             <div className="mt-5 flex gap-2">
               <button onClick={onClose} className="h-12 flex-1 rounded-xl border border-line font-semibold">Keep order</button>
-              <button onClick={confirm} disabled={busy || (paid && !/^[\w.-]{2,256}@[a-zA-Z]{2,64}$/.test(upi))} className="h-12 flex-1 rounded-xl bg-margin font-semibold text-white disabled:opacity-50">
+              <button onClick={confirm} disabled={busy || (paid && !/^[\w.-]{2,64}@[a-zA-Z]{2,64}$/.test(upi))} className="h-12 flex-1 rounded-xl bg-margin font-semibold text-white disabled:opacity-50">
                 {busy ? "Cancelling…" : "Cancel order"}
               </button>
             </div>

@@ -12,10 +12,13 @@ import { CANCELLABLE, STATUS_LABEL, statusTone, stepsFor, when, type OrderEvent,
 import { UpiPayPanel } from "./UpiPayPanel";
 import { CancelDialog } from "./CancelDialog";
 import { DeliveryTracker } from "./DeliveryTracker";
+import { OrderAfterCare, type ReturnWithProof } from "./OrderAfterCare";
+import type { MyReview } from "./ReviewDialog";
 
-export function OrderLive({ initialOrder, items, initialEvents, initialUtr, upi, storePhone, shop }: {
+export function OrderLive({ initialOrder, items, initialEvents, initialUtr, upi, storePhone, shop, returns, reviews, cancelProofUrl }: {
   initialOrder: OrderRow; items: OrderItem[]; initialEvents: OrderEvent[]; initialUtr: string | null;
   upi: { vpa: string; name: string }; storePhone: string; shop: { lat: number; lng: number };
+  returns: ReturnWithProof[]; reviews: MyReview[]; cancelProofUrl: string | null;
 }) {
   const [order, setOrder] = useState(initialOrder);
   const [events, setEvents] = useState(initialEvents);
@@ -102,7 +105,6 @@ export function OrderLive({ initialOrder, items, initialEvents, initialUtr, upi,
           <div className="text-sm">
             <p className="font-bold">This order was cancelled</p>
             {order.cancel_reason && <p className="text-muted">{order.cancel_reason}</p>}
-            {order.refund_due_paise > 0 && <p className="mt-1">A refund of <b>{rupees(order.refund_due_paise)}</b> will be sent to your UPI ID within 7 working days.</p>}
           </div>
         </div>
       ) : (
@@ -149,6 +151,8 @@ export function OrderLive({ initialOrder, items, initialEvents, initialUtr, upi,
           </div>
         </section>
       )}
+
+      <OrderAfterCare order={order} items={items} returns={returns} reviews={reviews} cancelProofUrl={cancelProofUrl} />
 
       <section className="mt-4 rounded-2xl border border-line bg-card" aria-label="Items">
         <ul className="divide-y divide-line">

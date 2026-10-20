@@ -17,7 +17,7 @@ export default async function AccountPage() {
     { href: "/orders", label: "Orders", icon: Package },
     { href: "/wishlist", label: "Wishlist", icon: Heart },
     { href: "/account/addresses", label: "Saved addresses", icon: MapPin },
-    { href: "/account/coins", label: `SuperCoins: ${wallet?.coin_balance ?? 0}`, icon: Coins, soon: true },
+    { href: "/account/coins", label: `SuperCoins and referrals: ${wallet?.coin_balance ?? 0} coins`, icon: Coins },
     { href: "/account/notifications", label: "Notifications", icon: Bell },
     { href: "/policies/privacy", label: "Privacy and policies", icon: FileText },
   ];
@@ -48,19 +48,12 @@ export default async function AccountPage() {
         )}
 
         <ul className="mt-4 divide-y divide-line rounded-2xl border border-line bg-card">
-          {links.map(({ href, label, icon: Icon, soon }) => (
+          {links.map(({ href, label, icon: Icon }) => (
             <li key={href}>
-              {soon ? (
-                <span className="flex items-center gap-3 p-4 text-sm font-semibold text-muted">
-                  <Icon className="size-5" /> {label}
-                  <span className="ml-auto rounded-full bg-paper px-2 py-0.5 text-[11px] font-semibold">Coming next</span>
-                </span>
-              ) : (
-                <Link href={href} className="flex items-center gap-3 p-4 text-sm font-semibold hover:bg-paper">
-                  <Icon className="size-5 text-ink" /> {label}
-                  <ChevronRight className="ml-auto size-4 text-muted" />
-                </Link>
-              )}
+              <Link href={href} className="flex items-center gap-3 p-4 text-sm font-semibold hover:bg-paper">
+                <Icon className="size-5 text-ink" /> {label}
+                <ChevronRight className="ml-auto size-4 text-muted" />
+              </Link>
             </li>
           ))}
         </ul>

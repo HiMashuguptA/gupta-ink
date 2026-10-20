@@ -7,7 +7,7 @@ import { rupees } from "@/lib/format";
 import { ADMIN_ORDER_SELECT } from "@/lib/admin-orders";
 import { STATUS_LABEL, statusTone, when, type OrderRow } from "@/lib/orders";
 
-export type BoardOrder = Pick<OrderRow, "id" | "order_no" | "status" | "type" | "payable_paise" | "payment_method" | "payment_status" | "created_at" | "slot_date" | "slot_start" | "slot_end" | "refund_due_paise" | "address"> & {
+export type BoardOrder = Pick<OrderRow, "id" | "order_no" | "status" | "type" | "payable_paise" | "payment_method" | "payment_status" | "created_at" | "slot_date" | "slot_start" | "slot_end" | "refund_due_paise" | "refunded_at" | "address"> & {
   profiles: { name: string | null; phone: string | null } | null;
   payments: { utr: string | null; status: string }[];
 };
@@ -87,7 +87,7 @@ export function OrdersBoard({ initial }: { initial: BoardOrder[] }) {
                     <span className={clsx("block text-xs", o.payment_status === "paid" ? "text-ok" : utr ? "font-semibold text-nib" : "text-muted")}>
                       {o.payment_status === "paid" ? "Paid" : utr ? `Check UTR ${utr}` : "Not paid yet"}
                     </span>
-                    {o.refund_due_paise > 0 && <span className="block text-xs font-semibold text-margin">Refund due {rupees(o.refund_due_paise)}</span>}
+                    {o.refund_due_paise > 0 && !o.refunded_at && <span className="block text-xs font-semibold text-margin">Refund due {rupees(o.refund_due_paise)}</span>}
                   </td>
                   <td className="p-3 text-right font-bold">{rupees(o.payable_paise)}</td>
                   <td className="p-3"><span className={clsx("rounded-full px-2.5 py-1 text-xs font-bold", statusTone(o.status))}>{STATUS_LABEL[o.status]}</span></td>

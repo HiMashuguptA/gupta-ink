@@ -13,11 +13,16 @@ export type Job = Pick<OrderRow, "id" | "order_no" | "status" | "type" | "slot_d
   otp_attempts: number;
   order_items: { name: string; variant_label: string | null; qty: number }[];
 };
+export type Pickup = {
+  id: string; created_at: string; orders: { order_no: string } | null;
+  items: { name: string; variant_label: string | null; qty: number }[];
+  pickup_address: { contact_name: string; contact_phone: string; house_name: string; road: string; landmark?: string | null; lat: number; lng: number } | null;
+};
 type Done = { id: string; order_no: string; payable_paise: number; payment_method: string; delivered_at: string };
 type Geo = "off" | "asking" | "on" | "denied" | "error" | "unsupported";
 
-export function AgentPortal({ agentId, name, isAgent, initialOnline, initialJobs, doneToday, storePhone }: {
-  agentId: string; name: string; isAgent: boolean; initialOnline: boolean; initialJobs: Job[]; doneToday: Done[];
+export function AgentPortal({ agentId, name, isAgent, initialOnline, initialJobs, pickups, doneToday, storePhone }: {
+  agentId: string; name: string; isAgent: boolean; initialOnline: boolean; initialJobs: Job[]; pickups: Pickup[]; doneToday: Done[];
   storePhone: string; shop: { lat: number; lng: number };
 }) {
   const router = useRouter();
@@ -32,6 +37,7 @@ export function AgentPortal({ agentId, name, isAgent, initialOnline, initialJobs
   useEffect(() => {
     const ch = sb.channel(`agent-${agentId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "orders", filter: `agent_id=eq.${agentId}` }, () => router.refresh())
+      .on("postgres_changes", { event: "*", schema: "public", table: "returns", filter: `agent_id=eq.${agentId}` }, () => router.refresh())
       .subscribe();
     return () => { void sb.removeChannel(ch); };
   }, [sb, agentId, router]);
@@ -118,6 +124,13 @@ export function AgentPortal({ agentId, name, isAgent, initialOnline, initialJobs
       <div className="mt-4 space-y-4">
         {jobs.map((j) => <JobCard key={j.id} job={j} canAct={isAgent} onChanged={() => router.refresh()} />)}
       </div>
+
+      {pickups.length > 0 && (
+        <section className="mt-6">
+          <h2 className="text-lg font-bold">Return pickups</h2>
+          <div className="mt-2 space-y-3">{pickups.map((p) => <PickupCard key={p.id} p={p} canAct={isAgent} onDone={() => router.refresh()} />)}</div>
+        </section>
+      )}
 
       <section className="mt-6 rounded-2xl border border-line bg-card p-4">
         <div className="flex items-end justify-between">
@@ -262,6 +275,44 @@ function JobCard({ job, canAct, onChanged }: { job: Job; canAct: boolean; onChan
         )}
         {msg && <p className={clsx("text-sm font-semibold", msg.ok ? "text-ok" : "text-margin")} role="status">{msg.text}</p>}
       </div>
+    </article>
+  );
+}
+
+function PickupCard({ p, canAct, onDone }: { p: Pickup; canAct: boolean; onDone: () => void }) {
+  const sb = supabaseBrowser();
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const a = p.pickup_address;
+  const done = async () => {
+    setBusy(true); setErr(null);
+    const { error } = await sb.rpc("agent_return_picked_up", { p_return: p.id });
+    setBusy(false);
+    if (error) return setErr(error.message);
+    onDone();
+  };
+  return (
+    <article className="rounded-2xl border border-line bg-card p-4 text-sm">
+      <p className="font-display text-lg font-extrabold">Collect return {p.orders?.order_no ? `· ${p.orders.order_no}` : ""}</p>
+      <ul className="mt-2 rounded-xl bg-paper p-3">
+        {p.items.map((i, k) => <li key={k} className="flex justify-between"><span>{i.name}{i.variant_label ? ` (${i.variant_label})` : ""}</span><b>× {i.qty}</b></li>)}
+      </ul>
+      {a && (
+        <>
+          <div className="mt-3 flex gap-3">
+            <MapPin className="mt-0.5 size-5 shrink-0 text-ink" />
+            <div><p className="font-semibold">{a.contact_name}</p><p className="text-muted">{a.house_name}, {a.road}{a.landmark ? `, near ${a.landmark}` : ""}</p></div>
+          </div>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <a href={`tel:+91${a.contact_phone}`} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-line font-semibold"><Phone className="size-4" /> Call</a>
+            <a href={`https://www.google.com/maps/dir/?api=1&destination=${a.lat},${a.lng}&travelmode=two-wheeler`} target="_blank" rel="noopener noreferrer"
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-line font-semibold"><Navigation className="size-4" /> Navigate</a>
+          </div>
+        </>
+      )}
+      <p className="mt-3 text-xs text-muted">Check the items match the list. No money changes hands; the store refunds the customer.</p>
+      {canAct && <button disabled={busy} onClick={done} className="mt-2 h-12 w-full rounded-xl bg-ink text-base font-bold text-white disabled:opacity-50">Items collected</button>}
+      {err && <p className="mt-2 font-semibold text-margin" role="status">{err}</p>}
     </article>
   );
 }

@@ -9,7 +9,7 @@ export type OrderRow = {
   road_km: number | null; items_total_paise: number; coupon_code: string | null; coupon_discount_paise: number; coins_used: number;
   delivery_fee_paise: number; fine_paise: number; payable_paise: number; coins_to_earn: number;
   payment_method: "upi" | "cod" | "counter"; payment_status: "pending" | "paid" | "failed" | "refunded" | "partially_refunded";
-  agent_id: string | null; note: string | null; cancel_reason: string | null; cancelled_by: string | null; refund_due_paise: number; refund_upi_id: string | null;
+  agent_id: string | null; note: string | null; cancel_reason: string | null; cancelled_by: string | null; refund_due_paise: number; refund_upi_id: string | null; refund_utr?: string | null; refund_proof_path?: string | null; refunded_at?: string | null;
   created_at: string; delivered_at: string | null; return_window_ends_at: string | null; ready_at: string | null;
 };
 export type OrderItem = { id: string; product_id: string; name: string; variant_label: string | null; image_url: string | null; price_paise: number; mrp_paise: number; qty: number };

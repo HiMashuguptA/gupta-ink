@@ -7,7 +7,7 @@ export default async function AdminHome() {
   const sb = await supabaseServer();
   // Midnight in Kohima, as an absolute timestamp
   const istMidnight = `${istNow().date}T00:00:00+05:30`;
-  const [products, groups, users, lowStock, searches, today, open, refunds] = await Promise.all([
+  const [products, groups, users, lowStock, searches, today, open, refunds, returnsDue, returnsNew] = await Promise.all([
     sb.from("products").select("id", { count: "exact", head: true }),
     sb.from("product_groups").select("id", { count: "exact", head: true }),
     sb.from("profiles").select("id", { count: "exact", head: true }),
@@ -15,7 +15,9 @@ export default async function AdminHome() {
     sb.from("search_logs").select("term, results_count").order("created_at", { ascending: false }).limit(200),
     sb.from("orders").select("payable_paise, status").gte("created_at", istMidnight),
     sb.from("orders").select("id", { count: "exact", head: true }).in("status", ["placed", "confirmed", "getting_ready", "packed", "agent_assigned", "agent_accepted", "out_for_delivery", "ready_for_pickup"]),
-    sb.from("orders").select("refund_due_paise").eq("status", "cancelled").gt("refund_due_paise", 0),
+    sb.from("orders").select("refund_due_paise").eq("status", "cancelled").gt("refund_due_paise", 0).is("refunded_at", null),
+    sb.from("returns").select("refund_amount_paise").eq("status", "received"),
+    sb.from("returns").select("id", { count: "exact", head: true }).eq("status", "requested"),
   ]);
   const todays = (today.data ?? []).filter((o) => o.status !== "cancelled");
 
@@ -30,7 +32,8 @@ export default async function AdminHome() {
     { label: "Orders today", value: todays.length },
     { label: "Revenue today", value: rupees(todays.reduce((a, o) => a + o.payable_paise, 0)) },
     { label: "Open orders", value: open.count ?? 0, href: "/admin/orders" },
-    { label: "Refunds to pay", value: rupees((refunds.data ?? []).reduce((a, o) => a + o.refund_due_paise, 0)), href: "/admin/orders" },
+    { label: "Refunds to pay", value: rupees((refunds.data ?? []).reduce((a, o) => a + o.refund_due_paise, 0) + (returnsDue.data ?? []).reduce((a, r) => a + r.refund_amount_paise, 0)), href: "/admin/returns?tab=refund" },
+    { label: "Returns to review", value: returnsNew.count ?? 0, href: "/admin/returns" },
     { label: "Total SKUs", value: products.count ?? 0 },
     { label: "Product groups", value: groups.count ?? 0 },
     { label: "Customers and staff", value: users.count ?? 0 },

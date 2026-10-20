@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { rupees } from "@/lib/format";
 import type { OrderRow, OrderStatus } from "@/lib/orders";
+import { RefundProofForm } from "../../RefundProofForm";
 
 type Agent = { id: string; name: string | null; phone: string | null; agent_online: boolean };
 
@@ -99,7 +100,11 @@ export function AdminOrderActions({ order, utr, agents }: { order: OrderRow; utr
       {!terminal && s !== "out_for_delivery" && (
         <button disabled={busy} onClick={cancel} className="mt-3 h-10 w-full rounded-lg border border-margin/40 font-semibold text-margin disabled:opacity-50">Cancel order</button>
       )}
-      {terminal && <p className="mt-2 text-sm text-muted">{s === "cancelled" ? `Cancelled${order.cancelled_by ? ` by ${order.cancelled_by}` : ""}.` : "Nothing more to do."}{order.refund_due_paise > 0 ? ` Refund ${rupees(order.refund_due_paise)} to ${order.refund_upi_id ?? "the customer's UPI ID"}.` : ""}</p>}
+      {terminal && <p className="mt-2 text-sm text-muted">{s === "cancelled" ? `Cancelled${order.cancelled_by ? ` by ${order.cancelled_by}` : ""}.` : "Nothing more to do here. Returns are under Returns and refunds."}</p>}
+      {s === "cancelled" && order.refund_due_paise > 0 && (order.refunded_at
+        ? <p className="mt-2 text-sm font-semibold text-ok">Refund of {rupees(order.refund_due_paise)} sent{order.refund_utr ? `, UTR ${order.refund_utr}` : ""}.</p>
+        : <div className="mt-3"><RefundProofForm customerId={order.user_id} amountPaise={order.refund_due_paise} upiId={order.refund_upi_id}
+            submit={(path, utr) => sb.rpc("admin_mark_refund_paid", { p_order: order.id, p_proof_path: path, p_utr: utr })} /></div>)}
       {msg && <p className={`mt-3 text-sm font-semibold ${msg.ok ? "text-ok" : "text-margin"}`} role="status">{msg.text}</p>}
     </section>
   );

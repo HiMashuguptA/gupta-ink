@@ -2,7 +2,7 @@ import "server-only";
 import { unstable_cache } from "next/cache";
 import { supabasePublic } from "./supabase/public";
 import { supabaseServer, getSessionProfile } from "./supabase/server";
-import { groupCards } from "./format";
+import { groupCards, storageUrl } from "./format";
 import type { Banner, Category, GroupCard, HomeSection, ProductCard, StoreSettings } from "./types";
 
 /**
@@ -125,11 +125,12 @@ export async function getCategoryProducts(slug: string) {
 
 const reviewsFor = unstable_cache(
   async (groupId: string) => {
-    const { data } = await supabasePublic().from("reviews").select("id, stars, comment, photos, created_at")
+    const { data } = await supabasePublic().from("reviews").select("id, stars, comment, photos, reviewer_name, created_at")
       .eq("group_id", groupId).order("created_at", { ascending: false }).limit(10);
-    return (data ?? []) as { id: string; stars: number; comment: string | null; photos: string[]; created_at: string }[];
+    return ((data ?? []) as { id: string; stars: number; comment: string | null; photos: string[]; reviewer_name: string | null; created_at: string }[])
+      .map((r) => ({ ...r, photos: r.photos.map((ph) => storageUrl("reviews", ph)) }));
   },
-  ["reviews-v1"],
+  ["reviews-v2"],
   { revalidate: 60, tags: ["catalog", "reviews"] },
 );
 

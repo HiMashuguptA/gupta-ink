@@ -85,6 +85,9 @@ export type StoreSettings = {
   cod_limit_paise: number;
   upi_daily_cap: number;
   return_window_days: number;
+  coin_rate_bp: number;
+  coin_expiry_days: number;
+  referral_reward_coins: number;
 };
 
 export type Profile = {

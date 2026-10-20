@@ -117,7 +117,7 @@ begin
   if o.status not in ('placed', 'confirmed', 'getting_ready', 'packed', 'agent_assigned', 'agent_accepted', 'ready_for_pickup') then
     raise exception 'This order can''t be cancelled now. If it''s out for delivery, you can refuse it at the door.';
   end if;
-  if o.payment_status = 'paid' and coalesce(trim(p_refund_upi), '') !~ '^[a-zA-Z0-9._-]{2,256}@[a-zA-Z]{2,64}$' then
+  if o.payment_status = 'paid' and coalesce(trim(p_refund_upi), '') !~ '^[a-zA-Z0-9._-]{2,64}@[a-zA-Z]{2,64}$' then
     raise exception 'Enter the UPI ID where we should send your refund';
   end if;
   return public._cancel_order(o.id, 'customer', coalesce(nullif(trim(p_reason), ''), 'Cancelled by customer'), true, p_refund_upi);

@@ -299,6 +299,7 @@ export type Database = {
       }
       coin_ledger: {
         Row: {
+          reminded: boolean
           alloc: Json | null
           amount: number
           created_at: string
@@ -311,6 +312,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          reminded?: boolean
           alloc?: Json | null
           amount: number
           created_at?: string
@@ -323,6 +325,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          reminded?: boolean
           alloc?: Json | null
           amount?: number
           created_at?: string
@@ -634,6 +637,9 @@ export type Database = {
       }
       orders: {
         Row: {
+          refund_utr: string | null
+          refund_proof_path: string | null
+          refunded_at: string | null
           address: Json | null
           agent_id: string | null
           cancel_reason: string | null
@@ -675,6 +681,9 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          refund_utr?: string | null
+          refund_proof_path?: string | null
+          refunded_at?: string | null
           address?: Json | null
           agent_id?: string | null
           cancel_reason?: string | null
@@ -716,6 +725,9 @@ export type Database = {
           user_id: string
         }
         Update: {
+          refund_utr?: string | null
+          refund_proof_path?: string | null
+          refunded_at?: string | null
           address?: Json | null
           agent_id?: string | null
           cancel_reason?: string | null
@@ -1170,6 +1182,9 @@ export type Database = {
       }
       returns: {
         Row: {
+          pickup_address: Json | null
+          restocked: boolean
+          refunded_at: string | null
           admin_note: string | null
           agent_id: string | null
           created_at: string
@@ -1187,6 +1202,9 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          pickup_address?: Json | null
+          restocked?: boolean
+          refunded_at?: string | null
           admin_note?: string | null
           agent_id?: string | null
           created_at?: string
@@ -1204,6 +1222,9 @@ export type Database = {
           user_id: string
         }
         Update: {
+          pickup_address?: Json | null
+          restocked?: boolean
+          refunded_at?: string | null
           admin_note?: string | null
           agent_id?: string | null
           created_at?: string
@@ -1246,6 +1267,7 @@ export type Database = {
       }
       reviews: {
         Row: {
+          reviewer_name: string | null
           comment: string | null
           created_at: string
           group_id: string
@@ -1258,6 +1280,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          reviewer_name?: string | null
           comment?: string | null
           created_at?: string
           group_id: string
@@ -1270,6 +1293,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          reviewer_name?: string | null
           comment?: string | null
           created_at?: string
           group_id?: string
@@ -1606,6 +1630,16 @@ export type Database = {
       }
     }
     Functions: {
+      return_options: { Args: { p_order: string }; Returns: Json }
+      request_return: { Args: { p_items: Json; p_order: string; p_photos: string[]; p_reason: string; p_refund_upi: string }; Returns: string }
+      admin_review_return: { Args: { p_approve: boolean; p_note?: string; p_return: string }; Returns: undefined }
+      admin_assign_return_agent: { Args: { p_agent: string; p_return: string }; Returns: undefined }
+      agent_return_picked_up: { Args: { p_return: string }; Returns: undefined }
+      admin_receive_return: { Args: { p_restock?: boolean; p_return: string }; Returns: undefined }
+      admin_refund_return: { Args: { p_proof_path: string; p_return: string; p_utr?: string }; Returns: undefined }
+      admin_mark_refund_paid: { Args: { p_order: string; p_proof_path: string; p_utr?: string }; Returns: undefined }
+      submit_review: { Args: { p_comment?: string; p_item: string; p_photos?: string[]; p_stars: number }; Returns: undefined }
+      admin_hide_review: { Args: { p_hidden: boolean; p_review: string }; Returns: undefined }
       agent_accept: { Args: { p_order: string }; Returns: undefined }
       agent_complete: { Args: { p_cash_collected?: boolean; p_code: string; p_order: string }; Returns: Json }
       agent_decline: { Args: { p_order: string; p_reason?: string }; Returns: undefined }

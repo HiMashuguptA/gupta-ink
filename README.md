@@ -36,7 +36,7 @@ Sign-in won't work until Google is switched on in Supabase (about 10 minutes, fr
 The first time premiumservice9366@gmail.com signs in, it becomes admin automatically.
 To make the delivery agent: they sign in once, then the admin opens **Account > Open admin panel > Users and roles** and sets their role to "Delivery agent".
 
-## What's built (Phases 0 to 3)
+## What's built (Phases 0 to 4)
 
 - **Database:** 29 tables with Row Level Security on every one, a sign-up trigger (owner email becomes admin, referral code, wallet), protected owner account, rate limits, audit log, realtime, and five storage buckets (images only, 5 MB max).
 - **Brand:** Gupta Ink logo (a "G" written as one pen stroke ending in a gold nib), animated version, PWA icons.
@@ -45,13 +45,17 @@ To make the delivery agent: they sign in once, then the admin opens **Account > 
 - **Orders (Phase 2):** live order page with timeline and celebration, UPI payment by QR code or app link with a 30-minute timer, cancellation with the 3-free-per-week rule and refund UPI ID, order history. Unpaid UPI orders cancel themselves after 30 minutes and uncollected pickups after 48 hours.
 - **Delivery partner (Phase 3):** open `/agent` on the Android phone. Online/offline switch, new jobs buzz the phone, accept or decline, one-tap call and Google Maps navigation, "Picked up, start delivery", then the customer's 4-digit code (and a cash tick box for COD) to finish. Five wrong codes lock the order and alert the store. Today's deliveries and cash to hand in are shown at the bottom.
 - **Live tracking (Phase 3):** while the partner carries the order, their phone shares its location every 10 seconds and the customer sees them move on a map, plus the delivery code. Location is only visible while the order is on its way.
+- **Returns and refunds (Phase 4):** within 3 days of delivery, customers pick items and quantities, choose a reason, add 1 to 5 photos and their UPI ID. Refunds share out coupon and coin savings fairly; delivery fees aren't refunded; items marked non-returnable can't be picked. The store approves or rejects, sends the delivery partner to collect (or the customer brings pickup orders in), marks items received (optionally back in stock), then pays by UPI and uploads the screenshot. The customer sees the screenshot on their order. Refunds for cancelled paid orders use the same screenshot step.
+- **SuperCoins (Phase 4):** 2% of what was paid for items (after any refunds), credited automatically once the return window closes and no return is open. Coins last 10 days, oldest used first, with a reminder 2 days before they lapse. The SuperCoins page shows balance, coins on the way, history and referral stats.
+- **Referrals (Phase 4):** when a referred friend's first order passes its return window, both people get 50 coins automatically.
+- **Reviews (Phase 4):** buyers rate each item (stars, comment, up to 3 photos) from their order page; product ratings update straight away. Admin can hide a review.
+- **Coupon builder (Phase 4):** admin creates and edits coupons: percent, flat or free delivery; caps, minimum order, start and end dates, total and per-customer limits, first order only, chosen categories, or chosen customers by email; on/off switch.
 - **Admin:** overview (today's orders and revenue, open orders, refunds to pay, SKUs, low stock, most-searched terms), a live orders board that chimes on new orders, order detail with verify payment, assign delivery partner, move status and cancel, and users and roles.
 - **Policies:** privacy, terms, delivery, cancellation and returns pages.
 
 ## Next phases
 
 3. Delivery agent portal: accept, live location, emailed delivery OTP.
-4. Returns and refunds, SuperCoin crediting and expiry, referral rewards, reviews, coupon builder.
 5. Admin dashboards and charts, product and carousel editors, spend analysis.
 6. Security tests, deployment to Cloudflare and your domain.
 

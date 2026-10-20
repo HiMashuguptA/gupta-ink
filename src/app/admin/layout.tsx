@@ -9,6 +9,9 @@ export const metadata = { title: { default: "Admin", template: "%s | Gupta Ink a
 const NAV = [
   { href: "/admin", label: "Overview" },
   { href: "/admin/orders", label: "Orders" },
+  { href: "/admin/returns", label: "Returns and refunds" },
+  { href: "/admin/coupons", label: "Coupons" },
+  { href: "/admin/reviews", label: "Reviews" },
   { href: "/admin/users", label: "Users and roles" },
 ];
 
