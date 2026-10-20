@@ -36,13 +36,15 @@ Sign-in won't work until Google is switched on in Supabase (about 10 minutes, fr
 The first time premiumservice9366@gmail.com signs in, it becomes admin automatically.
 To make the delivery agent: they sign in once, then the admin opens **Account > Open admin panel > Users and roles** and sets their role to "Delivery agent".
 
-## What's built (Phases 0 to 2)
+## What's built (Phases 0 to 3)
 
 - **Database:** 29 tables with Row Level Security on every one, a sign-up trigger (owner email becomes admin, referral code, wallet), protected owner account, rate limits, audit log, realtime, and five storage buckets (images only, 5 MB max).
 - **Brand:** Gupta Ink logo (a "G" written as one pen stroke ending in a gold nib), animated version, PWA icons.
 - **Customer app:** animated Google sign-in page, 5-second welcome film for new users, referral sheet, location prompt with map pin and 15 km check, home page with admin-controlled carousel and sections, typo-tolerant search with live suggestions, category listings with filters and sorting, product pages with linked variants, cart with fly-to-cart animation, wishlist, account, notifications (live), store-hours notices, skeleton loading.
 - **Checkout (Phase 2):** saved addresses with map pin, GPS and road distance from the store (OSRM; outside 15 km means pickup only); quick delivery, scheduled 2-hour slots for the next 7 days, or store pickup; coupons, SuperCoins, pending cancellation fines and the ₹99 minimum all priced by the database, never the browser; UPI, cash on delivery or pay at counter.
 - **Orders (Phase 2):** live order page with timeline and celebration, UPI payment by QR code or app link with a 30-minute timer, cancellation with the 3-free-per-week rule and refund UPI ID, order history. Unpaid UPI orders cancel themselves after 30 minutes and uncollected pickups after 48 hours.
+- **Delivery partner (Phase 3):** open `/agent` on the Android phone. Online/offline switch, new jobs buzz the phone, accept or decline, one-tap call and Google Maps navigation, "Picked up, start delivery", then the customer's 4-digit code (and a cash tick box for COD) to finish. Five wrong codes lock the order and alert the store. Today's deliveries and cash to hand in are shown at the bottom.
+- **Live tracking (Phase 3):** while the partner carries the order, their phone shares its location every 10 seconds and the customer sees them move on a map, plus the delivery code. Location is only visible while the order is on its way.
 - **Admin:** overview (today's orders and revenue, open orders, refunds to pay, SKUs, low stock, most-searched terms), a live orders board that chimes on new orders, order detail with verify payment, assign delivery partner, move status and cancel, and users and roles.
 - **Policies:** privacy, terms, delivery, cancellation and returns pages.
 
@@ -59,6 +61,23 @@ To make the delivery agent: they sign in once, then the admin opens **Account > 
 - `src/components` UI, `src/lib` data access, `src/content/policies.ts` policy text
 - `supabase/migrations` database schema (applied to the live project), `supabase/seed.sql` dummy catalogue
 - `scripts/generate-catalog.mjs` regenerates the dummy product illustrations and seed data
+
+## Turn on delivery-code emails (free, 10 minutes)
+
+The code always shows on the customer's order page. To also email it:
+
+1. Make a free account at brevo.com (300 emails a day free).
+2. In Brevo, **Senders, Domains & Dedicated IPs > Senders**, add and verify guptaenterpriseskohima@gmail.com.
+3. **SMTP & API > API Keys**, create a key and copy it.
+4. In the Supabase dashboard, open **SQL Editor** and run (paste your key):
+   `select vault.create_secret('xkeysib-your-key', 'brevo_api_key');`
+
+That's all. The database sends the email itself, so the key never touches the website.
+
+## Tips for the delivery phone
+
+- Use Chrome. Open `/agent`, tap the menu, **Add to Home screen**.
+- Allow location when asked. Keep the app open on screen while delivering; the screen is kept awake automatically, but Android stops sharing location if Chrome is closed.
 
 ## How UPI works for now
 

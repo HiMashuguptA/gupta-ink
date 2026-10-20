@@ -26,6 +26,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
       initialUtr={payment.data?.utr ?? null}
       upi={{ vpa: settings?.store_upi_id ?? "", name: settings?.store_name ?? "Gupta Ink" }}
       storePhone={settings?.store_phone ?? "7905529544"}
+      shop={{ lat: settings?.store_lat ?? 25.6669, lng: settings?.store_lng ?? 94.1086 }}
     />
   );
 }

@@ -11,10 +11,11 @@ import { rupees } from "@/lib/format";
 import { CANCELLABLE, STATUS_LABEL, statusTone, stepsFor, when, type OrderEvent, type OrderItem, type OrderRow } from "@/lib/orders";
 import { UpiPayPanel } from "./UpiPayPanel";
 import { CancelDialog } from "./CancelDialog";
+import { DeliveryTracker } from "./DeliveryTracker";
 
-export function OrderLive({ initialOrder, items, initialEvents, initialUtr, upi, storePhone }: {
+export function OrderLive({ initialOrder, items, initialEvents, initialUtr, upi, storePhone, shop }: {
   initialOrder: OrderRow; items: OrderItem[]; initialEvents: OrderEvent[]; initialUtr: string | null;
-  upi: { vpa: string; name: string }; storePhone: string;
+  upi: { vpa: string; name: string }; storePhone: string; shop: { lat: number; lng: number };
 }) {
   const [order, setOrder] = useState(initialOrder);
   const [events, setEvents] = useState(initialEvents);
@@ -92,6 +93,8 @@ export function OrderLive({ initialOrder, items, initialEvents, initialUtr, upi,
       </div>
 
       {awaitingUpi && <div className="mt-4"><UpiPayPanel order={order} upi={upi} utr={utr} onSubmitted={setUtr} /></div>}
+
+      {(order.status === "agent_accepted" || order.status === "out_for_delivery") && <DeliveryTracker order={order} shop={shop} />}
 
       {cancelled ? (
         <div className="mt-4 flex gap-3 rounded-2xl border border-margin/30 bg-margin/5 p-4">

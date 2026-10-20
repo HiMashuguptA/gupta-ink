@@ -1606,6 +1606,14 @@ export type Database = {
       }
     }
     Functions: {
+      agent_accept: { Args: { p_order: string }; Returns: undefined }
+      agent_complete: { Args: { p_cash_collected?: boolean; p_code: string; p_order: string }; Returns: Json }
+      agent_decline: { Args: { p_order: string; p_reason?: string }; Returns: undefined }
+      agent_report_issue: { Args: { p_note: string; p_order: string }; Returns: undefined }
+      agent_resend_code: { Args: { p_order: string }; Returns: boolean }
+      agent_set_online: { Args: { p_online: boolean }; Returns: undefined }
+      agent_start_delivery: { Args: { p_order: string }; Returns: undefined }
+      my_delivery_code: { Args: { p_order: string }; Returns: string }
       _cancel_order: {
         Args: {
           p_by: string
