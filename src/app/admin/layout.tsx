@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { getSessionProfile } from "@/lib/supabase/server";
 import { Logo } from "@/components/brand/Logo";
 import { AdminLive } from "./AdminLive";
+import { StaffProviders } from "@/components/providers/StaffProviders";
+import type { Profile } from "@/lib/types";
 import { LiveRefresh } from "@/components/live/LiveRefresh";
 
 export const metadata = { title: { default: "Admin", template: "%s | Gupta Ink admin" } };
@@ -13,6 +15,7 @@ const NAV = [
   { href: "/admin/orders", label: "Orders" },
   { href: "/admin/returns", label: "Returns and refunds" },
   { href: "/admin/products", label: "Products" },
+  { href: "/admin/categories", label: "Categories" },
   { href: "/admin/home", label: "Home page" },
   { href: "/admin/coupons", label: "Coupons" },
   { href: "/admin/reviews", label: "Reviews" },
@@ -25,6 +28,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (!profile || !user) redirect("/login?next=/admin");
   if (profile.role !== "admin") redirect("/");
   return (
+    <StaffProviders user={user} profile={profile as Profile}>
     <div className="min-h-dvh md:grid md:grid-cols-[220px_1fr]">
       <aside className="border-b border-line bg-card p-4 md:min-h-dvh md:border-b-0 md:border-r">
         <Link href="/admin"><Logo size={30} /></Link>
@@ -41,5 +45,6 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       {/* Any admin page re-renders itself when orders, payments, returns, reviews or stock change */}
       <LiveRefresh id="admin" waitMs={900} watch={[{ table: "orders" }, { table: "payments" }, { table: "returns" }, { table: "reviews" }, { table: "products", event: "UPDATE" }]} />
     </div>
+    </StaffProviders>
   );
 }

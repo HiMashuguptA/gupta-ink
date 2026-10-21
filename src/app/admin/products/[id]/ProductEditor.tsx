@@ -4,10 +4,10 @@ import { useRouter } from "next/navigation";
 import clsx from "clsx";
 import { Plus, Trash2, ArrowLeft, ArrowRight, ImagePlus, Copy } from "lucide-react";
 import { supabaseBrowser } from "@/lib/supabase/client";
-import { useSession } from "@/components/providers/SessionProvider";
 import { slugify, storageUrl } from "@/lib/format";
 import { uploadPhoto } from "@/lib/upload";
 import { refreshCatalog } from "@/app/actions/admin";
+import { TagInput } from "./TagInput";
 
 type DbVariant = {
   id: string; sku: string; variant_label: string | null; colour: string | null; colour_hex: string | null; unit: string; images: string[];
@@ -26,17 +26,19 @@ const toV = (p: DbVariant): V => ({ id: p.id, key: p.id, sku: p.sku, label: p.va
 const newV = (base?: V): V => ({ key: crypto.randomUUID(), sku: "", label: "", colour: "", hex: "", unit: base?.unit ?? "piece", images: base ? [...base.images] : [],
   mrp: base?.mrp ?? "", price: base?.price ?? "", gst: base?.gst ?? "18", hsn: base?.hsn ?? "", stock: "0", low: base?.low ?? "5", maxPer: base?.maxPer ?? "20", featured: false, active: true });
 
-export function ProductEditor({ initial, categories }: { initial: EditGroup | null; categories: { id: string; name: string }[] }) {
+export function ProductEditor({ initial, categories: initialCats, allTags }: { initial: EditGroup | null; categories: { id: string; name: string }[]; allTags: string[] }) {
   const router = useRouter();
-  const { user } = useSession();
   const sb = supabaseBrowser();
   const [name, setName] = useState(initial?.name ?? "");
   const [slug, setSlug] = useState(initial?.slug ?? "");
   const [slugTouched, setSlugTouched] = useState(!!initial);
-  const [category, setCategory] = useState(initial?.category_id ?? categories[0]?.id ?? "");
+  const [categories, setCategories] = useState(initialCats);
+  const [category, setCategory] = useState(initial?.category_id ?? initialCats[0]?.id ?? "");
+  const [newCat, setNewCat] = useState<string | null>(null);
+  const [catBusy, setCatBusy] = useState(false);
   const [brand, setBrand] = useState(initial?.brand ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
-  const [tags, setTags] = useState((initial?.tags ?? []).join(", "));
+  const [tags, setTags] = useState<string[]>(initial?.tags ?? []);
   const [seasonal, setSeasonal] = useState(initial?.seasonal_tag ?? "");
   const [returnable, setReturnable] = useState(initial?.returnable ?? true);
   const [variants, setVariants] = useState<V[]>(initial ? [...initial.products].sort((a, b) => a.sort - b.sort).map(toV) : [newV()]);
@@ -47,20 +49,41 @@ export function ProductEditor({ initial, categories }: { initial: EditGroup | nu
   const setV = (key: string, change: Partial<V>) => setVariants((all) => all.map((v) => (v.key === key ? { ...v, ...change } : v)));
   const field = "mt-1 h-10 w-full rounded-lg border border-line bg-paper px-3 text-sm outline-none focus:border-ink";
 
-  const addImages = async (v: V, files: FileList | null) => {
-    if (!files || !user) return;
-    setUploading(v.key);
-    try {
-      const paths = await Promise.all(Array.from(files).slice(0, 6 - v.images.length).map((f) => uploadPhoto("products", "catalogue", f)));
-      setV(v.key, { images: [...v.images, ...paths.map((p) => storageUrl("products", p))] });
-    } catch (e) { setMsg({ ok: false, text: (e as Error).message }); }
-    finally { setUploading(null); }
+  const addImages = async (v: V, picked: File[]) => {
+    if (!picked.length) return;
+    setUploading(v.key); setMsg(null);
+    // Upload one by one so a bad file doesn't stop the others; keep the good ones
+    const urls: string[] = []; const failed: string[] = [];
+    for (const f of picked.slice(0, Math.max(0, 6 - v.images.length))) {
+      try { urls.push(storageUrl("products", await uploadPhoto("products", "catalogue", f))); }
+      catch (e) { failed.push((e as Error).message); }
+    }
+    setVariants((all) => all.map((x) => (x.key === v.key ? { ...x, images: [...x.images, ...urls].slice(0, 6) } : x)));
+    setUploading(null);
+    if (failed.length) setMsg({ ok: false, text: failed.join(" ") });
+    else if (urls.length) setMsg({ ok: true, text: `${urls.length} photo${urls.length === 1 ? "" : "s"} added. Save to keep them.` });
   };
   const moveImage = (v: V, i: number, dir: -1 | 1) => {
     const imgs = [...v.images]; const j = i + dir;
     if (j < 0 || j >= imgs.length) return;
     [imgs[i], imgs[j]] = [imgs[j], imgs[i]];
     setV(v.key, { images: imgs });
+  };
+
+  const createCategory = async () => {
+    const nm = (newCat ?? "").trim();
+    if (!nm) return;
+    const existing = categories.find((c) => c.name.toLowerCase() === nm.toLowerCase());
+    if (existing) { setCategory(existing.id); setNewCat(null); return; }
+    setCatBusy(true); setMsg(null);
+    const { data, error } = await sb.from("categories").insert({ name: nm, slug: slugify(nm), sort: categories.length + 1, active: true }).select("id, name").single();
+    setCatBusy(false);
+    if (error) return setMsg({ ok: false, text: error.code === "23505" ? "A category with a similar web address exists. Pick it from the list." : error.message });
+    setCategories((c) => [...c, data]);
+    setCategory(data.id);
+    setNewCat(null);
+    void refreshCatalog();
+    setMsg({ ok: true, text: `Category "${data.name}" created.` });
   };
 
   const save = async () => {
@@ -79,7 +102,7 @@ export function ProductEditor({ initial, categories }: { initial: EditGroup | nu
     setBusy(true);
     try {
       const g = { name: name.trim(), slug: s, category_id: category, brand: brand.trim() || null, description: description.trim() || null,
-        tags: tags.split(",").map((t) => t.trim().toLowerCase()).filter(Boolean), seasonal_tag: seasonal.trim() || null, returnable };
+        tags, seasonal_tag: seasonal.trim() || null, returnable };
       let gid = initial?.id;
       if (gid) {
         const { error } = await sb.from("product_groups").update(g).eq("id", gid);
@@ -99,8 +122,10 @@ export function ProductEditor({ initial, categories }: { initial: EditGroup | nu
         if (error) throw error;
       }
       await refreshCatalog();
-      setMsg({ ok: true, text: "Saved. The shop shows the changes now." });
-      if (!initial) router.replace(`/admin/products/${gid}`); else router.refresh();
+      // Back to the product list, which confirms the save and links to the shop page
+      router.push(`/admin/products?saved=${gid}&new=${initial ? 0 : 1}`);
+      router.refresh();
+      return;
     } catch (e) {
       const err = e as { code?: string; message: string };
       setMsg({ ok: false, text: err.code === "23505" ? (err.message.includes("slug") ? "Another product already uses that web address" : "Another product already uses that SKU") : err.message });
@@ -119,17 +144,34 @@ export function ProductEditor({ initial, categories }: { initial: EditGroup | nu
             <input value={slug} onChange={(e) => { setSlug(slugify(e.target.value)); setSlugTouched(true); }} className="h-10 min-w-0 flex-1 bg-transparent pr-3 outline-none" />
           </div>
         </label>
-        <label className="font-semibold">Category
-          <select value={category} onChange={(e) => setCategory(e.target.value)} className={field}>{categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
-        </label>
+        <div className="font-semibold">
+          <label htmlFor="cat">Category</label>
+          {newCat === null ? (
+            <div className="mt-1 flex gap-2">
+              <select id="cat" value={category} onChange={(e) => setCategory(e.target.value)} className="h-10 min-w-0 flex-1 rounded-lg border border-line bg-paper px-3 text-sm outline-none focus:border-ink">
+                {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+              <button type="button" onClick={() => setNewCat("")} className="inline-flex h-10 shrink-0 items-center gap-1 rounded-lg border border-dashed border-ink px-3 text-sm font-semibold text-ink"><Plus className="size-4" /> New</button>
+            </div>
+          ) : (
+            <div className="mt-1 flex gap-2">
+              <input autoFocus value={newCat} onChange={(e) => setNewCat(e.target.value)} placeholder="New category name" aria-label="New category name"
+                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); void createCategory(); } if (e.key === "Escape") setNewCat(null); }}
+                className="h-10 min-w-0 flex-1 rounded-lg border border-ink bg-paper px-3 text-sm outline-none" />
+              <button type="button" disabled={catBusy || !newCat.trim()} onClick={createCategory} className="h-10 shrink-0 rounded-lg bg-ink px-3 text-sm font-semibold text-white disabled:opacity-50">{catBusy ? "Adding…" : "Add"}</button>
+              <button type="button" onClick={() => setNewCat(null)} className="h-10 shrink-0 rounded-lg px-2 text-sm font-semibold text-muted">Cancel</button>
+            </div>
+          )}
+        </div>
         <label className="font-semibold">Brand (optional)<input value={brand} onChange={(e) => setBrand(e.target.value)} className={field} /></label>
         <label className="font-semibold">Season tag (optional)<input value={seasonal} onChange={(e) => setSeasonal(e.target.value)} className={field} placeholder="monsoon, back-to-school" /></label>
         <label className="font-semibold sm:col-span-2">Description
           <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} className="mt-1 w-full rounded-lg border border-line bg-paper p-3 outline-none focus:border-ink" />
         </label>
-        <label className="font-semibold sm:col-span-2">Search words, comma separated
-          <input value={tags} onChange={(e) => setTags(e.target.value)} className={field} placeholder="pen, gel, writing, school" />
-        </label>
+        <div className="font-semibold sm:col-span-2">
+          <label htmlFor="tags">Tags <span className="font-normal text-muted">(help customers find it in search; pick existing ones or create new)</span></label>
+          <TagInput id="tags" value={tags} onChange={setTags} suggestions={allTags} />
+        </div>
         <label className="flex items-center gap-2 sm:col-span-2"><input type="checkbox" checked={returnable} onChange={(e) => setReturnable(e.target.checked)} className="size-4 accent-[var(--ink)]" /> Customers can return this</label>
       </section>
 
@@ -181,7 +223,7 @@ export function ProductEditor({ initial, categories }: { initial: EditGroup | nu
             {v.images.length < 6 && (
               <label className="grid size-24 cursor-pointer place-items-center rounded-xl border-[1.5px] border-dashed border-line text-muted hover:border-ink hover:text-ink">
                 <span className="grid justify-items-center gap-1 text-xs font-semibold"><ImagePlus className="size-5" />{uploading === v.key ? "Uploading…" : "Add photos"}</span>
-                <input type="file" accept="image/jpeg,image/png,image/webp" multiple hidden onChange={(e) => { void addImages(v, e.target.files); e.target.value = ""; }} />
+                <input type="file" accept="image/jpeg,image/jpg,image/png,image/webp,.jpg,.jpeg,.png,.webp" multiple hidden onChange={(e) => { const picked = Array.from(e.target.files ?? []); e.target.value = ""; void addImages(v, picked); }} />
               </label>
             )}
           </div>

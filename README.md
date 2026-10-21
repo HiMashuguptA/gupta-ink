@@ -96,6 +96,16 @@ Until YouPI is installed on the store PC, customers pay your UPI ID (himanshugup
 - Each page makes one database call to identify the signed-in person (no separate call to the sign-in server).
 - Ordering empties the cart in the database in the same step as the order, so it stays empty on every device.
 
+## Put it online for testing (Vercel, free)
+
+1. Sign in at vercel.com with GitHub (Hobby plan is free). **Add New > Project**, import the `gupta-ink` repository. Framework: Next.js (detected).
+2. Before **Deploy**, open **Environment Variables** and add the five values from your `.env.local`:
+   `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `DISTANCE_SIGNING_KEY`, `OSRM_URL`, and `NEXT_PUBLIC_SITE_URL` (set it to the Vercel address, for example `https://gupta-ink.vercel.app`).
+3. Click **Deploy**. Every push to `main` redeploys by itself.
+4. So Google sign-in works on the new address: Supabase dashboard > **Authentication > URL Configuration**, add `https://YOUR-APP.vercel.app/auth/callback` to Redirect URLs (keep the localhost one).
+
+Never add the service-role key or the database password to Vercel or GitHub.
+
 ## Notes
 
 - Road distance uses the free public OSRM server (`OSRM_URL`). If it's down, the app falls back to straight-line distance × 1.4 and marks it approximate. The result is signed with `DISTANCE_SIGNING_KEY`, which must match the `distance_hmac` secret in Supabase Vault, so customers can't fake their distance.

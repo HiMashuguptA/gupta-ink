@@ -164,7 +164,7 @@ export function HomeEditor({ banners: initialBanners, sections: initialSections,
                 // eslint-disable-next-line @next/next/no-img-element
                 ? <img src={draft.image_url} alt="Banner preview" className="size-full object-cover" />
                 : <span className="grid justify-items-center gap-1 font-semibold"><ImagePlus className="size-6" />{busy ? "Uploading…" : "Choose picture"}</span>}
-              <input type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={(e) => { void upload(e.target.files?.[0]); e.target.value = ""; }} />
+              <input type="file" accept="image/jpeg,image/jpg,image/png,image/webp,.jpg,.jpeg,.png,.webp" hidden onChange={(e) => { void upload(e.target.files?.[0]); e.target.value = ""; }} />
             </label>
             {draft.image_url && <p className="text-xs text-muted">Tap the picture to change it.</p>}
             <label className="font-semibold">Title (optional)<input value={draft.title ?? ""} onChange={(e) => setDraft({ ...draft, title: e.target.value })} className={field} placeholder="Back to school" /></label>

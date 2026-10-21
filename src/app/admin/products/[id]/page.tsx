@@ -11,11 +11,13 @@ export default async function EditProduct({ params }: { params: Promise<{ id: st
   const isNew = id === "new";
   if (!isNew && !/^[0-9a-f-]{36}$/.test(id)) notFound();
   const { supabase } = await getSessionProfile();
-  const [group, cats] = await Promise.all([
+  const [group, cats, tagRows] = await Promise.all([
     isNew ? Promise.resolve({ data: null }) :
       supabase.from("product_groups").select("id, name, slug, description, category_id, brand, tags, returnable, seasonal_tag, products(*)").eq("id", id).single(),
     supabase.from("categories").select("id, name").order("sort"),
+    supabase.from("product_groups").select("tags"),
   ]);
+  const allTags = [...new Set((tagRows.data ?? []).flatMap((r) => r.tags ?? []))].sort();
   if (!isNew && !group.data) notFound();
   return (
     <div className="max-w-4xl">
@@ -24,7 +26,7 @@ export default async function EditProduct({ params }: { params: Promise<{ id: st
         <h1 className="text-2xl font-extrabold">{isNew ? "New product" : group.data!.name}</h1>
         {!isNew && <Link href={`/p/${group.data!.slug}`} target="_blank" className="ml-auto text-sm font-semibold text-ink hover:underline">View in shop</Link>}
       </div>
-      <ProductEditor initial={(group.data as unknown as EditGroup) ?? null} categories={cats.data ?? []} />
+      <ProductEditor initial={(group.data as unknown as EditGroup) ?? null} categories={cats.data ?? []} allTags={allTags} />
     </div>
   );
 }

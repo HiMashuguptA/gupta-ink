@@ -31,7 +31,7 @@ export function PhotoPicker({ files, onChange, max, label }: { files: File[]; on
           </button>
         )}
       </div>
-      <input ref={input} type="file" accept="image/jpeg,image/png,image/webp" multiple hidden
+      <input ref={input} type="file" accept="image/jpeg,image/jpg,image/png,image/webp,.jpg,.jpeg,.png,.webp" multiple hidden
         onChange={(e) => { const add = Array.from(e.target.files ?? []); onChange([...files, ...add].slice(0, max)); e.target.value = ""; }} />
     </div>
   );
