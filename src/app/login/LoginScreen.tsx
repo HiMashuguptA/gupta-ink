@@ -71,7 +71,7 @@ export function LoginScreen({ next, error }: { next: string; error?: string }) {
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="relative w-full max-w-sm text-center">
         <div className="mx-auto w-fit"><LogoMark size={88} animated /></div>
         <motion.h1 initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.2 }} className="mt-5 font-display text-4xl font-extrabold tracking-tight text-ink-deep">
-          Gupta Ink
+          Gupta Enterprises
         </motion.h1>
         <p className="mt-1 text-sm font-semibold text-muted">Stationery in minutes, Kohima</p>
 

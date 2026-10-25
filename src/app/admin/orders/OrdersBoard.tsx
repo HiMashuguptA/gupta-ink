@@ -6,7 +6,7 @@ import clsx from "clsx";
 import { rupees } from "@/lib/format";
 import { STATUS_LABEL, statusTone, when, type OrderRow } from "@/lib/orders";
 
-export type BoardOrder = Pick<OrderRow, "id" | "order_no" | "status" | "type" | "payable_paise" | "payment_method" | "payment_status" | "created_at" | "slot_date" | "slot_start" | "slot_end" | "refund_due_paise" | "refunded_at" | "address"> & {
+export type BoardOrder = Pick<OrderRow, "id" | "order_no" | "status" | "type" | "payable_paise" | "payment_method" | "payment_status" | "created_at" | "slot_date" | "slot_start" | "slot_end" | "refund_due_paise" | "refunded_at" | "address" | "pickup_contact"> & {
   profiles: { name: string | null; phone: string | null } | null;
   payments: { utr: string | null; status: string }[];
 };
@@ -48,7 +48,37 @@ export function OrdersBoard({ initial }: { initial: BoardOrder[] }) {
       <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search order number, name or phone" aria-label="Search orders"
         className="mt-3 h-11 w-full max-w-md rounded-xl border border-line bg-card px-3 outline-none focus:border-ink" />
 
-      <div className="mt-4 overflow-x-auto rounded-2xl border border-line bg-card">
+      {/* Phones: one card per order */}
+      <ul className="mt-4 grid gap-2.5 md:hidden">
+        {shown.map((o) => {
+          const utr = o.payments[0]?.utr;
+          return (
+            <li key={o.id}>
+              <Link href={`/admin/orders/${o.id}`} className="block rounded-2xl border border-line bg-card p-3.5 active:bg-paper">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="font-bold text-ink">{o.order_no}</p>
+                    <p className="text-xs text-muted">{new Date(o.created_at).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })} · {when(o)}</p>
+                  </div>
+                  <span className={clsx("shrink-0 rounded-full px-2.5 py-1 text-xs font-bold", statusTone(o.status))}>{STATUS_LABEL[o.status]}</span>
+                </div>
+                <div className="mt-2 flex items-end justify-between gap-2 text-sm">
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold">{o.pickup_contact?.name ?? o.profiles?.name ?? "Customer"} <span className="font-normal text-muted">{o.address?.contact_phone ?? o.pickup_contact?.phone ?? o.profiles?.phone ?? ""}</span></p>
+                    <p className={clsx("text-xs", o.payment_status === "paid" ? "text-ok" : utr ? "font-semibold text-nib" : "text-muted")}>
+                      {o.payment_method === "upi" ? "UPI" : o.payment_method === "cod" ? "Cash on delivery" : "At counter"} · {o.payment_status === "paid" ? "Paid" : utr ? `Check UTR ${utr}` : "Not paid yet"}
+                    </p>
+                    {o.refund_due_paise > 0 && !o.refunded_at && <p className="text-xs font-semibold text-margin">Refund due {rupees(o.refund_due_paise)}</p>}
+                  </div>
+                  <p className="shrink-0 font-bold">{rupees(o.payable_paise)}</p>
+                </div>
+              </Link>
+            </li>
+          );
+        })}
+        {!shown.length && <li className="rounded-2xl border border-line bg-card p-6 text-center text-sm text-muted">Nothing here right now.</li>}
+      </ul>
+      <div className="mt-4 hidden overflow-x-auto rounded-2xl border border-line bg-card md:block">
         <table className="w-full min-w-[720px] text-sm">
           <thead>
             <tr className="text-left text-muted">
@@ -63,7 +93,7 @@ export function OrdersBoard({ initial }: { initial: BoardOrder[] }) {
                 <tr key={o.id} className="border-t border-line hover:bg-paper">
                   <td className="p-3"><Link href={`/admin/orders/${o.id}`} className="font-bold text-ink hover:underline">{o.order_no}</Link>
                     <span className="block text-xs text-muted">{new Date(o.created_at).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}</span></td>
-                  <td className="p-3">{o.profiles?.name ?? "Customer"}<span className="block text-xs text-muted">{o.address?.contact_phone ?? o.profiles?.phone ?? ""}</span></td>
+                  <td className="p-3">{o.pickup_contact?.name ?? o.profiles?.name ?? "Customer"}<span className="block text-xs text-muted">{o.address?.contact_phone ?? o.pickup_contact?.phone ?? o.profiles?.phone ?? ""}</span></td>
                   <td className="p-3">{when(o)}</td>
                   <td className="p-3">
                     {o.payment_method === "upi" ? "UPI" : o.payment_method === "cod" ? "Cash on delivery" : "At counter"}

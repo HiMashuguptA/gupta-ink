@@ -1,5 +1,6 @@
 "use client";
-import { useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { SlidersHorizontal, X, Check } from "lucide-react";
 import clsx from "clsx";
@@ -24,6 +25,25 @@ const PRICE_BANDS = [
 
 type Filters = { brands: string[]; colours: string[]; price: string[]; rating4: boolean; discount: boolean; inStock: boolean; categories: string[] };
 const EMPTY: Filters = { brands: [], colours: [], price: [], rating4: false, discount: false, inStock: false, categories: [] };
+
+/** Category pages are cached for everyone, so the ?highlight= and ?from= bits are read in the browser. */
+export function UrlFilteredGrid({ cards, categoryName }: { cards: GroupCard[]; categoryName: string }) {
+  return (
+    <Suspense fallback={<FilteredGrid cards={cards} />}>
+      <UrlFilteredGridInner cards={cards} categoryName={categoryName} />
+    </Suspense>
+  );
+}
+function UrlFilteredGridInner({ cards, categoryName }: { cards: GroupCard[]; categoryName: string }) {
+  const sp = useSearchParams();
+  const from = sp.get("from");
+  return (
+    <>
+      {from && <p className="-mt-2 mb-3 text-sm text-muted">Showing {categoryName.toLowerCase()} for &ldquo;{from}&rdquo;</p>}
+      <FilteredGrid cards={cards} highlightId={sp.get("highlight") ?? undefined} />
+    </>
+  );
+}
 
 export function FilteredGrid({ cards, highlightId, showCategoryFilter = false }: { cards: GroupCard[]; highlightId?: string; showCategoryFilter?: boolean }) {
   const [sort, setSort] = useState<Sort>("relevance");

@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Gupta Ink: stationery in minutes",
-    short_name: "Gupta Ink",
+    name: "Gupta Enterprises: stationery in minutes",
+    short_name: "Gupta Ent.",
     description: "Stationery from Gupta Enterprises, Kohima, delivered in under an hour.",
     start_url: "/",
     display: "standalone",

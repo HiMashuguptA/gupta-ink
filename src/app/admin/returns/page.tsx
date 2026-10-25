@@ -59,7 +59,25 @@ export default async function AdminReturns({ searchParams }: { searchParams: Pro
         ))}
       </div>
 
-      <div className="mt-4 overflow-x-auto rounded-2xl border border-line bg-card">
+      <ul className="mt-4 grid gap-2.5 md:hidden">
+        {list.map((r) => (
+          <li key={r.id}>
+            <Link href={`/admin/returns/${r.id}`} className="block rounded-2xl border border-line bg-card p-3.5 text-sm active:bg-paper">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0"><p className="font-bold text-ink">{r.orders?.order_no ?? "Order"}</p>
+                  <p className="text-xs text-muted">{r.profiles?.name ?? "Customer"} · {new Date(r.created_at).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}</p></div>
+                <span className={clsx("shrink-0 rounded-full px-2.5 py-1 text-xs font-bold", returnTone(r.status))}>{RETURN_LABEL[r.status]}</span>
+              </div>
+              <div className="mt-2 flex items-end justify-between gap-2">
+                <div className="min-w-0"><p className="line-clamp-1">{r.items.map((i) => `${i.name} × ${i.qty}`).join(", ")}</p><p className="line-clamp-1 text-xs text-muted">{r.reason}</p></div>
+                <p className="shrink-0 font-bold">{rupees(r.refund_amount_paise)}</p>
+              </div>
+            </Link>
+          </li>
+        ))}
+        {!list.length && <li className="rounded-2xl border border-line bg-card p-6 text-center text-sm text-muted">Nothing here right now.</li>}
+      </ul>
+      <div className="mt-4 hidden overflow-x-auto rounded-2xl border border-line bg-card md:block">
         <table className="w-full min-w-[680px] text-sm">
           <thead><tr className="text-left text-muted">
             <th className="p-3 font-semibold">Order</th><th className="p-3 font-semibold">Customer</th><th className="p-3 font-semibold">Items</th>

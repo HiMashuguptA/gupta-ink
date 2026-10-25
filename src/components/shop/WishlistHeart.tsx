@@ -24,7 +24,7 @@ async function loadWishlist(userId: string) {
 }
 
 export function WishlistHeart({ productId, className }: { productId: string; className?: string }) {
-  const { user } = useSession();
+  const { user, ready } = useSession();
   const router = useRouter();
   const toast = useToast();
   const [on, setOn] = useState(false);
@@ -39,6 +39,7 @@ export function WishlistHeart({ productId, className }: { productId: string; cla
   const toggle = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (!ready) return;
     if (!user) return router.push("/login?next=" + encodeURIComponent(location.pathname));
     const sb = supabaseBrowser();
     const next = !on;

@@ -12,7 +12,7 @@ export async function roadDistanceKm(from: { lat: number; lng: number }, to: { l
   try {
     const ctrl = new AbortController();
     const t = setTimeout(() => ctrl.abort(), 6000);
-    const res = await fetch(url, { signal: ctrl.signal, headers: { "User-Agent": "GuptaInk/1.0 (guptaenterpriseskohima@gmail.com)" }, cache: "no-store" });
+    const res = await fetch(url, { signal: ctrl.signal, headers: { "User-Agent": "GuptaEnterprises/1.0 (guptaenterpriseskohima@gmail.com)" }, cache: "no-store" });
     clearTimeout(t);
     if (res.ok) {
       const j = (await res.json()) as { code?: string; routes?: { distance: number }[] };

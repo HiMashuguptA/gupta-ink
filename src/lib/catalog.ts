@@ -93,10 +93,19 @@ export async function getCollection(key: string, limit = 12) {
   return collectionFrom(await allCards(), key, limit);
 }
 
+/** Stable per-day shuffle (India time), so the shop looks different each day but not on every refresh. */
+function dailyShuffle<T extends { group_id: string }>(list: T[]): T[] {
+  const day = new Date(Date.now() + 5.5 * 3600e3).toISOString().slice(0, 10);
+  const h = (s: string) => { let x = 2166136261; for (const ch of s) x = Math.imul(x ^ ch.charCodeAt(0), 16777619); return x >>> 0; };
+  return [...list].sort((a, b) => h(day + a.group_id) - h(day + b.group_id));
+}
+
 export async function getHome() {
   const [cards, content, categories] = await Promise.all([allCards(), homeContent(), getCategories()]);
   const rails: Record<string, GroupCard[]> = {};
-  for (const key of ["featured", "top_discounts", "top_rated", "most_purchased", "trending"]) rails[key] = collectionFrom(cards, key, 12);
+  for (const key of ["top_discounts", "top_rated", "most_purchased", "trending"]) rails[key] = collectionFrom(cards, key, 12);
+  // Featured pool: shuffled daily; signed-in shoppers then get their own picks in the browser
+  rails.featured = dailyShuffle(collectionFrom(cards, "featured", 40)).slice(0, 12);
   rails.seasonal = collectionFrom(cards, "monsoon", 12);
   return {
     sections: content.sections,

@@ -72,7 +72,7 @@ export default async function AccountPage() {
         <ReferralCard code={profile.referral_code} />
         <section>
           <h2 className="mb-2 text-lg font-bold">Your details</h2>
-          <ProfileForm />
+          <ProfileForm initial={{ id: profile.id, email: profile.email, name: profile.name, phone: profile.phone }} />
         </section>
       </div>
     </div>

@@ -6,7 +6,7 @@ import { BuyAgain } from "./BuyAgain";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import confetti from "canvas-confetti";
-import { MapPin, Store, Phone, ChevronLeft, CalendarClock, Bike, XCircle } from "lucide-react";
+import { MapPin, Store, Phone, ChevronLeft, CalendarClock, Bike, XCircle, ReceiptText } from "lucide-react";
 import clsx from "clsx";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { rupees } from "@/lib/format";
@@ -153,6 +153,15 @@ export function OrderLive({ initialOrder, items, initialEvents, initialUtr, upi,
           </div>
         </section>
       )}
+      {order.type === "pickup" && order.pickup_contact && (
+        <section className="mt-4 flex gap-3 rounded-2xl border border-line bg-card p-4 text-sm" aria-label="Pickup details">
+          <Store className="mt-0.5 size-5 shrink-0 text-ink" />
+          <div>
+            <p className="font-semibold">Collected by {order.pickup_contact.name}, {order.pickup_contact.phone}</p>
+            <p className="text-muted">Gupta Enterprises, Khedi Market, opposite Hotel Galaxy, Kohima</p>
+          </div>
+        </section>
+      )}
 
       <OrderAfterCare order={order} items={items} returns={returns} reviews={reviews} cancelProofUrl={cancelProofUrl} links={links} />
 
@@ -191,6 +200,7 @@ export function OrderLive({ initialOrder, items, initialEvents, initialUtr, upi,
       </section>
 
       <div className="mt-4 flex flex-wrap gap-2 pb-6">
+        <Link href={`/bill/${order.id}`} className="inline-flex h-11 items-center gap-2 rounded-xl border border-ink bg-card px-4 text-sm font-semibold text-ink"><ReceiptText className="size-4" /> View bill</Link>
         <a href={`tel:+91${storePhone}`} className="inline-flex h-11 items-center gap-2 rounded-xl border border-line bg-card px-4 text-sm font-semibold"><Phone className="size-4" /> Call the store</a>
         {["delivered", "collected", "completed", "cancelled"].includes(order.status) && <BuyAgain items={items.map((i) => ({ product_id: i.product_id, qty: i.qty }))} />}
         {CANCELLABLE.includes(order.status) && (

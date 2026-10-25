@@ -43,7 +43,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
       items={(items.data ?? []) as OrderItem[]}
       initialEvents={(events.data ?? []) as OrderEvent[]}
       initialUtr={payment.data?.utr ?? null}
-      upi={{ vpa: settings?.store_upi_id ?? "", name: settings?.store_name ?? "Gupta Ink" }}
+      upi={{ vpa: settings?.store_upi_id ?? "", name: settings?.store_name ?? "Gupta Enterprises" }}
       storePhone={settings?.store_phone ?? "7905529544"}
       returns={returns}
       reviews={(revs.data ?? []).filter((r) => itemIds.has(r.order_item_id))}

@@ -27,6 +27,7 @@ type Ctx = {
   add: (p: ProductCard, qty?: number) => boolean;
   setQty: (id: string, qty: number) => void;
   remove: (id: string) => void;
+  removeMany: (ids: string[]) => void;
   clear: () => void;
   refreshPrices: () => Promise<void>;
 };
@@ -56,7 +57,7 @@ function writeLocal(lines: CartLine[]) {
   try { localStorage.setItem(KEY, JSON.stringify(lines)); } catch { /* storage unavailable */ }
 }
 
-function lineFrom(p: ProductCard, qty: number): CartLine {
+export function lineFrom(p: ProductCard, qty: number): CartLine {
   return {
     product_id: p.id, qty, name: p.name, slug: p.slug, variant_label: p.variant_label,
     image: p.images?.[0] ?? null, price_paise: p.price_paise, mrp_paise: p.mrp_paise,
@@ -184,6 +185,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   );
 
   const remove = useCallback((id: string) => setQty(id, 0), [setQty]);
+  // After an order: drop just the items that were ordered (Buy now leaves the rest of the cart alone)
+  const removeMany = useCallback((ids: string[]) => {
+    const gone = new Set(ids);
+    const next = linesRef.current.filter((l) => !gone.has(l.product_id));
+    commit(next);
+    writeLocal(next);
+    if (user && ids.length) void sb.from("cart_items").delete().eq("user_id", user.id).in("product_id", ids);
+  }, [commit, user, sb]);
   const clear = useCallback(() => {
     commit([]);
     writeLocal([]); // before any navigation, so a reload can't bring it back
@@ -213,9 +222,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     return {
       lines, count, itemsTotal, mrpTotal,
       qtyOf: (id) => num(lines.find((l) => l.product_id === id)?.qty, 0),
-      add, setQty, remove, clear, refreshPrices,
+      add, setQty, remove, removeMany, clear, refreshPrices,
     };
-  }, [lines, add, setQty, remove, clear, refreshPrices]);
+  }, [lines, add, setQty, remove, removeMany, clear, refreshPrices]);
 
   return <CartCtx.Provider value={value}>{children}</CartCtx.Provider>;
 }

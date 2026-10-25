@@ -59,7 +59,16 @@
   --font-hand: "Caveat", cursive;
 }
 
-html { -webkit-tap-highlight-color: transparent; }
+html { -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+/* Phones: never let one wide element drag the whole page sideways (clip keeps sticky headers working) */
+html, body { overflow-x: clip; }
+@layer base {
+  /* Grid and flex children may shrink below their content width instead of overflowing */
+  .grid > * { min-width: 0; }
+  img, svg, video { max-width: 100%; }
+  /* 16px inputs stop iOS Safari zooming the page when a field is tapped */
+  @media (max-width: 640px) { input:not([type=checkbox]):not([type=radio]), select, textarea { font-size: 16px; } }
+}
 body {
   background: var(--paper);
   color: var(--graphite);
@@ -104,3 +113,10 @@ h1, h2, h3, .font-display { font-family: var(--font-display); letter-spacing: -0
 /* We draw our own clear button in the search box */
 input[type="search"]::-webkit-search-cancel-button,
 input[type="search"]::-webkit-search-decoration { -webkit-appearance: none; appearance: none; display: none; }
+
+/* Order bill: clean A4 print / Save as PDF */
+@media print {
+  @page { size: A4; margin: 12mm; }
+  html, body { background: #fff !important; color: #1b1d2a; }
+  .bill { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}

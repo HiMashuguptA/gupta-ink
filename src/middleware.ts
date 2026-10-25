@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import type { Database } from "@/lib/database.types";
 
-const PROTECTED = ["/account", "/cart/checkout", "/orders", "/wishlist", "/admin", "/agent"];
+const PROTECTED = ["/bill", "/account", "/cart/checkout", "/orders", "/wishlist", "/admin", "/agent"];
 
 export async function middleware(req: NextRequest) {
   let res = NextResponse.next({ request: req });
@@ -31,7 +31,7 @@ export async function middleware(req: NextRequest) {
   if (!user && PROTECTED.some((p) => path === p || path.startsWith(p + "/"))) {
     const url = req.nextUrl.clone();
     url.pathname = "/login";
-    url.searchParams.set("next", path);
+    url.searchParams.set("next", path + req.nextUrl.search);
     return NextResponse.redirect(url);
   }
 
@@ -39,14 +39,13 @@ export async function middleware(req: NextRequest) {
   // the profile, and in the database itself. Doing them here would add a database
   // round trip to every single request.
 
-  // Security headers
-  res.headers.set("X-Frame-Options", "DENY");
-  res.headers.set("X-Content-Type-Options", "nosniff");
-  res.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
-  res.headers.set("Permissions-Policy", "camera=(self), geolocation=(self), microphone=()");
+  // Security headers are set for every page in next.config.ts
   return res;
 }
 
+// Only signed-in areas pass through here. Shop pages (home, categories, products) skip it
+// entirely, so the CDN can serve them straight from its cache; the browser keeps the
+// sign-in fresh on those pages.
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|catalog/|brand/|.*\\.(?:svg|png|jpg|jpeg|webp|ico)$).*)"],
+  matcher: ["/bill/:path*", "/account/:path*", "/cart/checkout", "/orders/:path*", "/wishlist", "/admin/:path*", "/agent/:path*"],
 };

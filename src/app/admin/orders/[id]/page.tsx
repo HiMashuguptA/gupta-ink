@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronLeft, MapPin, Phone, Mail } from "lucide-react";
+import { ChevronLeft, MapPin, Phone, Mail, ReceiptText } from "lucide-react";
 import clsx from "clsx";
 import { getSessionProfile } from "@/lib/supabase/server";
 import { productLinks } from "@/lib/catalog";
@@ -33,6 +33,7 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
         <h1 className="text-2xl font-extrabold">{o.order_no}</h1>
         <span className={clsx("rounded-full px-3 py-1 text-xs font-bold", statusTone(o.status))}>{STATUS_LABEL[o.status]}</span>
         <span className="text-sm text-muted">{new Date(o.created_at).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", dateStyle: "medium", timeStyle: "short" })}</span>
+        <Link href={`/bill/${o.id}?from=admin`} className="ml-auto inline-flex h-9 items-center gap-1.5 rounded-lg border border-ink px-3 text-sm font-semibold text-ink"><ReceiptText className="size-4" /> Bill</Link>
       </div>
 
       <div className="mt-5 grid gap-5 lg:grid-cols-[1fr_340px]">
@@ -86,6 +87,14 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
           <section className="rounded-2xl border border-line bg-card p-4 text-sm">
             <h2 className="font-bold">{o.type === "pickup" ? "Store pickup" : "Deliver to"}</h2>
             <p className="mt-1 text-muted">{when(o)}</p>
+            {o.type === "pickup" && (
+              o.pickup_contact ? (
+                <>
+                  <p className="mt-2 font-semibold">Collected by {o.pickup_contact.name}</p>
+                  <a href={`tel:+91${o.pickup_contact.phone}`} className="flex items-center gap-2 text-ink"><Phone className="size-4" /> {o.pickup_contact.phone}</a>
+                </>
+              ) : <p className="mt-2 text-muted">No pickup contact given (older order). Use the customer details above.</p>
+            )}
             {o.address && (
               <>
                 <p className="mt-2 font-semibold">{o.address.contact_name}{o.address.for_someone_else ? " (ordered by someone else)" : ""}</p>

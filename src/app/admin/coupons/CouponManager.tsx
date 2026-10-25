@@ -98,7 +98,36 @@ export function CouponManager({ initial, categories }: { initial: Coupon[]; cate
     <>
       <button onClick={() => { setErr(null); setForm(blank()); }} className="mt-5 inline-flex h-10 items-center gap-2 rounded-xl bg-ink px-4 text-sm font-semibold text-white"><Plus className="size-4" /> New coupon</button>
 
-      <div className="mt-4 overflow-x-auto rounded-2xl border border-line bg-card">
+      <ul className="mt-4 grid gap-2.5 md:hidden">
+        {initial.map((c) => {
+          const expired = c.valid_to && new Date(c.valid_to) < new Date();
+          return (
+            <li key={c.code} className="rounded-2xl border border-line bg-card p-3.5 text-sm">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <span className="rounded-md border border-dashed border-ink px-2 py-0.5 font-mono font-bold text-ink">{c.code}</span>
+                  <p className="mt-1.5 font-semibold">{describe(c)}</p>
+                  <p className="text-xs text-muted">
+                    {[c.min_order_paise > 0 && `Min ${rupees(c.min_order_paise)}`, c.first_order_only && "First order only",
+                      c.audience === "selected" && `${c.audience_user_ids.length} chosen customers`, c.category_ids.length > 0 && `${c.category_ids.length} categories`,
+                      c.valid_to && `${expired ? "Ended" : "Ends"} ${new Date(c.valid_to).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short" })}`,
+                      `Used ${c.used_count}${c.total_limit ? ` / ${c.total_limit}` : ""}`].filter(Boolean).join(" · ")}
+                  </p>
+                </div>
+                <div className="flex shrink-0 items-center gap-1">
+                  <button role="switch" aria-checked={c.active} onClick={() => toggle(c)} aria-label={`${c.code} ${c.active ? "on" : "off"}`}
+                    className={clsx("relative h-6 w-11 rounded-full transition-colors", c.active && !expired ? "bg-ok" : "bg-line")}>
+                    <span className={clsx("absolute top-0.5 size-5 rounded-full bg-white shadow transition-all", c.active ? "left-[22px]" : "left-0.5")} />
+                  </button>
+                  <button onClick={() => edit(c)} className="grid size-9 place-items-center rounded-full hover:bg-ink-soft" aria-label={`Edit ${c.code}`}><Pencil className="size-4" /></button>
+                </div>
+              </div>
+            </li>
+          );
+        })}
+        {!initial.length && <li className="rounded-2xl border border-line bg-card p-6 text-center text-sm text-muted">No coupons yet.</li>}
+      </ul>
+      <div className="mt-4 hidden overflow-x-auto rounded-2xl border border-line bg-card md:block">
         <table className="w-full min-w-[720px] text-sm">
           <thead><tr className="text-left text-muted">
             <th className="p-3 font-semibold">Code</th><th className="p-3 font-semibold">Offer</th><th className="p-3 font-semibold">Rules</th>

@@ -31,7 +31,7 @@ export function WelcomeFilm({ name, onDone }: { name: string; onDone: () => void
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       role="dialog"
-      aria-label="Welcome to Gupta Ink"
+      aria-label="Welcome to Gupta Enterprises"
     >
       {/* ruled lines */}
       <div className="absolute inset-0 opacity-[0.08]" style={{ backgroundImage: "repeating-linear-gradient(180deg, transparent 0 31px, #fff 31px 32px)" }} />

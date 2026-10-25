@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { Bike, CalendarClock, Store, Plus, Tag, Coins, Smartphone, Banknote, Check, ChevronDown, AlertCircle, X } from "lucide-react";
 import clsx from "clsx";
-import { useCart } from "@/components/providers/CartProvider";
+import { useCart, lineFrom, type CartLine } from "@/components/providers/CartProvider";
+import type { ProductCard } from "@/lib/types";
 import { useToast } from "@/components/providers/ToastProvider";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { rupees } from "@/lib/format";
@@ -37,13 +38,36 @@ function dayLabel(d: string, i: number) {
   return new Date(d + "T12:00:00+05:30").toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", weekday: "short", day: "numeric", month: "short" });
 }
 
-export function CheckoutView({ addresses: initialAddresses, slots, coupons, radiusKm, storeAddress, storeHours }: {
+export function CheckoutView({ addresses: initialAddresses, slots, coupons, radiusKm, storeAddress, storeHours, buyNow, profileName, profilePhone }: {
   addresses: SavedAddress[]; slots: Slot[]; coupons: CouponOffer[]; radiusKm: number; storeAddress: string; storeHours: string;
+  buyNow?: { productId: string; qty: number } | null; profileName?: string | null; profilePhone?: string | null;
 }) {
   const router = useRouter();
   const toast = useToast();
-  const { lines, clear, count } = useCart();
+  const { lines: cartLines, removeMany } = useCart();
   const sb = supabaseBrowser();
+
+  // Buy now: check out just this one item; the cart stays as it is
+  const [buyLine, setBuyLine] = useState<CartLine | null>(null);
+  const [buyMissing, setBuyMissing] = useState(false);
+  useEffect(() => {
+    if (!buyNow) return;
+    let alive = true;
+    void sb.from("product_cards").select("*").eq("id", buyNow.productId).maybeSingle().then(({ data }) => {
+      if (!alive) return;
+      const p = data as ProductCard | null;
+      if (!p || p.stock <= 0) { setBuyMissing(true); return; }
+      setBuyLine(lineFrom(p, Math.max(1, Math.min(buyNow.qty, p.max_per_order ?? 20, p.stock))));
+    });
+    return () => { alive = false; };
+  }, [buyNow, sb]);
+  const lines = useMemo(() => (buyNow ? (buyLine ? [buyLine] : []) : cartLines), [buyNow, buyLine, cartLines]);
+  const count = lines.reduce((a, l) => a + l.qty, 0);
+
+  // Store pickup: who collects, and a number the store can call
+  const lastSelf = initialAddresses.find((a) => !a.for_someone_else);
+  const [pickName, setPickName] = useState(profileName ?? lastSelf?.contact_name ?? "");
+  const [pickPhone, setPickPhone] = useState((profilePhone ?? lastSelf?.contact_phone ?? "").replace(/\D/g, "").slice(-10));
 
   const [addresses, setAddresses] = useState(initialAddresses);
   const [kind, setKind] = useState<Kind>("quick");
@@ -109,12 +133,14 @@ export function CheckoutView({ addresses: initialAddresses, slots, coupons, radi
   const removeCoupon = () => { setCoupon(null); setCouponInput(""); };
 
   const errors = useMemo(() => (quote?.errors ?? []).filter(Boolean), [quote]);
-  const blocking = errors.length > 0 || !!couponError || !method || quoting;
+  const pickupOk = kind !== "pickup" || (pickName.trim().length >= 2 && /^[6-9]\d{9}$/.test(pickPhone));
+  const blocking = errors.length > 0 || !!couponError || !method || quoting || !pickupOk;
 
   const place = useCallback(async () => {
     if (!quote || blocking || !method) return;
     setPlacing(true);
-    const { data, error } = await sb.rpc("place_order", { p: { ...payload, payment_method: method, note, idempotency_key: idem.current } });
+    const { data, error } = await sb.rpc("place_order", { p: { ...payload, payment_method: method, note, idempotency_key: idem.current,
+      ...(kind === "pickup" ? { pickup_name: pickName.trim(), pickup_phone: pickPhone } : {}) } });
     if (error) {
       setPlacing(false);
       toast({ kind: "error", title: "Order not placed", body: error.message });
@@ -122,12 +148,15 @@ export function CheckoutView({ addresses: initialAddresses, slots, coupons, radi
       return;
     }
     const r = data as { order_id: string };
-    clear();
+    removeMany(lines.map((l) => l.product_id));
     void catalogChanged(); // stock moved
     startNav();
     router.replace(`/orders/${r.order_id}?placed=1`);
-  }, [quote, blocking, method, sb, payload, note, toast, clear, router]);
+  }, [quote, blocking, method, sb, payload, note, toast, removeMany, lines, router, kind, pickName, pickPhone]);
 
+  if (buyNow && !buyLine && !buyMissing) {
+    return <div className="mx-auto max-w-5xl px-4 pt-4"><div className="skeleton h-10 w-48 rounded-xl" /><div className="skeleton mt-4 h-64 rounded-2xl" /></div>;
+  }
   if (!lines.length && !placing) {
     return (
       <div className="ruled mx-4 mt-6 rounded-3xl p-8 pl-14">
@@ -193,10 +222,27 @@ export function CheckoutView({ addresses: initialAddresses, slots, coupons, radi
             <div className="flex gap-3 rounded-2xl border border-line bg-card p-3.5">
               <Store className="mt-0.5 size-5 shrink-0 text-ink" />
               <div className="text-sm">
-                <p className="font-semibold">Gupta Ink, Gupta Enterprises</p>
+                <p className="font-semibold">Gupta Enterprises</p>
                 <p className="text-muted">{storeAddress}</p>
                 <p className="text-muted">Open {storeHours}. We&apos;ll tell you when it&apos;s ready; collect within 48 hours.</p>
               </div>
+            </div>
+            <div className="mt-3 rounded-2xl border border-line bg-card p-3.5">
+              <p className="text-sm font-semibold">Who will collect it?</p>
+              <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                <label className="text-xs font-semibold text-muted">Name
+                  <input value={pickName} onChange={(e) => setPickName(e.target.value.slice(0, 80))} autoComplete="name" placeholder="Full name"
+                    className="mt-1 h-11 w-full rounded-xl border border-line bg-paper px-3 text-sm font-normal text-graphite outline-none focus:border-ink" />
+                </label>
+                <label className="text-xs font-semibold text-muted">Mobile number
+                  <div className="mt-1 flex h-11 items-center rounded-xl border border-line bg-paper focus-within:border-ink">
+                    <span className="pl-3 text-sm text-muted">+91</span>
+                    <input value={pickPhone} onChange={(e) => setPickPhone(e.target.value.replace(/\D/g, "").slice(0, 10))} inputMode="tel" autoComplete="tel-national" placeholder="10-digit mobile"
+                      className="h-full min-w-0 flex-1 bg-transparent px-2 text-sm font-normal text-graphite outline-none" />
+                  </div>
+                </label>
+              </div>
+              {!pickupOk && <p className="mt-2 text-xs font-semibold text-margin">Add the name and a 10-digit mobile number so the store can call when it&apos;s ready.</p>}
             </div>
           </Section>
         )}
@@ -233,6 +279,7 @@ export function CheckoutView({ addresses: initialAddresses, slots, coupons, radi
         )}
 
         {/* 4. Items */}
+        {buyNow && <p className="rounded-xl bg-nib-soft px-3 py-2 text-sm">Buying this item now. Your cart stays as it is.</p>}
         <Section title={`Items (${count})`}>
           <button type="button" onClick={() => setShowItems((v) => !v)} className="flex w-full items-center gap-2 rounded-2xl border border-line bg-card p-3" aria-expanded={showItems}>
             <span className="flex -space-x-2">

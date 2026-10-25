@@ -1,4 +1,4 @@
-# Gupta Ink
+# Gupta Enterprises
 
 Quick-commerce stationery app for Gupta Enterprises, Khedi Market, Kohima.
 Next.js 15 + Supabase (free tier). Customer app, admin panel and delivery agent portal in one codebase.
@@ -39,7 +39,7 @@ To make the delivery agent: they sign in once, then the admin opens **Account > 
 ## What's built (Phases 0 to 5)
 
 - **Database:** 29 tables with Row Level Security on every one, a sign-up trigger (owner email becomes admin, referral code, wallet), protected owner account, rate limits, audit log, realtime, and five storage buckets (images only, 5 MB max).
-- **Brand:** Gupta Ink logo (a "G" written as one pen stroke ending in a gold nib), animated version, PWA icons.
+- **Brand:** Gupta Enterprises logo (a "G" written as one pen stroke ending in a gold nib), animated version, PWA icons.
 - **Customer app:** animated Google sign-in page, 5-second welcome film for new users, referral sheet, location prompt with map pin and 15 km check, home page with admin-controlled carousel and sections, typo-tolerant search with live suggestions, category listings with filters and sorting, product pages with linked variants, cart with fly-to-cart animation, wishlist, account, notifications (live), store-hours notices, skeleton loading.
 - **Checkout (Phase 2):** saved addresses with map pin, GPS and road distance from the store (OSRM; outside 15 km means pickup only); quick delivery, scheduled 2-hour slots for the next 7 days, or store pickup; coupons, SuperCoins, pending cancellation fines and the ₹99 minimum all priced by the database, never the browser; UPI, cash on delivery or pay at counter.
 - **Orders (Phase 2):** live order page with timeline and celebration, UPI payment by QR code or app link with a 30-minute timer, cancellation with the 3-free-per-week rule and refund UPI ID, order history. Unpaid UPI orders cancel themselves after 30 minutes and uncollected pickups after 48 hours.

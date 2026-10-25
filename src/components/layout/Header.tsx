@@ -13,7 +13,7 @@ import { LocationSheet } from "@/components/location/LocationSheet";
 export function Header({ eta, deliveryOpen }: { eta: string; deliveryOpen: boolean }) {
   const { location, status, dismissed, dismiss } = useLocation();
   const { count } = useCart();
-  const { user, profile } = useSession();
+  const { user, profile, ready } = useSession();
   const [sheet, setSheet] = useState(false);
 
   // Ask for location on first open, as the brief asks, unless already set or dismissed
@@ -34,7 +34,7 @@ export function Header({ eta, deliveryOpen }: { eta: string; deliveryOpen: boole
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-paper/95 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 pt-3">
-        <Link href="/" className="shrink-0" aria-label="Gupta Ink home">
+        <Link href="/" className="shrink-0" aria-label="Gupta Enterprises home">
           <Logo size={34} wordmark="responsive" />
         </Link>
         <button onClick={() => setSheet(true)} className="min-w-0 flex-1 text-left sm:ml-4" aria-label="Change delivery location">
@@ -54,7 +54,7 @@ export function Header({ eta, deliveryOpen }: { eta: string; deliveryOpen: boole
             <ShoppingBag className="size-5 text-graphite" />
             {count > 0 && <span className="absolute -right-0.5 -top-0.5 grid min-w-5 place-items-center rounded-full bg-nib px-1 text-[11px] font-bold text-ink-deep">{count}</span>}
           </Link>
-          <Link href={user ? "/account" : "/login"} className="grid size-10 place-items-center overflow-hidden rounded-full hover:bg-ink-soft" aria-label={user ? "Your account" : "Sign in"}>
+          <Link href={user || !ready ? "/account" : "/login"} className="grid size-10 place-items-center overflow-hidden rounded-full hover:bg-ink-soft" aria-label={user ? "Your account" : ready ? "Sign in" : "Account"}>
             {profile?.avatar_url ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={profile.avatar_url} alt="" className="size-8 rounded-full" referrerPolicy="no-referrer" />

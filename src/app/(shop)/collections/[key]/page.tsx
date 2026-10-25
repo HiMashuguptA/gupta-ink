@@ -2,6 +2,11 @@ import { notFound } from "next/navigation";
 import { COLLECTIONS, getCollection } from "@/lib/catalog";
 import { FilteredGrid } from "@/components/shop/FilteredGrid";
 
+export const revalidate = 300;
+export function generateStaticParams() {
+  return Object.keys(COLLECTIONS).map((key) => ({ key }));
+}
+
 export async function generateMetadata({ params }: { params: Promise<{ key: string }> }) {
   const { key } = await params;
   return { title: COLLECTIONS[key]?.title ?? "Collection" };

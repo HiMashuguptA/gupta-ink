@@ -37,7 +37,7 @@ export function RefundProofForm({ customerId, amountPaise, upiId, submit }: {
       <p className="font-semibold">Send {rupees(amountPaise)} to <span className="select-all">{upiId ?? "the customer's UPI ID"}</span></p>
       <p className="text-muted">Pay from your UPI app, then add the screenshot here.</p>
       {upiId && (
-        <a href={`upi://pay?pa=${encodeURIComponent(upiId)}&am=${(amountPaise / 100).toFixed(2)}&cu=INR&tn=${encodeURIComponent("Gupta Ink refund")}`}
+        <a href={`upi://pay?pa=${encodeURIComponent(upiId)}&am=${(amountPaise / 100).toFixed(2)}&cu=INR&tn=${encodeURIComponent("Gupta Enterprises refund")}`}
           className="mt-2 inline-block rounded-lg border border-ink px-3 py-1.5 font-semibold text-ink md:hidden">Open UPI app</a>
       )}
       <label className="mt-2 flex h-10 cursor-pointer items-center gap-2 rounded-lg border border-dashed border-ink/40 bg-card px-3">

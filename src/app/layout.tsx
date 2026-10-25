@@ -8,11 +8,11 @@ import { NavProgress } from "@/components/layout/NavProgress";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
-  title: { default: "Gupta Ink: stationery in minutes, Kohima", template: "%s | Gupta Ink" },
+  title: { default: "Gupta Enterprises: stationery in minutes, Kohima", template: "%s | Gupta Enterprises" },
   description:
     "Notebooks, pens, office and exam supplies from Gupta Enterprises, Khedi Market, Kohima. Delivered in 45-60 minutes, scheduled, or ready for store pickup.",
-  applicationName: "Gupta Ink",
-  appleWebApp: { capable: true, title: "Gupta Ink", statusBarStyle: "default" },
+  applicationName: "Gupta Enterprises",
+  appleWebApp: { capable: true, title: "Gupta Enterprises", statusBarStyle: "default" },
   icons: { apple: "/brand/apple-touch-icon.png" },
 };
 

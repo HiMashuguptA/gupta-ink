@@ -1,12 +1,12 @@
-// Store policies for Gupta Ink (Gupta Enterprises, Kohima).
+// Store policies for Gupta Enterprises, Kohima.
 // Drafted to be conservative. Have them reviewed by a lawyer before launch.
 
-export const POLICY_UPDATED = "20 October 2026";
+export const POLICY_UPDATED = "25 October 2026";
 
 export type PolicySection = { heading: string; body: string[] };
 export type Policy = { slug: string; title: string; summary: string; sections: PolicySection[] };
 
-const STORE = "Gupta Enterprises (proprietorship), trading as Gupta Ink, Khedi Market, New NST, opposite Hotel Galaxy, Kohima, Nagaland 797001. GSTIN 13CNAPG5572Q1ZP.";
+const STORE = "Gupta Enterprises (proprietorship), Khedi Market, New NST, opposite Hotel Galaxy, Kohima, Nagaland 797001. GSTIN 13CNAPG5572Q1ZP.";
 const CONTACT = "Grievance Officer: Ashutosh Gupta, phone 7905529544, email guptaenterpriseskohima@gmail.com.";
 
 export const POLICIES: Policy[] = [
@@ -17,7 +17,7 @@ export const POLICIES: Policy[] = [
     sections: [
       { heading: "Who we are", body: [
         STORE,
-        "This policy explains how we handle personal data in the Gupta Ink app and website, in line with India's Digital Personal Data Protection Act, 2023, the Information Technology Act, 2000 and the Consumer Protection (E-Commerce) Rules, 2020.",
+        "This policy explains how we handle personal data in the Gupta Enterprises app and website, in line with India's Digital Personal Data Protection Act, 2023, the Information Technology Act, 2000 and the Consumer Protection (E-Commerce) Rules, 2020.",
       ] },
       { heading: "What we collect", body: [
         "Account: your name, email address and profile photo from your Google account when you sign in. We never see your Google password.",
@@ -53,7 +53,7 @@ export const POLICIES: Policy[] = [
         "If you are not satisfied, you may complain to the Data Protection Board of India.",
       ] },
       { heading: "Children", body: [
-        "Gupta Ink is for people aged 18 and over. Students under 18 may use it only through a parent or guardian's account and with their consent. We do not knowingly collect data from children.",
+        "Gupta Enterprises is for people aged 18 and over. Students under 18 may use it only through a parent or guardian's account and with their consent. We do not knowingly collect data from children.",
       ] },
       { heading: "Security", body: [
         "Data is encrypted in transit, access is limited by role, and every admin action is logged. Payment confirmation is checked on our server, never trusted from the phone.",
@@ -65,7 +65,7 @@ export const POLICIES: Policy[] = [
   {
     slug: "terms",
     title: "Terms of use",
-    summary: "The rules for using Gupta Ink, ordering, coupons and SuperCoins.",
+    summary: "The rules for using Gupta Enterprises, ordering, coupons and SuperCoins.",
     sections: [
       { heading: "About these terms", body: [STORE, "By signing in or placing an order you agree to these terms and to our privacy, delivery, cancellation and returns policies."] },
       { heading: "Your account", body: [
@@ -74,10 +74,16 @@ export const POLICIES: Policy[] = [
         "We may suspend accounts used for fraud, abuse of offers, repeated refused deliveries, or abusive behaviour toward staff or agents.",
       ] },
       { heading: "Prices and orders", body: [
-        "Prices are in Indian rupees and include GST. A GST invoice is issued for every order.",
+        "Prices are in Indian rupees and include all taxes. Every order comes with a bill you can view and download from the order page.",
         "Product photos may be illustrations; colour and packaging can vary slightly.",
         "An order is confirmed when you receive an order confirmation. We may cancel an order and refund you in full if an item is out of stock, priced in error, or the address is outside our delivery area.",
         "Minimum order value is ₹99 (item total after coupon). Delivery is ₹49, free when the item total after coupon is ₹499 or more. Store pickup is always free. These values may change and are shown before you pay.",
+      ] },
+      { heading: "Bills and GST invoices", body: [
+        "For every order we generate an itemised bill showing what you bought, prices, discounts, coupons, SuperCoins, delivery fee, the amount payable and how you paid. Open any order and tap \u201cView bill\u201d to see it, print it or save it as a PDF.",
+        "This bill is an order receipt. It is not a GST tax invoice and does not show a tax breakup.",
+        "If you need a GST tax invoice (for example to claim input tax credit), contact the store with your order number and your GSTIN and business name. We will issue the invoice for that order. Please ask within the same financial year as the order.",
+        "If an order is changed, returned or refunded, the bill shows the original order; refunds are shown on the order page.",
       ] },
       { heading: "Payments", body: [
         "You can pay by UPI, cash on delivery, or for pickup orders, at the store counter.",

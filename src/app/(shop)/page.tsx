@@ -1,14 +1,15 @@
-import { getHome, getRecentlyViewed, getSettings } from "@/lib/catalog";
-import { getSessionProfile } from "@/lib/supabase/server";
+import { getHome, getSettings } from "@/lib/catalog";
 import { storeStatus } from "@/lib/hours";
 import { HeroCarousel } from "@/components/home/HeroCarousel";
 import { CategoryGrid } from "@/components/home/CategoryGrid";
 import { PromoTiles } from "@/components/home/PromoTiles";
 import { StoreNotice } from "@/components/home/StoreNotice";
 import { Rail } from "@/components/shop/Rail";
-import type { GroupCard } from "@/lib/types";
+import { PickedForYou, RecentlyViewed } from "@/components/home/PersonalRails";
 
-export const revalidate = 0;
+// Same page for everyone, rebuilt every 5 minutes (and right after admin edits), served
+// from the CDN. Personal rails fill in from the browser.
+export const revalidate = 300;
 
 const RAIL_LINKS: Record<string, string> = {
   featured: "/collections/featured",
@@ -20,8 +21,7 @@ const RAIL_LINKS: Record<string, string> = {
 };
 
 export default async function Home() {
-  const [{ user }, home, settings] = await Promise.all([getSessionProfile(), getHome(), getSettings()]);
-  const recent: GroupCard[] = user ? await getRecentlyViewed(user.id) : [];
+  const [home, settings] = await Promise.all([getHome(), getSettings()]);
   const status = storeStatus(settings);
 
   // Admin controls which sections show and in what order (home_sections table)
@@ -40,7 +40,9 @@ export default async function Home() {
           case "categories":
             return <CategoryGrid key={s.key} categories={home.categories} title={s.title || undefined} />;
           case "recent":
-            return <Rail key={s.key} title={s.title || "Recently viewed"} cards={recent} />;
+            return <RecentlyViewed key={s.key} title={s.title || "Recently viewed"} />;
+          case "featured":
+            return <PickedForYou key={s.key} title={s.title || "Picked for you"} href={RAIL_LINKS.featured} initial={home.rails.featured ?? []} />;
           default: {
             const cards = home.rails[s.key] ?? [];
             return <Rail key={s.key} title={s.title} href={RAIL_LINKS[s.key]} cards={cards} />;

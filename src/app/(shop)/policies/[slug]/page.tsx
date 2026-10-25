@@ -18,7 +18,7 @@ export default async function PolicyPage({ params }: { params: Promise<{ slug: s
   if (!p) notFound();
   return (
     <div className="grid gap-8 px-4 pt-6 md:grid-cols-[200px_1fr]">
-      <nav aria-label="Policies" className="md:sticky md:top-28 md:self-start">
+      <nav aria-label="Policies" className="min-w-0 md:sticky md:top-28 md:self-start">
         <ul className="no-scrollbar flex gap-2 overflow-x-auto md:flex-col md:gap-1">
           {POLICIES.map((x) => (
             <li key={x.slug}>

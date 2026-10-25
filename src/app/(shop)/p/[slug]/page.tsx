@@ -1,7 +1,15 @@
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { Star } from "lucide-react";
-import { getProduct } from "@/lib/catalog";
+import { getProduct, getCollection } from "@/lib/catalog";
+
+// Built once per product and cached at the edge; refreshed every 5 minutes or right after
+// an admin edit, order or review. Stock and reviews also update live in the open page.
+export const revalidate = 300;
+export async function generateStaticParams() {
+  // Pre-build the 40 best sellers; the rest are built on first visit, then cached
+  return (await getCollection("most_purchased", 40)).map((g) => ({ slug: g.slug }));
+}
 import { ProductDetail } from "@/components/shop/ProductDetail";
 import { Rail } from "@/components/shop/Rail";
 import { LiveRefresh } from "@/components/live/LiveRefresh";
@@ -19,9 +27,9 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   if (!p) notFound();
 
   return (
-    <div className="pt-4">
+    <div className="pb-16 pt-4 md:pb-0">
       {/* New reviews and stock changes show without reloading */}
-      <LiveRefresh at={Date.now()} id={`product-${p.card.group_id}`} waitMs={1500}
+      <LiveRefresh id={`product-${p.card.group_id}`} waitMs={1500}
         watch={[{ table: "reviews", filter: `group_id=eq.${p.card.group_id}` }, { table: "products", filter: `group_id=eq.${p.card.group_id}` }]} />
       <div className="px-4">
         <Suspense>

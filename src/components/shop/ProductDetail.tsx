@@ -1,7 +1,10 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Star, RotateCcw, Truck, Store, ShieldCheck } from "lucide-react";
+import Link from "next/link";
+import { Star, RotateCcw, Truck, Store, ReceiptText, Zap } from "lucide-react";
+import { useCart, capFor } from "@/components/providers/CartProvider";
 import clsx from "clsx";
 import { rupees } from "@/lib/format";
 import { supabaseBrowser } from "@/lib/supabase/client";
@@ -19,6 +22,26 @@ export function ProductDetail({ card, description, returnable }: { card: GroupCa
   const v = card.variants.find((x) => x.id === vid) ?? card.variants[0];
 
   const { user } = useSession();
+  const { qtyOf } = useCart();
+  // Buy now skips the cart: checkout gets just this item (the cart's qty if it's already there)
+  const buyQty = Math.max(1, qtyOf(v.id));
+  // Phones: when the main buttons scroll away, keep Add to cart / Buy now pinned above the tab bar
+  const actionsRef = useRef<HTMLDivElement>(null);
+  const [pinned, setPinned] = useState(false);
+  useEffect(() => {
+    let frame = 0;
+    const check = () => {
+      frame = 0;
+      const el = actionsRef.current;
+      if (el) setPinned(el.getBoundingClientRect().bottom < 64);
+    };
+    const onScroll = () => { if (!frame) frame = requestAnimationFrame(check); };
+    check();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => { window.removeEventListener("scroll", onScroll); window.removeEventListener("resize", onScroll); if (frame) cancelAnimationFrame(frame); };
+  }, []);
+  const buyHref = `/cart/checkout?buy=${v.id}&qty=${buyQty}`;
   useEffect(() => {
     if (user) void supabaseBrowser().rpc("track_view", { p_group: card.group_id });
   }, [card.group_id, user]);
@@ -82,7 +105,33 @@ export function ProductDetail({ card, description, returnable }: { card: GroupCa
 
         {v.stock > 0 && v.stock <= 5 && <p className="mt-4 text-sm font-semibold text-margin">Hurry, only {v.stock} left in the store</p>}
 
-        <div className="mt-5 max-w-sm"><AddButton product={v} size="lg" /></div>
+        <div ref={actionsRef} className="mt-5 grid max-w-md grid-cols-2 gap-2.5">
+          <AddButton product={v} size="lg" />
+          {capFor(v) > 0 && (
+            <Link href={buyHref} prefetch={false}
+              className="flex h-12 items-center justify-center gap-1.5 rounded-xl bg-nib font-bold text-[#1f1605] shadow-sm transition-transform hover:brightness-105 active:scale-[.97]">
+              <Zap className="size-4 fill-current" /> Buy now
+            </Link>
+          )}
+        </div>
+
+        <AnimatePresence>
+          {pinned && capFor(v) > 0 && (
+            <motion.div initial={{ y: 80 }} animate={{ y: 0 }} exit={{ y: 80 }} transition={{ type: "spring", stiffness: 420, damping: 36 }}
+              className="fixed inset-x-0 bottom-[calc(57px+env(safe-area-inset-bottom))] z-30 border-t border-line bg-card/95 px-3 py-2.5 backdrop-blur md:hidden">
+              <div className="mx-auto flex max-w-md items-center gap-2.5">
+                <div className="min-w-0 shrink-0 leading-tight">
+                  <p className="font-display text-lg font-extrabold">{rupees(v.price_paise)}</p>
+                  {v.mrp_paise > v.price_paise && <p className="text-[11px] text-muted line-through">{rupees(v.mrp_paise)}</p>}
+                </div>
+                <AddButton product={v} size="lg" className="!h-11 flex-1" />
+                <Link href={buyHref} prefetch={false} className="flex h-11 flex-1 items-center justify-center gap-1 rounded-xl bg-nib text-sm font-bold text-[#1f1605] active:scale-[.97]">
+                  <Zap className="size-4 fill-current" /> Buy now
+                </Link>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <ul className="mt-6 grid gap-3 rounded-2xl border border-line bg-card p-4 text-sm">
           <li className="flex gap-3"><Truck className="size-5 shrink-0 text-ink" /><span>Delivery in 45-60 min within 15 km of Khedi Market, or pick a 2-hour slot</span></li>
@@ -91,7 +140,7 @@ export function ProductDetail({ card, description, returnable }: { card: GroupCa
             <RotateCcw className="size-5 shrink-0 text-ink" />
             <span>{returnable ? "Easy returns within 3 days of delivery" : "This item can't be returned once opened"}</span>
           </li>
-          <li className="flex gap-3"><ShieldCheck className="size-5 shrink-0 text-ink" /><span>GST invoice with every order</span></li>
+          <li className="flex gap-3"><ReceiptText className="size-5 shrink-0 text-ink" /><span>Downloadable bill with every order. Need a GST invoice? Ask the store.</span></li>
         </ul>
 
         {description && (

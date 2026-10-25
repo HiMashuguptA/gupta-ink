@@ -56,7 +56,7 @@ export function AddButton({ product, size = "sm", className }: { product: Produc
             )}
             aria-label={`Add ${product.name}${product.variant_label ? ", " + product.variant_label : ""} to cart`}
           >
-            Add
+            {big ? "Add to cart" : "Add"}
           </motion.button>
         ) : (
           <motion.div

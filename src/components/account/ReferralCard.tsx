@@ -4,10 +4,10 @@ import { useToast } from "@/components/providers/ToastProvider";
 
 export function ReferralCard({ code }: { code: string }) {
   const toast = useToast();
-  const text = `Order stationery from Gupta Ink, Kohima, delivered in under an hour. Use my code ${code} when you sign up and we both get 50 SuperCoins after your first order.`;
+  const text = `Order stationery from Gupta Enterprises, Kohima, delivered in under an hour. Use my code ${code} when you sign up and we both get 50 SuperCoins after your first order.`;
   const share = async () => {
     try {
-      if (navigator.share) await navigator.share({ title: "Gupta Ink", text, url: window.location.origin });
+      if (navigator.share) await navigator.share({ title: "Gupta Enterprises", text, url: window.location.origin });
       else { await navigator.clipboard.writeText(`${text} ${window.location.origin}`); toast({ kind: "ok", title: "Invite copied", body: "Paste it into WhatsApp or a message." }); }
     } catch { /* user cancelled share */ }
   };

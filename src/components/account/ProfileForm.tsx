@@ -10,8 +10,9 @@ const schema = z.object({
   phone: z.union([z.literal(""), z.string().regex(/^[6-9]\d{9}$/, "Enter a 10-digit mobile number")]),
 });
 
-export function ProfileForm() {
-  const { profile, refresh } = useSession();
+export function ProfileForm({ initial }: { initial: { id: string; email: string | null; name: string | null; phone: string | null } }) {
+  const { refresh } = useSession();
+  const profile = initial;
   const toast = useToast();
   const [name, setName] = useState(profile?.name ?? "");
   const [phone, setPhone] = useState(profile?.phone ?? "");

@@ -11,7 +11,7 @@ type Rules = { min_order_paise: number; delivery_fee_paise: number; free_deliver
 
 export function CartView({ rules }: { rules: Rules }) {
   const { lines, itemsTotal, mrpTotal, setQty, remove, refreshPrices, count } = useCart();
-  const { user } = useSession();
+  const { user, ready } = useSession();
 
   // Prices and stock are re-read from the store every time the cart opens
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -95,11 +95,11 @@ export function CartView({ rules }: { rules: Rules }) {
           <p className="mt-2 text-xs text-muted">Coupons, SuperCoins and the final total are applied at checkout. Store pickup is always free.</p>
           {belowMin && <p className="mt-3 rounded-xl bg-nib-soft px-3 py-2 text-sm">Minimum order is {rupees(rules.min_order_paise)}. Add {rupees(rules.min_order_paise - itemsTotal)} more.</p>}
           <Link
-            href={user ? "/cart/checkout" : "/login?next=/cart/checkout"}
+            href={user || !ready ? "/cart/checkout" : "/login?next=/cart/checkout"}
             aria-disabled={belowMin || unavailable.length > 0}
             className={`mt-4 flex h-12 items-center justify-center rounded-xl font-semibold text-white ${belowMin || unavailable.length ? "pointer-events-none bg-muted/50" : "bg-ink"}`}
           >
-            {user ? "Proceed to checkout" : "Sign in to check out"}
+            {user || !ready ? "Proceed to checkout" : "Sign in to check out"}
           </Link>
         </div>
       </aside>
