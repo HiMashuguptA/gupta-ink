@@ -6,24 +6,32 @@ import { useSession } from "@/components/providers/SessionProvider";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { WelcomeFilm } from "./WelcomeFilm";
 import { ReferralSheet } from "./ReferralSheet";
+import { BuddyPicker, BUDDY_ASKED } from "@/components/pet/BuddyPicker";
+
+const askedBuddy = () => { try { return localStorage.getItem(BUDDY_ASKED) === "1"; } catch { return true; } };
 
 /** Decides which first-run moment to show after sign-in. */
 export function OnboardingGate() {
   const { profile, refresh } = useSession();
   const params = useSearchParams();
   const router = useRouter();
-  const [stage, setStage] = useState<"none" | "film" | "referral" | "back">("none");
+  const [stage, setStage] = useState<"none" | "film" | "pet" | "referral" | "back">("none");
 
   useEffect(() => {
     if (!profile) return;
     if (!profile.welcome_seen) setStage("film");
+    else if (!profile.pet && !askedBuddy()) setStage("pet");
     else if (!profile.referral_prompt_done && Date.now() - new Date(profile.created_at).getTime() < 7 * 864e5) setStage("referral");
     else if (params.get("signedin") === "1") setStage("back");
   }, [profile, params]);
 
   const filmDone = useCallback(async () => {
     await supabaseBrowser().rpc("finish_onboarding", { p_skip_referral: false, p_welcome_seen: true });
-    setStage(profile && !profile.referral_prompt_done ? "referral" : "none");
+    setStage(profile && !profile.pet && !askedBuddy() ? "pet" : profile && !profile.referral_prompt_done ? "referral" : "none");
+  }, [profile]);
+
+  const petDone = useCallback(() => {
+    setStage(profile && !profile.referral_prompt_done && Date.now() - new Date(profile.created_at).getTime() < 7 * 864e5 ? "referral" : "none");
   }, [profile]);
 
   const referralDone = useCallback(async () => {
@@ -45,6 +53,7 @@ export function OnboardingGate() {
   return (
     <AnimatePresence>
       {stage === "film" && <WelcomeFilm key="film" name={profile?.name ?? ""} onDone={filmDone} />}
+      {stage === "pet" && <BuddyPicker key="pet" onDone={petDone} />}
       {stage === "referral" && <ReferralSheet key="ref" onDone={referralDone} />}
       {stage === "back" && (
         <motion.div

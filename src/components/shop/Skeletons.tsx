@@ -33,9 +33,10 @@ export function GridSkeleton({ n = 8 }: { n?: number }) {
   );
 }
 
-export function ListSkeleton({ rows = 5, title = true }: { rows?: number; title?: boolean }) {
+export function ListSkeleton({ rows = 5, title = true, label }: { rows?: number; title?: boolean; label?: string }) {
   return (
-    <div className="px-4 pt-4" aria-busy aria-label="Loading">
+    <div className="px-4 pt-2" aria-busy aria-label="Loading">
+      <ShelfLoader label={label} />
       {title && <div className="skeleton h-8 w-48" />}
       <div className="mt-4 divide-y divide-line rounded-[12px] bg-card">
         {Array.from({ length: rows }, (_, i) => (
@@ -51,7 +52,8 @@ export function ListSkeleton({ rows = 5, title = true }: { rows?: number; title?
 
 export function PageGridSkeleton() {
   return (
-    <div className="px-4 pt-4" aria-busy aria-label="Loading">
+    <div className="px-4 pt-2" aria-busy aria-label="Loading">
+      <ShelfLoader />
       <div className="skeleton h-8 w-48" />
       <div className="mt-4 flex gap-2">{Array.from({ length: 4 }, (_, i) => <div key={i} className="skeleton h-9 w-24 rounded-full" />)}</div>
       <div className="mt-5"><GridSkeleton /></div>
@@ -67,6 +69,20 @@ export function TextSkeleton() {
       {Array.from({ length: 4 }, (_, i) => (
         <div key={i} className="mt-7"><div className="skeleton h-5 w-40" /><div className="skeleton mt-3 h-3.5 w-full" /><div className="skeleton mt-2 h-3.5 w-11/12" /><div className="skeleton mt-2 h-3.5 w-4/5" /></div>
       ))}
+    </div>
+  );
+}
+
+/** A little shelf of stationery hopping in turn while a page is fetched. */
+export function ShelfLoader({ label = "Fetching from the shelves" }: { label?: string }) {
+  return (
+    <div className="flex items-center justify-center gap-3 py-3" role="status" aria-live="polite">
+      <span className="flex items-end gap-1.5" aria-hidden>
+        <svg className="shelf-hop" style={{ animationDelay: "0ms" }} width="10" height="26" viewBox="0 0 10 26"><path d="M1 6h8v18H1z" fill="var(--nib)" /><path d="M1 6l4-5 4 5z" fill="#f3d9b1" /><path d="M3.6 2.6 5 1l1.4 1.6z" fill="var(--graphite)" /><rect x="1" y="22" width="8" height="3" fill="var(--margin)" /></svg>
+        <svg className="shelf-hop" style={{ animationDelay: "120ms" }} width="20" height="24" viewBox="0 0 20 24"><rect x="1" y="1" width="18" height="22" rx="2.5" fill="var(--ink)" /><rect x="5" y="6" width="10" height="3" rx="1" fill="var(--nib)" /><path d="M4 1v22" stroke="rgb(0 0 0 / .25)" strokeWidth="1.5" /></svg>
+        <svg className="shelf-hop" style={{ animationDelay: "240ms" }} width="16" height="12" viewBox="0 0 16 12"><rect x="1" y="1" width="14" height="10" rx="2" fill="var(--margin)" /><rect x="1" y="1" width="6" height="10" rx="2" fill="#fff" opacity=".85" /></svg>
+      </span>
+      <span className="text-sm font-semibold text-muted">{label}<span className="shelf-dots" /></span>
     </div>
   );
 }

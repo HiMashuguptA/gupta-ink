@@ -205,6 +205,22 @@ Square-ish painted boards: 5px tags, 9-10px controls and inputs, 12px tiles and 
 ### Slide to place order
 - Green track, yellow handle; drag past 82% to place the order; spinner then tick. Enter on the focused handle confirms; a tap nudges the handle to teach the gesture.
 
+### Shop buddy (signature)
+- An optional companion picked after the welcome film (Mochi the cat, Pip the pup, Bun the bunny, Hoot the owlet; renamable, hideable in Account). One 100×100 SVG face rig with species ears and tails; mood drives eyes, brows and mouth (idle, happy, excited, love, curious, thinking, sad, surprised, sleepy, celebrate).
+- Computers with a mouse: trots after the cursor on springs and stops when the cursor comes near, so it can be petted. Phones and reduced-motion: docked bottom-left, 56px, always just above whatever is pinned to the bottom (`data-pet-avoid`: tab bar, order island, checkout slider, buy bar); hops to the other side if a focused field is underneath.
+- Eyes always track the pointer or tap. Reacts through the `petSay()` event bus: add, remove, wishlist, search, typing (never password fields), checkout, coupon, order placed (spin and stars), notifications, errors, 404. Tap, triple-tap (hearts), long-press, drag. Blinks, breathes, dozes after 45s.
+- Speech bubble: white card, 13px semibold, one short line, gone in 2-4 seconds; flips under the buddy near the top of the screen.
+
+### Loading
+- First load of a visit: the shop's rolling shutter (ribbed signboard green) with the yellow name board swinging on its nail, rolling up by itself in CSS in about 1.2s; once per tab, never waits for JavaScript, a short fade under reduced motion.
+- Between pages: the yellow progress bar with a pencil riding its head, then breathing skeletons under a shelf of stationery hopping in turn with a plain label ("Fetching from the shelves…").
+
+### 404
+- A red "404 / Aisle not found" board swinging on a green wall, "This shelf is empty", Back to the shop (yellow) and Search, aisle chips. The buddy looks sad and offers to go back.
+
+### Share images
+- 1200×630, painted like the signboard: site card (logo plate, "Stationery at your door", fact chips) and per-product cards (picture on a white board, red discount corner, yellow price plate, struck MRP).
+
 ## Do's and Don'ts
 
 ### Do:

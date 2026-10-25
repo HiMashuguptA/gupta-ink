@@ -2,14 +2,16 @@
 import { createContext, useCallback, useContext, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Bell, CheckCircle2, AlertCircle } from "lucide-react";
+import { petSay } from "@/lib/pet";
 
-type Toast = { id: number; title: string; body?: string; kind: "ok" | "error" | "info" };
+type Toast = { id: number; title: string; body?: string; kind: "ok" | "error" | "info"; onClick?: () => void };
 const ToastCtx = createContext<(t: Omit<Toast, "id">) => void>(() => {});
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const push = useCallback((t: Omit<Toast, "id">) => {
     const id = Date.now() + Math.random();
+    if (t.kind === "error") petSay({ kind: "error" });
     setToasts((all) => [...all.slice(-2), { ...t, id }]);
     setTimeout(() => setToasts((all) => all.filter((x) => x.id !== id)), 3600);
   }, []);
@@ -28,6 +30,8 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
               transition={{ type: "spring", duration: 0.45, bounce: 0.25 }}
               drag="y" dragConstraints={{ top: 0, bottom: 0 }} dragElastic={{ top: 0.8, bottom: 0.1 }}
               onDragEnd={(_, i) => { if (i.offset.y < -30 || i.velocity.y < -300) setToasts((all) => all.filter((x) => x.id !== t.id)); }}
+              onTap={() => { if (t.onClick) { t.onClick(); setToasts((all) => all.filter((x) => x.id !== t.id)); } }}
+              role={t.onClick ? "button" : undefined}
               className="pointer-events-auto flex w-full max-w-sm cursor-grab touch-none items-start gap-3 rounded-[14px] bg-[#0b1914] px-4 py-3 text-white shadow-float"
             >
               {t.kind === "ok" && <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-[#4cc98a]" />}

@@ -130,7 +130,7 @@ export function ProductDetail({ card, description, returnable }: { card: GroupCa
         <AnimatePresence>
           {pinned && capFor(v) > 0 && (
             <motion.div initial={{ y: 80 }} animate={{ y: 0 }} exit={{ y: 80 }} transition={{ type: "spring", stiffness: 420, damping: 36 }}
-              className="fixed inset-x-0 bottom-[calc(57px+env(safe-area-inset-bottom))] z-30 border-t border-line bg-card px-3 py-2.5 md:hidden">
+              data-pet-avoid className="fixed inset-x-0 bottom-[calc(57px+env(safe-area-inset-bottom))] z-30 border-t border-line bg-card px-3 py-2.5 md:hidden">
               <div className="mx-auto flex max-w-md items-center gap-2.5">
                 <div className="min-w-0 shrink-0 leading-tight">
                   <Price paise={v.price_paise} className="sign-type block text-[24px]" />

@@ -1,2 +1,2 @@
 import { ListSkeleton } from "@/components/shop/Skeletons";
-export default function Loading() { return <ListSkeleton rows={3} />; }
+export default function Loading() { return <ListSkeleton rows={3} label="Checking your bag" />; }

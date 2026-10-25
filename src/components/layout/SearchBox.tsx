@@ -6,6 +6,7 @@ import { Search, X, LayoutGrid, CornerDownLeft } from "lucide-react";
 import clsx from "clsx";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { startNav } from "./NavProgress";
+import { petSay } from "@/lib/pet";
 
 type Suggestion = { kind: "product" | "category"; label: string; slug: string; group_id: string | null; category_slug: string; image: string | null };
 
@@ -57,7 +58,7 @@ export function SearchBox({ autoFocus = false, id = "search" }: { autoFocus?: bo
     inputRef.current?.blur();
     if (!s) {
       const term = q.trim();
-      if (term.length >= 2) { startNav(); router.push(`/search?q=${encodeURIComponent(term)}`); }
+      if (term.length >= 2) { petSay({ kind: "search", q: term }); startNav(); router.push(`/search?q=${encodeURIComponent(term)}`); }
       return;
     }
     // Picking a suggested product opens its category with that product highlighted first
@@ -105,13 +106,13 @@ export function SearchBox({ autoFocus = false, id = "search" }: { autoFocus?: bo
           aria-activedescendant={active >= 0 ? `${listId}-${active}` : undefined}
           aria-label="Search stationery"
           enterKeyHint="search"
-          className={clsx("h-11 w-full rounded-[10px] bg-card pl-10 pr-10 text-[15px] outline-none ring-2 ring-transparent transition-[box-shadow] duration-150 placeholder:text-transparent focus:ring-nib", vanish && "text-transparent")}
+          className={clsx("h-11 w-full rounded-[10px] bg-card pl-10 pr-10 text-[15px] text-graphite caret-ink outline-none ring-2 ring-transparent transition-[box-shadow] duration-150 placeholder:text-transparent focus:ring-nib", vanish && "text-transparent")}
           placeholder="Search"
         />
         <AnimatePresence>
           {vanish && (
             <motion.span initial={{ opacity: 1, y: 0, filter: "blur(0px)" }} animate={{ opacity: 0, y: -10, filter: "blur(4px)" }} exit={{ opacity: 0 }}
-              transition={{ duration: 0.17, ease: [0.23, 1, 0.32, 1] }} className="pointer-events-none absolute left-10 top-1/2 -mt-[11px] text-[15px]" aria-hidden>
+              transition={{ duration: 0.17, ease: [0.23, 1, 0.32, 1] }} className="pointer-events-none absolute left-10 top-1/2 -mt-[11px] text-[15px] text-graphite" aria-hidden>
               {vanish}
             </motion.span>
           )}

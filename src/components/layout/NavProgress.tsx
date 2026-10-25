@@ -61,13 +61,21 @@ export function NavProgress() {
   return (
     <div aria-hidden className="pointer-events-none fixed inset-x-0 top-0 z-[90] h-[3px]">
       <div
-        className="h-full bg-nib shadow-[0_0_8px_var(--nib)]"
+        className="relative h-full bg-nib shadow-[0_0_8px_var(--nib)]"
         style={{
           width: `${width}%`,
           opacity: state === "idle" ? 0 : 1,
           transition: state === "done" ? "width 200ms ease-out, opacity 300ms 150ms" : "width 180ms linear",
         }}
-      />
+      >
+        {/* a little pencil writes the bar across */}
+        <svg viewBox="0 0 22 12" className="nav-pencil">
+          <path d="M0 2.5h15l5 3.5-5 3.5H0z" fill="#f5b800" stroke="#0a2e24" strokeWidth="1" strokeLinejoin="round" />
+          <path d="M15 2.5l5 3.5-5 3.5z" fill="#f3d9b1" stroke="#0a2e24" strokeWidth="1" strokeLinejoin="round" />
+          <path d="M18.2 4.7 20 6l-1.8 1.3z" fill="#0a2e24" />
+          <rect x="0" y="2.5" width="3" height="7" fill="#e8394b" stroke="#0a2e24" strokeWidth="1" />
+        </svg>
+      </div>
     </div>
   );
 }

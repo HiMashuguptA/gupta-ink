@@ -1,6 +1,10 @@
+import { ShelfLoader } from "@/components/shop/Skeletons";
+
 export default function Loading() {
   return (
-    <div className="grid gap-6 px-4 pt-4 md:grid-cols-2" aria-busy>
+    <div aria-busy>
+    <ShelfLoader label="Taking it off the shelf" />
+    <div className="grid gap-6 px-4 md:grid-cols-2">
       <div className="skeleton aspect-square rounded-[16px]" />
       <div>
         <div className="skeleton h-4 w-24" />
@@ -10,6 +14,7 @@ export default function Loading() {
         <div className="skeleton mt-6 h-12 w-full max-w-sm" />
         <div className="skeleton mt-6 h-36 w-full rounded-[12px]" />
       </div>
+    </div>
     </div>
   );
 }

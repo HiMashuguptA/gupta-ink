@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { useSession } from "@/components/providers/SessionProvider";
 import { useToast } from "@/components/providers/ToastProvider";
+import { petSay } from "@/lib/pet";
 
 // Small shared cache so a page of tiles makes one wishlist query, not one per tile
 let cache: { user: string; ids: Set<string>; promise?: Promise<Set<string>> } | null = null;
@@ -44,6 +45,7 @@ export function WishlistHeart({ productId, className, plain = false }: { product
     const sb = supabaseBrowser();
     const next = !on;
     setOn(next);
+    petSay(next ? { kind: "love" } : { kind: "unlove" });
     if (next) cache?.ids.add(productId); else cache?.ids.delete(productId);
     const { error } = next
       ? await sb.from("wishlist").insert({ user_id: user.id, product_id: productId })

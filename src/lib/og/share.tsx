@@ -1,0 +1,29 @@
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+
+/** Fonts for share images (Satori needs woff/ttf, not woff2). Bundled next to this file. */
+export async function ogFonts() {
+  const dir = path.join(process.cwd(), "src/lib/og");
+  // Latin subsets with the rupee sign (₹) merged in
+  const [sign, body, bold] = await Promise.all([
+    readFile(path.join(dir, "sign-800.woff")), readFile(path.join(dir, "body-500.woff")), readFile(path.join(dir, "body-700.woff")),
+  ]);
+  return [
+    { name: "Sign", data: sign, weight: 800 as const, style: "normal" as const },
+    { name: "Body", data: body, weight: 500 as const, style: "normal" as const },
+    { name: "Body", data: bold, weight: 700 as const, style: "normal" as const },
+  ];
+}
+
+/** A public file (e.g. /catalog/pen-1.svg) as a data URI Satori can draw. */
+export async function publicAsDataUri(src: string | null | undefined) {
+  if (!src || !src.startsWith("/")) return src ?? null;
+  try {
+    const buf = await readFile(path.join(process.cwd(), "public", src));
+    const type = src.endsWith(".svg") ? "image/svg+xml" : src.endsWith(".png") ? "image/png" : "image/jpeg";
+    return `data:${type};base64,${buf.toString("base64")}`;
+  } catch { return null; }
+}
+
+export const SIGN_MARK = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><path d="M15 17 L32 5 L49 17" fill="none" stroke="#f5b800" stroke-width="2.5" stroke-linecap="round"/><circle cx="32" cy="5" r="3" fill="#0a4d3b" stroke="#f5b800" stroke-width="1.5"/><rect x="5" y="16" width="54" height="44" rx="9" fill="#f5b800"/><rect x="9.5" y="20.5" width="45" height="35" rx="5.5" fill="none" stroke="#0a4d3b" stroke-width="2.2"/><path d="M29.5 30.2 C29.3 27.9 27.7 26.6 25.4 26.6 H23.3 C20.6 26.6 18.9 28.3 18.9 31 V44.9 C18.9 47.6 20.6 49.3 23.3 49.3 H25.4 C28 49.3 29.6 47.6 29.6 44.9 V39.3 H24.6" fill="none" stroke="#0a4d3b" stroke-width="4.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M45.4 26.8 H35.6 V49.1 H45.4 M35.6 37.9 H43.2" fill="none" stroke="#0a4d3b" stroke-width="4.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+export const markUri = `data:image/svg+xml;base64,${Buffer.from(SIGN_MARK).toString("base64")}`;

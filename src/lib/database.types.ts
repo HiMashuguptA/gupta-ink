@@ -210,6 +210,63 @@ export type Database = {
         }
         Relationships: []
       }
+      campaigns: {
+        Row: {
+          audience: string
+          body: string
+          channels: string[]
+          coupon_code: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          inactive_days: number | null
+          link: string | null
+          recipients: number
+          title: string
+        }
+        Insert: {
+          audience: string
+          body: string
+          channels: string[]
+          coupon_code?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          inactive_days?: number | null
+          link?: string | null
+          recipients?: number
+          title: string
+        }
+        Update: {
+          audience?: string
+          body?: string
+          channels?: string[]
+          coupon_code?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          inactive_days?: number | null
+          link?: string | null
+          recipients?: number
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaigns_coupon_code_fkey"
+            columns: ["coupon_code"]
+            isOneToOne: false
+            referencedRelation: "coupons"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "campaigns_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cart_items: {
         Row: {
           added_at: string
@@ -476,6 +533,45 @@ export type Database = {
           position?: number
           title?: string
           visible?: boolean
+        }
+        Relationships: []
+      }
+      messaging_settings: {
+        Row: {
+          email_daily_cap: number
+          email_per_minute: number
+          id: number
+          order_updates_wa: boolean
+          updated_at: string
+          wa_base_url: string | null
+          wa_daily_cap: number
+          wa_enabled: boolean
+          wa_per_minute: number
+          wa_session: string
+        }
+        Insert: {
+          email_daily_cap?: number
+          email_per_minute?: number
+          id?: number
+          order_updates_wa?: boolean
+          updated_at?: string
+          wa_base_url?: string | null
+          wa_daily_cap?: number
+          wa_enabled?: boolean
+          wa_per_minute?: number
+          wa_session?: string
+        }
+        Update: {
+          email_daily_cap?: number
+          email_per_minute?: number
+          id?: number
+          order_updates_wa?: boolean
+          updated_at?: string
+          wa_base_url?: string | null
+          wa_daily_cap?: number
+          wa_enabled?: boolean
+          wa_per_minute?: number
+          wa_session?: string
         }
         Relationships: []
       }
@@ -820,6 +916,72 @@ export type Database = {
           },
         ]
       }
+      outbox: {
+        Row: {
+          body: string
+          campaign_id: string | null
+          channel: string
+          created_at: string
+          error: string | null
+          html: string | null
+          id: number
+          request_id: number | null
+          sent_at: string | null
+          status: string
+          subject: string | null
+          to_addr: string
+          to_name: string | null
+          user_id: string | null
+        }
+        Insert: {
+          body: string
+          campaign_id?: string | null
+          channel: string
+          created_at?: string
+          error?: string | null
+          html?: string | null
+          id?: never
+          request_id?: number | null
+          sent_at?: string | null
+          status?: string
+          subject?: string | null
+          to_addr: string
+          to_name?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          body?: string
+          campaign_id?: string | null
+          channel?: string
+          created_at?: string
+          error?: string | null
+          html?: string | null
+          id?: never
+          request_id?: number | null
+          sent_at?: string | null
+          status?: string
+          subject?: string | null
+          to_addr?: string
+          to_name?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "outbox_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outbox_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payments: {
         Row: {
           amount_paise: number
@@ -1026,8 +1188,12 @@ export type Database = {
           blocked_reason: string | null
           created_at: string
           email: string
+          email_offers: boolean
           id: string
           name: string | null
+          pet: string | null
+          pet_hidden: boolean
+          pet_name: string | null
           phone: string | null
           referral_code: string
           referral_prompt_done: boolean
@@ -1035,6 +1201,7 @@ export type Database = {
           role: Database["public"]["Enums"]["user_role"]
           terms_accepted_at: string | null
           updated_at: string
+          wa_opt_in: boolean
           welcome_seen: boolean
         }
         Insert: {
@@ -1043,8 +1210,12 @@ export type Database = {
           blocked_reason?: string | null
           created_at?: string
           email: string
+          email_offers?: boolean
           id: string
           name?: string | null
+          pet?: string | null
+          pet_hidden?: boolean
+          pet_name?: string | null
           phone?: string | null
           referral_code: string
           referral_prompt_done?: boolean
@@ -1052,6 +1223,7 @@ export type Database = {
           role?: Database["public"]["Enums"]["user_role"]
           terms_accepted_at?: string | null
           updated_at?: string
+          wa_opt_in?: boolean
           welcome_seen?: boolean
         }
         Update: {
@@ -1060,8 +1232,12 @@ export type Database = {
           blocked_reason?: string | null
           created_at?: string
           email?: string
+          email_offers?: boolean
           id?: string
           name?: string | null
+          pet?: string | null
+          pet_hidden?: boolean
+          pet_name?: string | null
           phone?: string | null
           referral_code?: string
           referral_prompt_done?: boolean
@@ -1069,6 +1245,7 @@ export type Database = {
           role?: Database["public"]["Enums"]["user_role"]
           terms_accepted_at?: string | null
           updated_at?: string
+          wa_opt_in?: boolean
           welcome_seen?: boolean
         }
         Relationships: [
@@ -1730,6 +1907,17 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      _audience: {
+        Args: { p_audience: string; p_days: number }
+        Returns: {
+          email: string
+          email_offers: boolean
+          id: string
+          name: string
+          phone: string
+          wa_opt_in: boolean
+        }[]
+      }
       _cancel_order: {
         Args: {
           p_by: string
@@ -1746,6 +1934,19 @@ export type Database = {
         Returns: boolean
       }
       _email_delivery_code: { Args: { p_order: string }; Returns: boolean }
+      _email_send_req: {
+        Args: {
+          p_html: string
+          p_name: string
+          p_subject: string
+          p_to: string
+        }
+        Returns: number
+      }
+      _email_wrap: {
+        Args: { p_body: string; p_link: string; p_title: string }
+        Returns: string
+      }
       _expire_coins: { Args: never; Returns: number }
       _expire_pickups: { Args: never; Returns: number }
       _expire_unpaid_upi: { Args: never; Returns: number }
@@ -1786,6 +1987,7 @@ export type Database = {
         Returns: number
       }
       _price_order: { Args: { p: Json; p_user: string }; Returns: Json }
+      _process_outbox: { Args: never; Returns: undefined }
       _refresh_rating: { Args: { p_group: string }; Returns: undefined }
       _remind_expiring_coins: { Args: never; Returns: number }
       _send_email: {
@@ -1805,6 +2007,8 @@ export type Database = {
         }
         Returns: string[]
       }
+      _wa_chat: { Args: { p_phone: string }; Returns: string }
+      _wa_send: { Args: { p_chat: string; p_text: string }; Returns: number }
       admin_assign_agent: {
         Args: { p_agent: string; p_order: string }
         Returns: undefined
@@ -1812,6 +2016,10 @@ export type Database = {
       admin_assign_return_agent: {
         Args: { p_agent: string; p_return: string }
         Returns: undefined
+      }
+      admin_audience_count: {
+        Args: { p_audience: string; p_days?: number }
+        Returns: Json
       }
       admin_hide_review: {
         Args: { p_hidden: boolean; p_review: string }
@@ -1825,6 +2033,7 @@ export type Database = {
         Args: { p_order: string; p_proof_path: string; p_utr?: string }
         Returns: undefined
       }
+      admin_messaging_status: { Args: never; Returns: Json }
       admin_receive_return: {
         Args: { p_restock?: boolean; p_return: string }
         Returns: undefined
@@ -1838,6 +2047,7 @@ export type Database = {
         Args: { p_approve: boolean; p_note?: string; p_return: string }
         Returns: undefined
       }
+      admin_send_campaign: { Args: { p: Json }; Returns: Json }
       admin_set_order_status: {
         Args: {
           p_note?: string
@@ -1854,6 +2064,11 @@ export type Database = {
         }
         Returns: undefined
       }
+      admin_set_secret: {
+        Args: { p_name: string; p_value: string }
+        Returns: undefined
+      }
+      admin_test_message: { Args: { p_channel: string }; Returns: undefined }
       agent_accept: { Args: { p_order: string }; Returns: undefined }
       agent_complete: {
         Args: { p_cash_collected?: boolean; p_code: string; p_order: string }
@@ -1991,6 +2206,14 @@ export type Database = {
           label: string
           slug: string
         }[]
+      }
+      set_buddy: {
+        Args: { p_hidden?: boolean; p_name?: string; p_pet?: string }
+        Returns: undefined
+      }
+      set_message_prefs: {
+        Args: { p_email?: boolean; p_wa?: boolean }
+        Returns: undefined
       }
       submit_review: {
         Args: {

@@ -79,7 +79,7 @@ export function OrderIsland() {
           transition={spring} style={{ viewTransitionName: "order-island" }}
           className="pointer-events-none fixed inset-x-0 bottom-[calc(70px+env(safe-area-inset-bottom))] z-40 flex justify-center px-3 md:bottom-6 md:justify-end md:px-6">
           <motion.div layout transition={spring} style={{ borderRadius: open ? 22 : 28 }}
-            className="pointer-events-auto w-auto max-w-[420px] overflow-hidden bg-[#0b1914] text-white shadow-float">
+            data-pet-avoid className="pointer-events-auto w-auto max-w-[420px] overflow-hidden bg-[#0b1914] text-white shadow-float">
             {!open ? (
               <motion.button layout="position" onClick={() => setOpen(true)} className="flex items-center gap-2.5 py-2 pl-2 pr-3.5 text-left"
                 aria-label={`Order ${o.order_no}: ${STATUS_LABEL[o.status]}. Show progress`}>

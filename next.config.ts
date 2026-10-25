@@ -8,6 +8,8 @@ const nextConfig: NextConfig = {
     optimizePackageImports: ["lucide-react", "framer-motion"],
   },
   poweredByHeader: false,
+  // Share images read their fonts and product pictures from disk
+  outputFileTracingIncludes: { "/**/opengraph-image*": ["./src/lib/og/**", "./public/catalog/**", "./public/brand/**"] },
   async headers() {
     return [{
       source: "/:path*",

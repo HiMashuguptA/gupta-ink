@@ -101,4 +101,11 @@ export type Profile = {
   referral_prompt_done: boolean;
   welcome_seen: boolean;
   created_at: string;
+  pet?: PetKind | null;
+  pet_name?: string | null;
+  pet_hidden?: boolean;
+  wa_opt_in?: boolean;
+  email_offers?: boolean;
 };
+
+export type PetKind = "mochi" | "pip" | "bun" | "hoot";

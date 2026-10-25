@@ -26,7 +26,7 @@ export function SessionProvider({ initialUser, initialProfile, children }: { ini
     if (!user) { setProfile(null); setReady(true); return; }
     const { data } = await sb
       .from("profiles")
-      .select("id, email, name, phone, avatar_url, role, referral_code, referral_prompt_done, welcome_seen, created_at")
+      .select("id, email, name, phone, avatar_url, role, referral_code, referral_prompt_done, welcome_seen, created_at, pet, pet_name, pet_hidden, wa_opt_in, email_offers")
       .eq("id", user.id)
       .single();
     setProfile(data as Profile | null);

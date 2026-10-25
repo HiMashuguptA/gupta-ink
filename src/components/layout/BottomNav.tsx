@@ -22,7 +22,7 @@ export function BottomNav() {
   const reduce = useReducedMotion();
   return (
     <nav style={{ viewTransitionName: "bottom-nav" }}
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-card pb-[env(safe-area-inset-bottom)] md:hidden" aria-label="Main">
+      data-pet-avoid className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-card pb-[env(safe-area-inset-bottom)] md:hidden" aria-label="Main">
       <ul className="mx-auto grid max-w-md grid-cols-5 px-1.5 pt-1.5">
         {items.map(({ href, label, icon: Icon, cart }) => {
           const on = href === "/" ? path === "/" : path.startsWith(href) || (href === "/categories" && (path.startsWith("/c/") || path.startsWith("/collections")));

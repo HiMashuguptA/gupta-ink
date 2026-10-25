@@ -4,6 +4,20 @@
   "installCommand": "npm ci",
   "buildCommand": "next build",
   "regions": ["syd1"],
+  "redirects": [
+    {
+      "source": "/:path*",
+      "missing": [{ "type": "host", "value": "gupta-ink-g22y(-[a-z0-9-]+)?\\.vercel\\.app" }],
+      "destination": "https://gupta-ink-g22y.vercel.app/:path*",
+      "permanent": false
+    },
+    {
+      "source": "/",
+      "has": [{ "type": "query", "key": "code", "value": "(?<code>[A-Za-z0-9._~-]+)" }],
+      "destination": "/auth/callback?code=:code",
+      "permanent": false
+    }
+  ],
   "headers": [
     {
       "source": "/(catalog|brand)/(.*)",

@@ -17,6 +17,7 @@ import { AddressCard } from "@/components/address/AddressCard";
 import { AddressForm } from "@/components/address/AddressForm";
 import { startNav } from "@/components/layout/NavProgress";
 import type { SavedAddress } from "@/app/actions/addresses";
+import { petSay } from "@/lib/pet";
 
 export type Slot = { slot_date: string; window_start: string; window_end: string; available: number; open: boolean; reason: string | null };
 export type CouponOffer = { code: string; title: string; description: string | null; min_order_paise: number; type: string };
@@ -131,6 +132,13 @@ export function CheckoutView({ addresses: initialAddresses, slots, coupons, radi
 
   // A rejected coupon is shown, then removed so it doesn't block the order
   const couponError = quote?.coupon?.error;
+  // The buddy cheers when a coupon sticks, and frowns when it doesn't
+  const couponCode = quote?.coupon?.code;
+  useEffect(() => {
+    if (!coupon || !couponCode) return;
+    petSay(couponError ? { kind: "error" } : { kind: "coupon" });
+  }, [coupon, couponCode, couponError]);
+  useEffect(() => { const t = setTimeout(() => petSay({ kind: "checkout" }), 1200); return () => clearTimeout(t); }, []);
   const applyCoupon = (code: string) => { setCoupon(code.trim().toUpperCase() || null); setCouponInput(code.trim().toUpperCase()); };
   const removeCoupon = () => { setCoupon(null); setCouponInput(""); };
 
@@ -151,6 +159,7 @@ export function CheckoutView({ addresses: initialAddresses, slots, coupons, radi
     }
     const r = data as { order_id: string };
     removeMany(lines.map((l) => l.product_id));
+    petSay({ kind: "order" });
     void catalogChanged(); // stock moved
     startNav();
     router.replace(`/orders/${r.order_id}?placed=1`);
@@ -432,7 +441,7 @@ export function CheckoutView({ addresses: initialAddresses, slots, coupons, radi
       </aside>
 
       {/* Mobile sticky bar */}
-      <div className="fixed inset-x-0 bottom-[calc(57px+env(safe-area-inset-bottom))] z-30 border-t border-line bg-card px-3 py-2.5 lg:hidden">
+      <div data-pet-avoid className="fixed inset-x-0 bottom-[calc(57px+env(safe-area-inset-bottom))] z-30 border-t border-line bg-card px-3 py-2.5 lg:hidden">
         <SlideToConfirm label="Slide to place order" onConfirm={place}
           disabled={blocking && !placing} busy={placing} disabledLabel={quoting ? "Updating your bill" : errors[0] ?? (couponError ? "Remove the coupon" : !pickupOk ? "Add who will collect it" : "Choose how to pay")}
           sub={quote ? <>Pay <Price paise={quote.payable_paise} /></> : undefined} />

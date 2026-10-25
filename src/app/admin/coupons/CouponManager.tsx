@@ -2,7 +2,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import clsx from "clsx";
-import { Plus, Pencil } from "lucide-react";
+import { Plus, Pencil, Megaphone } from "lucide-react";
+import Link from "next/link";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { rupees } from "@/lib/format";
 import { Sheet } from "@/components/ui/Sheet";
@@ -34,6 +35,7 @@ function describe(c: Coupon) {
 export function CouponManager({ initial, categories }: { initial: Coupon[]; categories: { id: string; name: string }[] }) {
   const sb = supabaseBrowser();
   const router = useRouter();
+  const [justMade, setJustMade] = useState<string | null>(null);
   const [form, setForm] = useState<Form | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -89,6 +91,7 @@ export function CouponManager({ initial, categories }: { initial: Coupon[]; cate
     const { error } = form.existing ? await sb.from("coupons").update(row).eq("code", code) : await sb.from("coupons").insert(row);
     setBusy(false);
     if (error) return setErr(error.code === "23505" ? "That code already exists" : error.message);
+    if (!form.existing && form.active) setJustMade(code);
     setForm(null);
     router.refresh();
   };
@@ -96,6 +99,14 @@ export function CouponManager({ initial, categories }: { initial: Coupon[]; cate
   const field = "mt-1 h-10 w-full rounded-[8px] border border-line bg-paper px-3 outline-none focus:border-ink";
   return (
     <>
+      {justMade && (
+        <div className="mt-4 flex flex-wrap items-center gap-3 rounded-[12px] bg-nib-soft p-3 text-sm" role="status">
+          <Megaphone className="size-5 text-ink" />
+          <p className="flex-1"><b className="font-mono">{justMade}</b> is live. Tell your customers about it?</p>
+          <Link href={`/admin/messages?coupon=${justMade}`} className="press inline-flex h-9 items-center rounded-[8px] bg-ink px-3 font-semibold text-on-ink">Announce it</Link>
+          <button onClick={() => setJustMade(null)} className="h-9 rounded-[8px] px-2 font-semibold text-muted hover:bg-card">Not now</button>
+        </div>
+      )}
       <button onClick={() => { setErr(null); setForm(blank()); }} className="mt-5 inline-flex h-10 items-center gap-2 rounded-[10px] bg-ink px-4 text-sm font-semibold text-on-ink"><Plus className="size-4" /> New coupon</button>
 
       <ul className="mt-4 grid gap-2.5 md:hidden">
@@ -119,6 +130,7 @@ export function CouponManager({ initial, categories }: { initial: Coupon[]; cate
                     className={clsx("relative h-6 w-11 rounded-full transition-colors", c.active && !expired ? "bg-ok" : "bg-line")}>
                     <span className={clsx("absolute top-0.5 size-5 rounded-full bg-white shadow transition-all", c.active ? "left-[22px]" : "left-0.5")} />
                   </button>
+                  {c.active && <Link href={`/admin/messages?coupon=${c.code}`} className="grid size-9 place-items-center rounded-full hover:bg-ink-soft" aria-label={`Announce ${c.code} to customers`} title="Announce to customers"><Megaphone className="size-4" /></Link>}
                   <button onClick={() => edit(c)} className="grid size-9 place-items-center rounded-full hover:bg-ink-soft" aria-label={`Edit ${c.code}`}><Pencil className="size-4" /></button>
                 </div>
               </div>
@@ -154,7 +166,7 @@ export function CouponManager({ initial, categories }: { initial: Coupon[]; cate
                       <span className={clsx("absolute top-0.5 size-5 rounded-full bg-white shadow transition-all", c.active ? "left-[22px]" : "left-0.5")} />
                     </button>
                   </td>
-                  <td className="p-3 text-right"><button onClick={() => edit(c)} className="grid size-9 place-items-center rounded-full hover:bg-ink-soft" aria-label={`Edit ${c.code}`}><Pencil className="size-4" /></button></td>
+                  <td className="p-3 text-right"><span className="inline-flex">{c.active && <Link href={`/admin/messages?coupon=${c.code}`} className="grid size-9 place-items-center rounded-full hover:bg-ink-soft" aria-label={`Announce ${c.code} to customers`} title="Announce to customers"><Megaphone className="size-4" /></Link>}<button onClick={() => edit(c)} className="grid size-9 place-items-center rounded-full hover:bg-ink-soft" aria-label={`Edit ${c.code}`}><Pencil className="size-4" /></button></span></td>
                 </tr>
               );
             })}

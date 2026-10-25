@@ -7,6 +7,8 @@ import { ProfileForm } from "@/components/account/ProfileForm";
 import { ReferralCard } from "@/components/account/ReferralCard";
 import { SignOutButton } from "@/components/account/SignOutButton";
 import { ThemeToggle } from "@/components/account/ThemeToggle";
+import { BuddySettings } from "@/components/account/BuddySettings";
+import { MessagePrefs } from "@/components/account/MessagePrefs";
 import { Num } from "@/components/ui/Num";
 
 export const metadata = { title: "Account" };
@@ -78,14 +80,23 @@ export default async function AccountPage() {
           <ThemeToggle />
         </section>
 
+        <section className="mt-5">
+          <h2 className="mb-2 text-[22px] uppercase">Shop buddy</h2>
+          <BuddySettings />
+        </section>
+
         <div className="mt-4"><SignOutButton /></div>
       </div>
 
       <div className="grid content-start gap-5">
         <ReferralCard code={profile.referral_code} />
-        <section>
+        <section id="details" className="scroll-mt-24">
           <h2 className="mb-2 text-[24px] uppercase">Your details</h2>
           <ProfileForm initial={{ id: profile.id, email: profile.email, name: profile.name, phone: profile.phone }} />
+        </section>
+        <section>
+          <h2 className="mb-2 text-[24px] uppercase">Messages from the shop</h2>
+          <MessagePrefs />
         </section>
       </div>
     </div>

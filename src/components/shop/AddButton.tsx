@@ -8,6 +8,7 @@ import { useFly } from "@/components/providers/FlyProvider";
 import { useToast } from "@/components/providers/ToastProvider";
 import type { ProductCard } from "@/lib/types";
 import { Num } from "@/components/ui/Num";
+import { petSay } from "@/lib/pet";
 
 export function AddButton({ product, size = "sm", className }: { product: ProductCard; size?: "sm" | "lg"; className?: string }) {
   const { qtyOf, add, setQty } = useCart();
@@ -28,6 +29,7 @@ export function AddButton({ product, size = "sm", className }: { product: Produc
     const card = (e.currentTarget as HTMLElement).closest("[data-product-card]")?.querySelector("img");
     const rect = (card ?? (e.currentTarget as HTMLElement)).getBoundingClientRect();
     if (product.images[0]) fly(product.images[0], rect);
+    petSay({ kind: "add", name: product.name });
   };
 
   const big = size === "lg";
@@ -69,7 +71,7 @@ export function AddButton({ product, size = "sm", className }: { product: Produc
             transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
             className="flex size-full items-center justify-between rounded-[9px] bg-nib text-on-nib"
           >
-            <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setQty(product.id, qty - 1); }} className="press grid h-full w-9 place-items-center rounded-l-[9px] hover:bg-nib-deep" aria-label="Remove one">
+            <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setQty(product.id, qty - 1); if (qty - 1 <= 0) petSay({ kind: "remove", name: product.name }); }} className="press grid h-full w-9 place-items-center rounded-l-[9px] hover:bg-nib-deep" aria-label="Remove one">
               <Minus className="size-4" />
             </button>
             <span className="min-w-5 text-center text-[15px] font-bold" aria-live="polite"><Num value={qty} /></span>

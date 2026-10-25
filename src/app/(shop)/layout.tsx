@@ -5,8 +5,9 @@ import { Header } from "@/components/layout/Header";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { Footer } from "@/components/layout/Footer";
 import { HideOn } from "@/components/layout/HideOn";
-import { OnboardingGate } from "@/components/onboarding/OnboardingGate";
+import { OnboardingLazy } from "@/components/onboarding/OnboardingLazy";
 import { OrderIsland } from "@/components/orders/OrderIsland";
+import { PetLayer } from "@/components/pet/PetLayer";
 
 export default async function ShopLayout({ children }: { children: React.ReactNode }) {
   // No cookies here on purpose: shop pages can then be built once and served from the
@@ -32,7 +33,8 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
       <HideOn prefixes={["/cart/checkout", "/orders/"]}><Footer /></HideOn>
       <HideOn prefixes={["/cart/checkout", "/orders/"]} invert><div className="h-20 md:hidden" aria-hidden /></HideOn>
       <BottomNav />
-      <Suspense><OnboardingGate /></Suspense>
+      <Suspense><OnboardingLazy /></Suspense>
+      <PetLayer />
     </AppProviders>
   );
 }
