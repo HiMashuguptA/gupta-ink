@@ -8,10 +8,15 @@ import { PetArt } from "./PetArt";
 
 const SIZE = 64;
 
+const POS_KEY = "ge-buddy-pos";
+const clampX = (v: number) => Math.min(window.innerWidth - SIZE - 8, Math.max(8, v));
+const clampY = (v: number) => Math.min(window.innerHeight - SIZE - 8, Math.max(8, v));
+
 /**
- * The shop buddy. On a computer it trots after the cursor (and stops when you reach for it, so you
- * can pet it); on a phone it waits above the tab bar and looks wherever you tap. It reacts to adding,
- * removing, saving, searching, typing, checking out and ordering, and says how it feels in a bubble.
+ * The shop buddy. On a computer it stays in one spot (bottom-left, or wherever you last dropped it)
+ * and watches the cursor with its eyes, turning and leaning toward it; drag it anywhere to move it.
+ * On a phone it waits above the tab bar and looks wherever you tap. It reacts to adding, removing,
+ * saving, searching, typing, checking out and ordering, and says how it feels in a bubble.
  */
 export function Pet({ kind, name }: { kind: PetKind; name: string }) {
   const reduce = useReducedMotion();
@@ -23,6 +28,7 @@ export function Pet({ kind, name }: { kind: PetKind; name: string }) {
   const [facing, setFacing] = useState(1);
   const [hearts, setHearts] = useState(0);
   const [below, setBelow] = useState(false); // near the top of the screen, the bubble hangs underneath
+  const [leftHalf, setLeftHalf] = useState(true); // desktop: bubble opens toward the middle of the screen
 
   const wrap = useRef<HTMLDivElement>(null);
   const body = useRef<HTMLDivElement>(null);
@@ -32,8 +38,10 @@ export function Pet({ kind, name }: { kind: PetKind; name: string }) {
   const idleSaid = useRef(0);
   const dragging = useRef(false);
 
-  // Position (desktop follows the cursor; phones keep it docked and only hop)
+  // Position: desktop sits where it was dropped; phones stay docked and only hop
   const tx = useMotionValue(0), ty = useMotionValue(0);
+  const dragX = useMotionValue(0), dragY = useMotionValue(0);
+  const tilt = useSpring(0, { stiffness: 180, damping: 18 });
   const x = useSpring(tx, { stiffness: 110, damping: 17, mass: 0.8 });
   const y = useSpring(ty, { stiffness: 110, damping: 17, mass: 0.8 });
   const lx = useSpring(0, { stiffness: 260, damping: 22 }), ly = useSpring(0, { stiffness: 260, damping: 22 });
@@ -87,14 +95,24 @@ export function Pet({ kind, name }: { kind: PetKind; name: string }) {
     return () => document.removeEventListener("focusin", onFocus);
   }, [follow]);
 
-  // Desktop with a real mouse: follow the cursor
+  // Desktop with a real mouse: free placement, remembered between visits (as a share of the window)
   useEffect(() => {
-    const fine = window.matchMedia("(pointer: fine) and (min-width: 768px)").matches && !reduce;
+    const fine = window.matchMedia("(pointer: fine) and (min-width: 768px)").matches;
     setFollow(fine);
-    if (fine) { tx.set(window.innerWidth - SIZE - 28); ty.set(window.innerHeight - SIZE - 28); x.jump(tx.get()); y.jump(ty.get()); }
-  }, [reduce, tx, ty, x, y]);
+    if (!fine) return;
+    let fx = -1, fy = -1;
+    try { const p = JSON.parse(localStorage.getItem(POS_KEY) ?? "null"); if (p && typeof p.x === "number") { fx = p.x; fy = p.y; } } catch {}
+    const place = () => {
+      const nx = clampX(fx >= 0 ? fx * window.innerWidth : 24);
+      const ny = clampY(fy >= 0 ? fy * window.innerHeight : window.innerHeight - SIZE - 24);
+      tx.set(nx); ty.set(ny); x.jump(nx); y.jump(ny); setBelow(ny < 110); setLeftHalf(nx < window.innerWidth / 2);
+    };
+    place();
+    window.addEventListener("resize", place);
+    return () => window.removeEventListener("resize", place);
+  }, [tx, ty, x, y]);
 
-  // Watch the pointer: eyes always track it; on desktop the buddy walks after it
+  // Watch the pointer: eyes always track it; on desktop it also turns and leans toward it
   useEffect(() => {
     let frame = 0, px = 0, py = 0, kindOf = "mouse";
     const tick = () => {
@@ -106,14 +124,8 @@ export function Pet({ kind, name }: { kind: PetKind; name: string }) {
       lx.set((dx / d) * Math.min(3.2, d / 40));
       ly.set((dy / d) * Math.min(3, d / 40));
       if (follow && kindOf === "mouse" && !dragging.current) {
-        // Stop when the cursor comes close, so it can be clicked and petted
-        if (d > 78) {
-          const nx = Math.min(window.innerWidth - SIZE - 8, Math.max(8, px + 22));
-          const ny = Math.min(window.innerHeight - SIZE - 8, Math.max(8, py + 18));
-          setFacing(nx < tx.get() - 2 ? -1 : nx > tx.get() + 2 ? 1 : facing);
-          tx.set(nx); ty.set(ny);
-          setBelow(ny < 110);
-        }
+        if (Math.abs(dx) > 40) setFacing(dx < 0 ? -1 : 1);
+        tilt.set(reduce ? 0 : Math.max(-7, Math.min(7, dx / 60)));
       }
     };
     const move = (e: PointerEvent) => {
@@ -137,7 +149,7 @@ export function Pet({ kind, name }: { kind: PetKind; name: string }) {
     window.addEventListener("pointermove", move, { passive: true });
     window.addEventListener("pointerdown", down, { passive: true });
     return () => { window.removeEventListener("pointermove", move); window.removeEventListener("pointerdown", down); if (frame) cancelAnimationFrame(frame); };
-  }, [follow, reduce, lx, ly, tx, ty, facing]);
+  }, [follow, reduce, lx, ly, tx, ty, tilt]);
 
   // Shop events
   useEffect(() => {
@@ -206,10 +218,10 @@ export function Pet({ kind, name }: { kind: PetKind; name: string }) {
         {line && (
           <motion.div key={line} initial={{ opacity: 0, y: 6, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -4, scale: 0.95, transition: { duration: 0.12 } }}
             transition={{ type: "spring", duration: 0.35, bounce: 0.3 }}
-            className={`absolute ${below ? "top-[calc(100%+8px)]" : "bottom-[calc(100%+6px)]"} w-max max-w-[200px] rounded-[12px] bg-card px-3 py-2 text-[13px] font-semibold leading-snug text-graphite shadow-float ${follow ? "right-1/2 translate-x-[30%]" : side === "left" ? "left-0" : "right-0"}`}
-            style={{ transformOrigin: `${follow ? "70%" : "20%"} ${below ? "0%" : "100%"}` }} aria-hidden>
+            className={`absolute ${below ? "top-[calc(100%+8px)]" : "bottom-[calc(100%+6px)]"} w-max max-w-[200px] rounded-[12px] bg-card px-3 py-2 text-[13px] font-semibold leading-snug text-graphite shadow-float ${(follow ? leftHalf : side === "left") ? "left-0" : "right-0"}`}
+            style={{ transformOrigin: `${(follow ? leftHalf : side === "left") ? "20%" : "80%"} ${below ? "0%" : "100%"}` }} aria-hidden>
             {line}
-            <span className={`absolute ${below ? "-top-1.5" : "-bottom-1.5"} size-3 rotate-45 bg-card ${follow ? "right-[30%]" : side === "left" ? "left-6" : "right-6"}`} />
+            <span className={`absolute ${below ? "-top-1.5" : "-bottom-1.5"} size-3 rotate-45 bg-card ${(follow ? leftHalf : side === "left") ? "left-6" : "right-6"}`} />
           </motion.div>
         )}
         {mood === "curious" && !line && (
@@ -241,13 +253,27 @@ export function Pet({ kind, name }: { kind: PetKind; name: string }) {
         ))}
       </AnimatePresence>
 
-      <motion.div role="button" tabIndex={0} aria-label={`${name}, your shop buddy. Tap to play.`}
+      <motion.div role="button" tabIndex={0} aria-label={`${name}, your shop buddy. Tap to play, drag to move.`}
         className="pointer-events-auto relative size-full cursor-grab touch-none select-none rounded-full outline-offset-4 active:cursor-grabbing"
-        drag dragSnapToOrigin={!follow} dragElastic={0.6} dragMomentum={false}
-        onDragStart={() => { dragging.current = true; feel("excited", "Wheee!", 1600); }}
-        onDragEnd={(_, i) => {
+        style={{ x: dragX, y: dragY }}
+        drag dragSnapToOrigin={!follow} dragElastic={follow ? 0 : 0.6} dragMomentum={false}
+        onDragStart={() => { dragging.current = true; tilt.set(0); feel("excited", "Wheee!", 1600); }}
+        onDragEnd={() => {
           dragging.current = false;
-          if (follow) { tx.set(Math.min(window.innerWidth - SIZE - 8, Math.max(8, tx.get() + i.offset.x))); ty.set(Math.min(window.innerHeight - SIZE - 8, Math.max(8, ty.get() + i.offset.y))); }
+          if (!follow) return;
+          // Move the home spot to where it was dropped, then clear the drag offset in the same frame
+          const nx = clampX(tx.get() + dragX.get()), ny = clampY(ty.get() + dragY.get());
+          tx.set(nx); ty.set(ny); x.jump(nx); y.jump(ny); dragX.set(0); dragY.set(0);
+          setBelow(ny < 110); setLeftHalf(nx < window.innerWidth / 2);
+          try { localStorage.setItem(POS_KEY, JSON.stringify({ x: nx / window.innerWidth, y: ny / window.innerHeight })); } catch {}
+          feel("happy", "Nice spot!", 1600);
+        }}
+        onDoubleClick={() => {
+          // Double-click sends it back home (bottom-left)
+          if (!follow) return;
+          const nx = clampX(24), ny = clampY(window.innerHeight - SIZE - 24);
+          tx.set(nx); ty.set(ny); setBelow(false); setLeftHalf(true);
+          try { localStorage.removeItem(POS_KEY); } catch {}
         }}
         onTap={touch}
         onPointerDown={() => { press.current = setTimeout(() => feel("love", PET_LINES[0], 2600), 550); }}
@@ -255,11 +281,13 @@ export function Pet({ kind, name }: { kind: PetKind; name: string }) {
         onPointerLeave={() => { if (press.current) clearTimeout(press.current); }}
         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); touch(); } }}>
         <span className="absolute inset-x-2 bottom-0 h-2 rounded-full bg-black/15 blur-[1px]" aria-hidden />
+        <motion.div style={{ rotate: tilt, transformOrigin: "50% 95%" }}>
         <div ref={body} className={mood === "idle" || mood === "sleepy" ? "pet-breathe" : ""} style={{ transformOrigin: "50% 90%" }}>
           <div style={{ transform: `scaleX(${facing})`, transition: "transform 200ms" }}>
             <PetArt kind={kind} mood={mood} blink={blink} lookX={lx} lookY={ly} size={follow ? SIZE : 56} />
           </div>
         </div>
+        </motion.div>
       </motion.div>
     </motion.div>
   );

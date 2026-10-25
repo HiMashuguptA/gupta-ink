@@ -207,7 +207,7 @@ Square-ish painted boards: 5px tags, 9-10px controls and inputs, 12px tiles and 
 
 ### Shop buddy (signature)
 - An optional companion picked after the welcome film (Mochi the cat, Pip the pup, Bun the bunny, Hoot the owlet; renamable, hideable in Account). One 100×100 SVG face rig with species ears and tails; mood drives eyes, brows and mouth (idle, happy, excited, love, curious, thinking, sad, surprised, sleepy, celebrate).
-- Computers with a mouse: trots after the cursor on springs and stops when the cursor comes near, so it can be petted. Phones and reduced-motion: docked bottom-left, 56px, always just above whatever is pinned to the bottom (`data-pet-avoid`: tab bar, order island, checkout slider, buy bar); hops to the other side if a focused field is underneath.
+- Computers with a mouse: stays in one spot (bottom-left by default) and watches the cursor with its eyes, turning and leaning toward it. Drag it anywhere to move it (remembered); double-click sends it home. Phones and reduced-motion: docked bottom-left, 56px, always just above whatever is pinned to the bottom (`data-pet-avoid`: tab bar, order island, checkout slider, buy bar); hops to the other side if a focused field is underneath.
 - Eyes always track the pointer or tap. Reacts through the `petSay()` event bus: add, remove, wishlist, search, typing (never password fields), checkout, coupon, order placed (spin and stars), notifications, errors, 404. Tap, triple-tap (hearts), long-press, drag. Blinks, breathes, dozes after 45s.
 - Speech bubble: white card, 13px semibold, one short line, gone in 2-4 seconds; flips under the buddy near the top of the screen.
 
