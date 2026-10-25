@@ -8,6 +8,8 @@ import { supabaseBrowser } from "@/lib/supabase/client";
 import { rupees } from "@/lib/format";
 import { STATUS_LABEL, when, type OrderRow } from "@/lib/orders";
 import { Logo } from "@/components/brand/Logo";
+import { motion } from "framer-motion";
+import { SlideToConfirm } from "@/components/ui/SlideToConfirm";
 
 export type Job = Pick<OrderRow, "id" | "order_no" | "status" | "type" | "slot_date" | "slot_start" | "slot_end" | "address" | "road_km" | "payable_paise" | "payment_method" | "payment_status" | "note" | "created_at"> & {
   otp_attempts: number;
@@ -91,28 +93,30 @@ export function AgentPortal({ agentId, name, isAgent, initialOnline, initialJobs
   const cash = doneToday.filter((d) => d.payment_method === "cod").reduce((a, d) => a + d.payable_paise, 0);
 
   return (
-    <main className="mx-auto min-h-dvh max-w-md bg-paper px-4 pb-10 pt-4">
-      <header className="flex items-center gap-3">
-        <Logo size={30} />
-        <div className="ml-auto flex items-center gap-2">
-          <a href={`tel:+91${storePhone}`} className="grid size-10 place-items-center rounded-full border border-line bg-card" aria-label="Call the store"><Store className="size-4" /></a>
-          {isAgent && (
-            <button onClick={toggleOnline} role="switch" aria-checked={online}
-              className={clsx("inline-flex h-10 items-center gap-2 rounded-full pl-1.5 pr-3.5 text-sm font-bold transition-colors", online ? "bg-ok text-white" : "border border-line bg-card text-muted")}>
-              <span className={clsx("size-7 rounded-full transition-colors", online ? "bg-white/30" : "bg-line")} />
-              {online ? "Online" : "Offline"}
-            </button>
-          )}
+    <main className="mx-auto min-h-dvh max-w-md bg-paper pb-10">
+      <header className="rounded-b-[18px] bg-sign px-4 pb-5 pt-4 text-on-sign">
+        <div className="flex items-center gap-3">
+          <Logo size={34} tone="sign" />
+          <div className="ml-auto flex items-center gap-2">
+            <a href={`tel:+91${storePhone}`} className="press grid size-10 place-items-center rounded-full bg-white/10" aria-label="Call the store"><Store className="size-4" /></a>
+            {isAgent && (
+              <button onClick={toggleOnline} role="switch" aria-checked={online}
+                className={clsx("press flex h-10 w-[118px] items-center gap-2 rounded-full p-1 text-sm font-bold transition-colors duration-300", online ? "flex-row-reverse bg-nib pl-3.5 text-on-nib" : "bg-white/10 pr-3.5 text-on-sign-muted")}>
+                <motion.span layout transition={{ type: "spring", duration: 0.35, bounce: 0.25 }} className={clsx("size-8 rounded-full", online ? "bg-on-nib/90" : "bg-white/30")} />
+                <span className="flex-1 text-center">{online ? "Online" : "Offline"}</span>
+              </button>
+            )}
+          </div>
         </div>
+        <h1 className="sign-type mt-5 text-[40px]">Hi {name}</h1>
+        <p className="text-sm text-on-sign-muted">{jobs.length ? `${jobs.length} ${jobs.length === 1 ? "delivery" : "deliveries"} with you` : online ? "No deliveries right now. New ones appear here." : "Go online so the store knows you're free."}</p>
       </header>
+      <div className="px-4">
 
-      <h1 className="mt-5 text-2xl font-extrabold">Hi {name}</h1>
-      <p className="text-sm text-muted">{jobs.length ? `${jobs.length} ${jobs.length === 1 ? "delivery" : "deliveries"} with you` : online ? "No deliveries right now. New ones appear here." : "Go online so the store knows you're free."}</p>
-
-      {!isAgent && <p className="mt-3 rounded-xl bg-nib-soft p-3 text-sm">You&apos;re signed in as admin. Only delivery partners can act on deliveries here.</p>}
+      {!isAgent && <p className="mt-3 rounded-[10px] bg-nib-soft p-3 text-sm">You&apos;re signed in as admin. Only delivery partners can act on deliveries here.</p>}
 
       {geo !== "off" && (
-        <p className={clsx("mt-3 flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold",
+        <p className={clsx("mt-3 flex items-center gap-2 rounded-[10px] px-3 py-2 text-sm font-semibold",
           geo === "on" ? "bg-ok/10 text-ok" : geo === "asking" ? "bg-ink-soft text-ink" : "bg-margin/10 text-margin")} role="status">
           {geo === "on" || geo === "asking" ? <LocateFixed className="size-4" /> : <LocateOff className="size-4" />}
           {geo === "on" ? "Sharing your live location with the customer" : geo === "asking" ? "Finding your location..." :
@@ -127,12 +131,12 @@ export function AgentPortal({ agentId, name, isAgent, initialOnline, initialJobs
 
       {pickups.length > 0 && (
         <section className="mt-6">
-          <h2 className="text-lg font-bold">Return pickups</h2>
+          <h2 className="text-[24px] uppercase">Return pickups</h2>
           <div className="mt-2 space-y-3">{pickups.map((p) => <PickupCard key={p.id} p={p} canAct={isAgent} onDone={() => router.refresh()} />)}</div>
         </section>
       )}
 
-      <section className="mt-6 rounded-2xl border border-line bg-card p-4">
+      <section className="mt-6 rounded-[12px] bg-card p-4">
         <div className="flex items-end justify-between">
           <div><p className="text-sm text-muted">Delivered today</p><p className="font-display text-3xl font-extrabold">{doneToday.length}</p></div>
           {cash > 0 && <div className="text-right"><p className="text-sm text-muted">Cash to hand in</p><p className="font-display text-2xl font-extrabold">{rupees(cash)}</p></div>}
@@ -149,6 +153,7 @@ export function AgentPortal({ agentId, name, isAgent, initialOnline, initialJobs
         )}
       </section>
       <Link href="/" className="mt-6 inline-block text-sm font-semibold text-ink">Open the shop</Link>
+      </div>
     </main>
   );
 }
@@ -200,7 +205,7 @@ function JobCard({ job, canAct, onChanged }: { job: Job; canAct: boolean; onChan
   };
 
   return (
-    <article className={clsx("overflow-hidden rounded-2xl border bg-card", job.status === "agent_assigned" ? "border-nib shadow-[0_0_0_3px_rgba(233,162,59,.25)]" : "border-line")}>
+    <article className={clsx("overflow-hidden rounded-[12px] border bg-card", job.status === "agent_assigned" ? "border-nib shadow-[0_0_0_3px_rgba(233,162,59,.25)]" : "border-line")}>
       <div className="flex items-center gap-2 border-b border-line px-4 py-3">
         <p className="font-display text-lg font-extrabold">{job.order_no}</p>
         <span className="rounded-full bg-ink-soft px-2.5 py-0.5 text-xs font-bold text-ink">{job.status === "agent_assigned" ? "New" : STATUS_LABEL[job.status]}</span>
@@ -208,7 +213,7 @@ function JobCard({ job, canAct, onChanged }: { job: Job; canAct: boolean; onChan
       </div>
 
       <div className="space-y-3 p-4 text-sm">
-        <div className={clsx("flex items-center gap-2 rounded-xl px-3 py-2 font-bold", collect ? "bg-nib-soft text-ink-deep" : "bg-ok/10 text-ok")}>
+        <div className={clsx("flex items-center gap-2 rounded-[10px] px-3 py-2 font-bold", collect ? "bg-nib-soft text-ink-deep" : "bg-ok/10 text-ok")}>
           {collect ? <Banknote className="size-5" /> : <CheckCircle2 className="size-5" />}
           {collect ? `Collect ${rupees(job.payable_paise)} in cash` : "Paid online. Collect nothing."}
         </div>
@@ -225,9 +230,9 @@ function JobCard({ job, canAct, onChanged }: { job: Job; canAct: boolean; onChan
         )}
         {a && (
           <div className="grid grid-cols-2 gap-2">
-            <a href={`tel:+91${a.contact_phone}`} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-line font-semibold"><Phone className="size-4" /> Call</a>
+            <a href={`tel:+91${a.contact_phone}`} className="inline-flex h-11 items-center justify-center gap-2 rounded-[10px] border border-line font-semibold"><Phone className="size-4" /> Call</a>
             <a href={`https://www.google.com/maps/dir/?api=1&destination=${a.lat},${a.lng}&travelmode=two-wheeler`} target="_blank" rel="noopener noreferrer"
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-line font-semibold"><Navigation className="size-4" /> Navigate</a>
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-[10px] border border-line font-semibold"><Navigation className="size-4" /> Navigate</a>
           </div>
         )}
 
@@ -236,22 +241,22 @@ function JobCard({ job, canAct, onChanged }: { job: Job; canAct: boolean; onChan
           <ChevronDown className={clsx("ml-auto size-4 transition-transform", showItems && "rotate-180")} />
         </button>
         {showItems && (
-          <ul className="space-y-1 rounded-xl bg-paper p-3">
+          <ul className="space-y-1 rounded-[10px] bg-paper p-3">
             {job.order_items.map((i, k) => <li key={k} className="flex justify-between"><span>{i.name}{i.variant_label ? ` (${i.variant_label})` : ""}</span><b>× {i.qty}</b></li>)}
           </ul>
         )}
-        {job.note && <p className="rounded-xl border border-nib/40 bg-nib-soft px-3 py-2"><b>Note:</b> {job.note}</p>}
+        {job.note && <p className="rounded-[10px] border border-nib/40 bg-nib-soft px-3 py-2"><b>Note:</b> {job.note}</p>}
 
         {canAct && job.status === "agent_assigned" && (
           <div className="grid grid-cols-[1fr_auto] gap-2 pt-1">
-            <button disabled={busy} onClick={accept} className="h-12 rounded-xl bg-ink text-base font-bold text-white disabled:opacity-50">Accept delivery</button>
-            <button disabled={busy} onClick={handBack} className="h-12 rounded-xl border border-line px-4 font-semibold disabled:opacity-50">Decline</button>
+            <button disabled={busy} onClick={accept} className="sign-type press h-12 rounded-[10px] bg-nib text-[19px] text-on-nib disabled:opacity-50">Accept delivery</button>
+            <button disabled={busy} onClick={handBack} className="h-12 rounded-[10px] border border-line px-4 font-semibold disabled:opacity-50">Decline</button>
           </div>
         )}
         {canAct && job.status === "agent_accepted" && (
           <div className="space-y-2 pt-1">
-            <button disabled={busy} onClick={start} className="h-12 w-full rounded-xl bg-ink text-base font-bold text-white disabled:opacity-50">Picked up, start delivery</button>
-            <button disabled={busy} onClick={handBack} className="h-10 w-full rounded-xl font-semibold text-muted disabled:opacity-50">Hand back to the store</button>
+            <SlideToConfirm label="Slide: picked up, go" onConfirm={start} busy={busy} />
+            <button disabled={busy} onClick={handBack} className="h-10 w-full rounded-[10px] font-semibold text-muted disabled:opacity-50">Hand back to the store</button>
           </div>
         )}
         {canAct && job.status === "out_for_delivery" && (
@@ -259,14 +264,14 @@ function JobCard({ job, canAct, onChanged }: { job: Job; canAct: boolean; onChan
             <label htmlFor={`code-${job.id}`} className="block font-semibold">Ask the customer for the 4-digit delivery code</label>
             <input id={`code-${job.id}`} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 4))}
               inputMode="numeric" autoComplete="one-time-code" placeholder="• • • •" disabled={locked || busy}
-              className="h-14 w-full rounded-xl border-[1.5px] border-line bg-paper text-center font-display text-3xl font-extrabold tracking-[0.5em] outline-none focus:border-ink disabled:opacity-50" />
+              className="h-14 w-full rounded-[10px] border-[1.5px] border-line bg-paper text-center font-display text-3xl font-extrabold tracking-[0.5em] outline-none focus:border-ink disabled:opacity-50" />
             {collect && (
-              <label className="flex items-center gap-3 rounded-xl bg-nib-soft px-3 py-3 font-semibold">
+              <label className="flex items-center gap-3 rounded-[10px] bg-nib-soft px-3 py-3 font-semibold">
                 <input type="checkbox" checked={cash} onChange={(e) => setCash(e.target.checked)} className="size-5 accent-[var(--ink)]" />
                 I collected {rupees(job.payable_paise)} in cash
               </label>
             )}
-            <button disabled={busy || locked || code.length !== 4 || (collect && !cash)} className="h-12 w-full rounded-xl bg-ok text-base font-bold text-white disabled:opacity-40">Mark delivered</button>
+            <button disabled={busy || locked || code.length !== 4 || (collect && !cash)} className="sign-type press h-12 w-full rounded-[10px] bg-ok text-[19px] text-white disabled:opacity-40">Mark delivered</button>
             <div className="flex justify-between">
               <button type="button" disabled={busy} onClick={resend} className="text-sm font-semibold text-ink">Customer didn&apos;t get it?</button>
               <button type="button" disabled={busy} onClick={issue} className="text-sm font-semibold text-margin">Report a problem</button>
@@ -292,9 +297,9 @@ function PickupCard({ p, canAct, onDone }: { p: Pickup; canAct: boolean; onDone:
     onDone();
   };
   return (
-    <article className="rounded-2xl border border-line bg-card p-4 text-sm">
+    <article className="rounded-[12px] bg-card p-4 text-sm">
       <p className="font-display text-lg font-extrabold">Collect return {p.orders?.order_no ? `· ${p.orders.order_no}` : ""}</p>
-      <ul className="mt-2 rounded-xl bg-paper p-3">
+      <ul className="mt-2 rounded-[10px] bg-paper p-3">
         {p.items.map((i, k) => <li key={k} className="flex justify-between"><span>{i.name}{i.variant_label ? ` (${i.variant_label})` : ""}</span><b>× {i.qty}</b></li>)}
       </ul>
       {a && (
@@ -304,14 +309,14 @@ function PickupCard({ p, canAct, onDone }: { p: Pickup; canAct: boolean; onDone:
             <div><p className="font-semibold">{a.contact_name}</p><p className="text-muted">{a.house_name}, {a.road}{a.landmark ? `, near ${a.landmark}` : ""}</p></div>
           </div>
           <div className="mt-3 grid grid-cols-2 gap-2">
-            <a href={`tel:+91${a.contact_phone}`} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-line font-semibold"><Phone className="size-4" /> Call</a>
+            <a href={`tel:+91${a.contact_phone}`} className="inline-flex h-11 items-center justify-center gap-2 rounded-[10px] border border-line font-semibold"><Phone className="size-4" /> Call</a>
             <a href={`https://www.google.com/maps/dir/?api=1&destination=${a.lat},${a.lng}&travelmode=two-wheeler`} target="_blank" rel="noopener noreferrer"
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-line font-semibold"><Navigation className="size-4" /> Navigate</a>
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-[10px] border border-line font-semibold"><Navigation className="size-4" /> Navigate</a>
           </div>
         </>
       )}
       <p className="mt-3 text-xs text-muted">Check the items match the list. No money changes hands; the store refunds the customer.</p>
-      {canAct && <button disabled={busy} onClick={done} className="mt-2 h-12 w-full rounded-xl bg-ink text-base font-bold text-white disabled:opacity-50">Items collected</button>}
+      {canAct && <button disabled={busy} onClick={done} className="mt-2 h-12 w-full rounded-[10px] bg-ink text-base font-bold text-on-ink disabled:opacity-50">Items collected</button>}
       {err && <p className="mt-2 font-semibold text-margin" role="status">{err}</p>}
     </article>
   );

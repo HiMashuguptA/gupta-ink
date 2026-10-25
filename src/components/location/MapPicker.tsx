@@ -6,14 +6,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 const pin = L.divIcon({
   className: "",
-  html: `<svg width="36" height="46" viewBox="0 0 36 46" xmlns="http://www.w3.org/2000/svg"><path d="M18 45c-1-6-16-17-16-28a16 16 0 0 1 32 0c0 11-15 22-16 28z" fill="#1f2a6e" stroke="#fff" stroke-width="2"/><circle cx="18" cy="17" r="6" fill="#e9a23b"/></svg>`,
+  html: `<svg width="36" height="46" viewBox="0 0 36 46" xmlns="http://www.w3.org/2000/svg"><path d="M18 45c-1-6-16-17-16-28a16 16 0 0 1 32 0c0 11-15 22-16 28z" fill="#0b5a45" stroke="#fff" stroke-width="2"/><circle cx="18" cy="17" r="6" fill="#f5b800"/></svg>`,
   iconSize: [36, 46],
   iconAnchor: [18, 45],
 });
 
 const shop = L.divIcon({
   className: "",
-  html: `<div style="background:#e9a23b;color:#141c4d;font:700 11px Figtree Variable,sans-serif;padding:4px 8px;border-radius:10px;border:2px solid #fff;white-space:nowrap;box-shadow:0 2px 6px rgba(20,28,77,.3)">Gupta Enterprises</div>`,
+  html: `<div style="background:#f5b800;color:#0a3329;font:700 11px Schibsted Grotesk Variable,sans-serif;padding:4px 8px;border-radius:10px;border:2px solid #fff;white-space:nowrap;box-shadow:0 2px 6px rgba(20,28,77,.3)">Gupta Enterprises</div>`,
   iconSize: [124, 24],
   iconAnchor: [62, 12],
 });
@@ -67,14 +67,14 @@ export default function MapPicker({
   }), [onChange]);
 
   return (
-    <div className={`relative overflow-hidden rounded-2xl border border-line ${className ?? ""}`} style={{ height }}>
+    <div className={`relative overflow-hidden rounded-[12px] border border-line ${className ?? ""}`} style={{ height }}>
       <MapContainer center={[value.lat, value.lng]} zoom={mode === "center" ? 17 : 16} className="size-full" scrollWheelZoom={mode === "center" ? "center" : false} touchZoom={mode === "center" ? "center" : true}>
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
           maxZoom={19}
         />
-        <Circle center={[store.lat, store.lng]} radius={radiusKm * 1000} pathOptions={{ color: "#1f2a6e", weight: 1, fillOpacity: 0.04 }} />
+        <Circle center={[store.lat, store.lng]} radius={radiusKm * 1000} pathOptions={{ color: "#0b5a45", weight: 1, fillOpacity: 0.04 }} />
         <Marker position={[store.lat, store.lng]} icon={shop} interactive={false} />
         {mode === "drag" ? (
           <>
@@ -90,8 +90,8 @@ export default function MapPicker({
         <div className="pointer-events-none absolute inset-0 z-[500] grid place-items-center" aria-hidden>
           <div className="relative -translate-y-[25px]">
             <svg width="40" height="50" viewBox="0 0 36 46" className="drop-shadow-md transition-transform duration-150" style={{ transform: moving ? "translateY(-10px)" : "none" }}>
-              <path d="M18 45c-1-6-16-17-16-28a16 16 0 0 1 32 0c0 11-15 22-16 28z" fill="#1f2a6e" stroke="#fff" strokeWidth="2" />
-              <circle cx="18" cy="17" r="6" fill="#e9a23b" />
+              <path d="M18 45c-1-6-16-17-16-28a16 16 0 0 1 32 0c0 11-15 22-16 28z" fill="#0b5a45" stroke="#fff" strokeWidth="2" />
+              <circle cx="18" cy="17" r="6" fill="#f5b800" />
             </svg>
             <span className={`absolute left-1/2 top-full block h-1.5 -translate-x-1/2 rounded-full bg-black/30 transition-all ${moving ? "w-2 opacity-40" : "w-4 opacity-70"}`} />
           </div>

@@ -53,31 +53,31 @@ export function LoginScreen({ next, error }: { next: string; error?: string }) {
   };
 
   return (
-    <main className="ruled relative flex min-h-dvh flex-col items-center justify-center overflow-hidden px-6 py-10">
+    <main className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden bg-sign px-6 py-10 text-on-sign">
       {/* drifting stationery */}
       <Floater className="left-[12%] top-[14%]" delay={0.6}>
-        <svg width="70" height="70" viewBox="0 0 70 70"><g transform="rotate(-30 35 35)"><rect x="29" y="4" width="12" height="48" rx="2" fill="#e2a400" /><rect x="29" y="2" width="12" height="7" fill="#e45b7a" /><path d="M29 52h12l-6 14z" fill="#f2cf9a" /><path d="M33 60h4l-2 6z" fill="#1c2030" /></g></svg>
+        <svg width="70" height="70" viewBox="0 0 70 70"><g transform="rotate(-30 35 35)"><rect x="29" y="4" width="12" height="48" rx="2" fill="#f5b800" /><rect x="29" y="2" width="12" height="7" fill="#cf1f2b" /><path d="M29 52h12l-6 14z" fill="#f4e3c2" /><path d="M33 60h4l-2 6z" fill="#13201a" /></g></svg>
       </Floater>
       <Floater className="right-[10%] top-[20%]" delay={1} drift={20}>
-        <svg width="86" height="60" viewBox="0 0 74 52"><path d="M2 26 L72 2 L46 50 L34 32 Z" fill="#1f2a6e" /><path d="M34 32 L72 2 L28 30 Z" fill="#3f5bd8" /></svg>
+        <svg width="86" height="60" viewBox="0 0 74 52"><path d="M2 26 L72 2 L46 50 L34 32 Z" fill="#f4faf6" /><path d="M34 32 L72 2 L28 30 Z" fill="#a9cfc0" /></svg>
       </Floater>
       <Floater className="bottom-[16%] left-[8%]" delay={1.3} drift={10}>
-        <svg width="80" height="64" viewBox="0 0 80 64"><rect x="6" y="8" width="56" height="50" rx="4" fill="#ffd84a" transform="rotate(-8 34 33)" /><rect x="16" y="4" width="56" height="50" rx="4" fill="#ff8fb1" transform="rotate(6 44 29)" /></svg>
+        <svg width="80" height="64" viewBox="0 0 80 64"><rect x="6" y="8" width="56" height="50" rx="4" fill="#f5b800" transform="rotate(-8 34 33)" /><rect x="16" y="4" width="56" height="50" rx="4" fill="#cf1f2b" transform="rotate(6 44 29)" /></svg>
       </Floater>
       <Floater className="bottom-[12%] right-[12%]" delay={0.9} drift={16}>
-        <svg width="64" height="64" viewBox="0 0 64 64"><circle cx="32" cy="32" r="22" fill="none" stroke="#d9534a" strokeWidth="3" strokeDasharray="4 6" /><circle cx="32" cy="32" r="5" fill="#e9a23b" /></svg>
+        <svg width="64" height="64" viewBox="0 0 64 64"><circle cx="32" cy="32" r="22" fill="none" stroke="#f5b800" strokeWidth="3" strokeDasharray="4 6" /><circle cx="32" cy="32" r="5" fill="#f4faf6" /></svg>
       </Floater>
 
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="relative w-full max-w-sm text-center">
-        <div className="mx-auto w-fit"><LogoMark size={88} animated /></div>
-        <motion.h1 initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.2 }} className="mt-5 font-display text-4xl font-extrabold tracking-tight text-ink-deep">
+        <div className="mx-auto w-fit"><LogoMark size={104} tone="yellow" swing /></div>
+        <motion.h1 initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5, duration: 0.5, ease: [0.23, 1, 0.32, 1] }} className="sign-type mt-5 text-[52px] text-on-sign">
           Gupta Enterprises
         </motion.h1>
-        <p className="mt-1 text-sm font-semibold text-muted">Stationery in minutes, Kohima</p>
+        <p className="mt-1 text-sm font-semibold text-on-sign-muted">Stationery from Khedi Market, Kohima</p>
 
         <div className="mt-6 h-9" aria-live="polite">
           <AnimatePresence mode="wait">
-            <motion.p key={line} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.35 }} className="font-hand text-[26px] leading-none text-ink">
+            <motion.p key={line} initial={{ opacity: 0, y: 10, filter: "blur(4px)" }} animate={{ opacity: 1, y: 0, filter: "blur(0px)" }} exit={{ opacity: 0, y: -10, filter: "blur(4px)" }} transition={{ duration: 0.35, ease: [0.23, 1, 0.32, 1] }} className="text-[17px] font-semibold leading-snug text-nib">
               {LINES[line]}
             </motion.p>
           </AnimatePresence>
@@ -89,8 +89,8 @@ export function LoginScreen({ next, error }: { next: string; error?: string }) {
           whileTap={{ scale: 0.97 }}
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1.5 }}
-          className="mt-8 flex h-13 w-full items-center justify-center gap-3 rounded-2xl border border-line bg-card py-3.5 text-[15px] font-bold text-graphite shadow-sm transition-shadow hover:shadow-md disabled:opacity-70"
+          transition={{ delay: 0.8, duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
+          className="mt-8 flex h-14 w-full items-center justify-center gap-3 rounded-[12px] bg-white text-[15px] font-bold text-[#13201a] transition-colors hover:bg-[#f3f7f4] disabled:opacity-70"
         >
           <svg width="20" height="20" viewBox="0 0 48 48" aria-hidden>
             <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z" />
@@ -100,13 +100,13 @@ export function LoginScreen({ next, error }: { next: string; error?: string }) {
           </svg>
           {busy ? "Opening Google…" : "Continue with Google"}
         </motion.button>
-        {err && <p className="mt-3 text-sm text-margin" role="alert">{err}</p>}
+        {err && <p className="mt-3 rounded-[8px] bg-margin px-3 py-2 text-sm text-white" role="alert">{err}</p>}
 
-        <p className="mt-6 text-xs leading-relaxed text-muted">
+        <p className="mt-6 text-xs leading-relaxed text-on-sign-muted">
           By continuing you agree to our <Link href="/policies/terms" className="font-semibold underline">Terms</Link> and{" "}
           <Link href="/policies/privacy" className="font-semibold underline">Privacy policy</Link>.
         </p>
-        <Link href="/" className="mt-4 inline-block text-sm font-semibold text-ink">Browse without signing in</Link>
+        <Link href="/" className="mt-4 inline-block text-sm font-bold text-nib underline-offset-4 hover:underline">Browse without signing in</Link>
       </motion.div>
     </main>
   );

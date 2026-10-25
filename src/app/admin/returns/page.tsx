@@ -31,11 +31,11 @@ export default async function AdminReturns({ searchParams }: { searchParams: Pro
 
   return (
     <div className="max-w-5xl">
-      <h1 className="text-2xl font-extrabold">Returns and refunds</h1>
+      <h1 className="text-[34px] uppercase">Returns and refunds</h1>
       <p className="mt-1 text-sm text-muted">Review requests, arrange pickups, then pay refunds by UPI and upload the screenshot.</p>
 
       {(cancelRefunds.data ?? []).length > 0 && (
-        <section className="mt-5 rounded-2xl border-[1.5px] border-margin/40 bg-card p-4">
+        <section className="mt-5 rounded-[12px] border-[1.5px] border-margin/40 bg-card p-4">
           <h2 className="font-bold">Refunds due on cancelled orders</h2>
           <ul className="mt-2 divide-y divide-line text-sm">
             {(cancelRefunds.data ?? []).map((o) => (
@@ -53,7 +53,7 @@ export default async function AdminReturns({ searchParams }: { searchParams: Pro
         {TABS.map((t) => (
           <Link key={t.key} href={`/admin/returns?tab=${t.key}`} aria-current={t.key === current.key ? "page" : undefined}
             className={clsx("inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-sm font-semibold",
-              t.key === current.key ? "border-ink bg-ink text-white" : "border-line bg-card")}>
+              t.key === current.key ? "border-ink bg-ink text-on-ink" : "border-line bg-card")}>
             {t.label}{t.key !== "done" && n(t.key) > 0 && <span className={clsx("grid min-w-5 place-items-center rounded-full px-1 text-[11px]", t.key === current.key ? "bg-white/20" : "bg-nib text-ink-deep")}>{n(t.key)}</span>}
           </Link>
         ))}
@@ -62,7 +62,7 @@ export default async function AdminReturns({ searchParams }: { searchParams: Pro
       <ul className="mt-4 grid gap-2.5 md:hidden">
         {list.map((r) => (
           <li key={r.id}>
-            <Link href={`/admin/returns/${r.id}`} className="block rounded-2xl border border-line bg-card p-3.5 text-sm active:bg-paper">
+            <Link href={`/admin/returns/${r.id}`} className="block rounded-[12px] bg-card p-3.5 text-sm active:bg-paper">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0"><p className="font-bold text-ink">{r.orders?.order_no ?? "Order"}</p>
                   <p className="text-xs text-muted">{r.profiles?.name ?? "Customer"} · {new Date(r.created_at).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}</p></div>
@@ -75,9 +75,9 @@ export default async function AdminReturns({ searchParams }: { searchParams: Pro
             </Link>
           </li>
         ))}
-        {!list.length && <li className="rounded-2xl border border-line bg-card p-6 text-center text-sm text-muted">Nothing here right now.</li>}
+        {!list.length && <li className="rounded-[12px] bg-card p-6 text-center text-sm text-muted">Nothing here right now.</li>}
       </ul>
-      <div className="mt-4 hidden overflow-x-auto rounded-2xl border border-line bg-card md:block">
+      <div className="mt-4 hidden overflow-x-auto rounded-[12px] bg-card md:block">
         <table className="w-full min-w-[680px] text-sm">
           <thead><tr className="text-left text-muted">
             <th className="p-3 font-semibold">Order</th><th className="p-3 font-semibold">Customer</th><th className="p-3 font-semibold">Items</th>

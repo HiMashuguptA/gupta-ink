@@ -1,9 +1,9 @@
 import type { Metadata, Viewport } from "next";
-import "@fontsource-variable/bricolage-grotesque";
-import "@fontsource-variable/figtree";
-import "@fontsource/caveat/600.css";
+import "@fontsource-variable/big-shoulders-display";
+import "@fontsource-variable/schibsted-grotesk";
 import "./globals.css";
 import { Suspense } from "react";
+import { ViewTransitions } from "next-view-transitions";
 import { NavProgress } from "@/components/layout/NavProgress";
 
 export const metadata: Metadata = {
@@ -18,8 +18,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f6f7fb" },
-    { media: "(prefers-color-scheme: dark)", color: "#0f1220" },
+    { media: "(prefers-color-scheme: light)", color: "#0a4d3b" },
+    { media: "(prefers-color-scheme: dark)", color: "#0a3329" },
   ],
   width: "device-width",
   initialScale: 1,
@@ -28,11 +28,21 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en-IN">
-      <body className="min-h-dvh antialiased">
-        <Suspense><NavProgress /></Suspense>
-        {children}
-      </body>
-    </html>
+    <ViewTransitions>
+      <html lang="en-IN" suppressHydrationWarning>
+        <head>
+          {/* Saved light/dark choice before first paint, and the scroll-reveal watcher (runs before React loads, so nothing waits on hydration) */}
+          <script dangerouslySetInnerHTML={{ __html: `try{var t=localStorage.getItem("ge-theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}
+if("IntersectionObserver" in window&&"MutationObserver" in window){document.documentElement.classList.add("js");
+var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add("is-in");io.unobserve(e.target)}})},{rootMargin:"0px 0px -6% 0px",threshold:0.05});
+var see=function(n){if(n.nodeType!==1)return;if(n.matches(".reveal,.reveal-clip"))io.observe(n);n.querySelectorAll&&n.querySelectorAll(".reveal,.reveal-clip").forEach(function(x){io.observe(x)})};
+new MutationObserver(function(ms){ms.forEach(function(m){m.addedNodes.forEach(see)})}).observe(document.documentElement,{childList:true,subtree:true});}` }} />
+        </head>
+        <body className="min-h-dvh antialiased">
+          <Suspense><NavProgress /></Suspense>
+          {children}
+        </body>
+      </html>
+    </ViewTransitions>
   );
 }

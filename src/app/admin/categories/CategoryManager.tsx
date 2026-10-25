@@ -71,15 +71,15 @@ export function CategoryManager({ initial }: { initial: Cat[] }) {
       <div className="flex gap-2">
         <input value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") void add(); }}
           placeholder="New category name, e.g. Craft Paper" aria-label="New category name"
-          className="h-10 min-w-0 flex-1 rounded-xl border border-line bg-card px-3 outline-none focus:border-ink" />
-        <button onClick={add} disabled={busy || !name.trim()} className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-ink px-4 font-semibold text-white disabled:opacity-50"><Plus className="size-4" /> Add</button>
+          className="h-10 min-w-0 flex-1 rounded-[10px] border border-line bg-card px-3 outline-none focus:border-ink" />
+        <button onClick={add} disabled={busy || !name.trim()} className="inline-flex h-10 items-center gap-1.5 rounded-[10px] bg-ink px-4 font-semibold text-on-ink disabled:opacity-50"><Plus className="size-4" /> Add</button>
       </div>
       {msg && <p className={clsx("font-semibold", msg.ok ? "text-ok" : "text-margin")} role="status">{msg.text}</p>}
-      <ul className="divide-y divide-line rounded-2xl border border-line bg-card">
+      <ul className="divide-y divide-line rounded-[12px] bg-card">
         {cats.map((c, i) => (
           <li key={c.id} className={clsx("flex items-center gap-2 p-3", !c.active && "opacity-60")}>
             <input defaultValue={c.name} onBlur={(e) => void rename(c, e.target.value)} aria-label={`Name of ${c.name}`}
-              className="h-9 min-w-0 flex-1 rounded-lg border border-transparent bg-transparent px-2 font-semibold hover:border-line focus:border-ink focus:outline-none" />
+              className="h-9 min-w-0 flex-1 rounded-[8px] border border-transparent bg-transparent px-2 font-semibold hover:border-line focus:border-ink focus:outline-none" />
             <Link href={`/c/${c.slug}`} target="_blank" className="hidden text-xs text-muted hover:underline sm:inline">{c.products} product{c.products === 1 ? "" : "s"}</Link>
             <button onClick={() => move(i, -1)} disabled={i === 0} className="grid size-8 place-items-center rounded-full hover:bg-ink-soft disabled:opacity-30" aria-label="Move up"><ArrowUp className="size-4" /></button>
             <button onClick={() => move(i, 1)} disabled={i === cats.length - 1} className="grid size-8 place-items-center rounded-full hover:bg-ink-soft disabled:opacity-30" aria-label="Move down"><ArrowDown className="size-4" /></button>

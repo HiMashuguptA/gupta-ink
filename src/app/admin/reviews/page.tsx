@@ -14,11 +14,11 @@ export default async function AdminReviews() {
   const rows = (data ?? []) as unknown as Row[];
   return (
     <div className="max-w-3xl">
-      <h1 className="text-2xl font-extrabold">Reviews</h1>
+      <h1 className="text-[34px] uppercase">Reviews</h1>
       <p className="mt-1 text-sm text-muted">Only verified buyers can review. Hide anything abusive or off-topic; ratings update straight away.</p>
       <ul className="mt-5 space-y-3">
         {rows.map((r) => (
-          <li key={r.id} className={`rounded-2xl border border-line bg-card p-4 ${r.hidden ? "opacity-60" : ""}`}>
+          <li key={r.id} className={`rounded-[12px] bg-card p-4 ${r.hidden ? "opacity-60" : ""}`}>
             <div className="flex items-start gap-3">
               <div className="min-w-0 flex-1">
                 <a href={`/p/${r.product_groups?.slug ?? ""}`} target="_blank" className="font-semibold text-ink hover:underline">{r.product_groups?.name ?? "Product"}</a>
@@ -33,12 +33,12 @@ export default async function AdminReviews() {
             {r.photos.length > 0 && (
               <div className="mt-2 flex gap-2">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                {r.photos.map((p) => <img key={p} src={storageUrl("reviews", p)} alt="Review photo" className="size-16 rounded-lg object-cover" />)}
+                {r.photos.map((p) => <img key={p} src={storageUrl("reviews", p)} alt="Review photo" className="size-16 rounded-[8px] object-cover" />)}
               </div>
             )}
           </li>
         ))}
-        {!rows.length && <li className="rounded-2xl border border-dashed border-line p-6 text-center text-sm text-muted">No reviews yet.</li>}
+        {!rows.length && <li className="rounded-[12px] border border-dashed border-line p-6 text-center text-sm text-muted">No reviews yet.</li>}
       </ul>
     </div>
   );

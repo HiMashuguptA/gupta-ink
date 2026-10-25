@@ -59,16 +59,16 @@ export function ReturnDialog({ open, onClose, orderId, onDone }: { open: boolean
 
   return (
     <Sheet open={open} onClose={onClose} title="Return items" wide>
-      {!opts ? <div className="skeleton h-40 rounded-2xl" /> : (
+      {!opts ? <div className="skeleton h-40 rounded-[12px]" /> : (
         <div className="space-y-5">
-          <ul className="divide-y divide-line rounded-2xl border border-line">
+          <ul className="divide-y divide-line rounded-[12px] border border-line">
             {opts.map((o) => {
               const n = qty[o.order_item_id] ?? 0;
               const can = o.returnable && o.available > 0;
               return (
                 <li key={o.order_item_id} className={clsx("flex items-center gap-3 p-3", !can && "opacity-60")}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={o.image_url ?? "/brand/logo.svg"} alt="" className="size-12 rounded-lg" />
+                  <img src={o.image_url ?? "/brand/logo.svg"} alt="" className="size-12 rounded-[8px]" />
                   <div className="min-w-0 flex-1 text-sm">
                     <p className="truncate font-semibold">{o.name}</p>
                     <p className="text-xs text-muted">
@@ -92,11 +92,11 @@ export function ReturnDialog({ open, onClose, orderId, onDone }: { open: boolean
             <div className="flex flex-wrap gap-2">
               {REASONS.map((r) => (
                 <button key={r} type="button" onClick={() => setReason(r)} aria-pressed={reason === r}
-                  className={clsx("rounded-full border px-3 py-1.5 text-sm", reason === r ? "border-ink bg-ink text-white" : "border-line")}>{r}</button>
+                  className={clsx("rounded-full border px-3 py-1.5 text-sm", reason === r ? "border-ink bg-ink text-on-ink" : "border-line")}>{r}</button>
               ))}
             </div>
             <textarea value={detail} onChange={(e) => setDetail(e.target.value.slice(0, 500))} rows={2} placeholder={reason === "Other" ? "Tell us what happened" : "More detail (optional)"}
-              className="mt-2 w-full rounded-xl border border-line bg-paper p-3 text-sm outline-none focus:border-ink" aria-label="Details" />
+              className="mt-2 w-full rounded-[10px] border border-line bg-paper p-3 text-sm outline-none focus:border-ink" aria-label="Details" />
           </fieldset>
 
           <PhotoPicker files={files} onChange={setFiles} max={5} label="Photos of the items (1 to 5)" />
@@ -104,14 +104,14 @@ export function ReturnDialog({ open, onClose, orderId, onDone }: { open: boolean
           <div>
             <label htmlFor="ret-upi" className="text-sm font-semibold">UPI ID for your refund</label>
             <input id="ret-upi" value={upi} onChange={(e) => setUpi(e.target.value.trim())} placeholder="name@okaxis" autoComplete="off"
-              className="mt-1.5 h-11 w-full rounded-xl border border-line bg-paper px-3 outline-none focus:border-ink" />
+              className="mt-1.5 h-11 w-full rounded-[10px] border border-line bg-paper px-3 outline-none focus:border-ink" />
           </div>
 
-          <div className="flex items-center justify-between rounded-xl bg-ink-soft px-3 py-2.5 text-sm">
+          <div className="flex items-center justify-between rounded-[10px] bg-ink-soft px-3 py-2.5 text-sm">
             <span>Refund if approved</span><b className="text-base">{rupees(total)}</b>
           </div>
           <p className="text-xs text-muted">Coupon and SuperCoin savings are shared across items, and delivery fees aren&apos;t refunded. We pick up from your address (or you bring pickup orders to the store), check the items, then pay by UPI.</p>
-          <button onClick={submit} disabled={!ready || busy} className="h-12 w-full rounded-xl bg-ink font-semibold text-white disabled:opacity-40">
+          <button onClick={submit} disabled={!ready || busy} className="h-12 w-full rounded-[10px] bg-ink font-semibold text-on-ink disabled:opacity-40">
             {busy ? "Sending…" : "Request return"}
           </button>
         </div>

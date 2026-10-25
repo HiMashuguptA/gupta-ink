@@ -39,14 +39,14 @@ export function OrdersBoard({ initial }: { initial: BoardOrder[] }) {
         {TABS.map((t) => (
           <button key={t.key} onClick={() => setTab(t.key)} aria-pressed={tab === t.key}
             className={clsx("inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-sm font-semibold",
-              tab === t.key ? "border-ink bg-ink text-white" : "border-line bg-card")}>
+              tab === t.key ? "border-ink bg-ink text-on-ink" : "border-line bg-card")}>
             {t.label}
             {counts[t.key] > 0 && <span className={clsx("grid min-w-5 place-items-center rounded-full px-1 text-[11px]", tab === t.key ? "bg-white/20" : "bg-nib text-ink-deep")}>{counts[t.key]}</span>}
           </button>
         ))}
       </div>
       <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search order number, name or phone" aria-label="Search orders"
-        className="mt-3 h-11 w-full max-w-md rounded-xl border border-line bg-card px-3 outline-none focus:border-ink" />
+        className="mt-3 h-11 w-full max-w-md rounded-[10px] border border-line bg-card px-3 outline-none focus:border-ink" />
 
       {/* Phones: one card per order */}
       <ul className="mt-4 grid gap-2.5 md:hidden">
@@ -54,7 +54,7 @@ export function OrdersBoard({ initial }: { initial: BoardOrder[] }) {
           const utr = o.payments[0]?.utr;
           return (
             <li key={o.id}>
-              <Link href={`/admin/orders/${o.id}`} className="block rounded-2xl border border-line bg-card p-3.5 active:bg-paper">
+              <Link href={`/admin/orders/${o.id}`} className="block rounded-[12px] bg-card p-3.5 active:bg-paper">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className="font-bold text-ink">{o.order_no}</p>
@@ -76,9 +76,9 @@ export function OrdersBoard({ initial }: { initial: BoardOrder[] }) {
             </li>
           );
         })}
-        {!shown.length && <li className="rounded-2xl border border-line bg-card p-6 text-center text-sm text-muted">Nothing here right now.</li>}
+        {!shown.length && <li className="rounded-[12px] bg-card p-6 text-center text-sm text-muted">Nothing here right now.</li>}
       </ul>
-      <div className="mt-4 hidden overflow-x-auto rounded-2xl border border-line bg-card md:block">
+      <div className="mt-4 hidden overflow-x-auto rounded-[12px] bg-card md:block">
         <table className="w-full min-w-[720px] text-sm">
           <thead>
             <tr className="text-left text-muted">

@@ -1,6 +1,6 @@
 export function TileSkeleton() {
   return (
-    <div className="rounded-2xl border border-line bg-card p-2.5" aria-hidden>
+    <div className="rounded-[12px] bg-card p-2.5" aria-hidden>
       <div className="skeleton aspect-square" />
       <div className="skeleton mt-2 h-3.5 w-11/12" />
       <div className="skeleton mt-1.5 h-3.5 w-2/3" />
@@ -37,10 +37,10 @@ export function ListSkeleton({ rows = 5, title = true }: { rows?: number; title?
   return (
     <div className="px-4 pt-4" aria-busy aria-label="Loading">
       {title && <div className="skeleton h-8 w-48" />}
-      <div className="mt-4 divide-y divide-line rounded-2xl border border-line bg-card">
+      <div className="mt-4 divide-y divide-line rounded-[12px] bg-card">
         {Array.from({ length: rows }, (_, i) => (
           <div key={i} className="flex items-center gap-3 p-4">
-            <div className="skeleton size-12 shrink-0 rounded-xl" />
+            <div className="skeleton size-12 shrink-0 rounded-[10px]" />
             <div className="flex-1"><div className="skeleton h-3.5 w-2/3" /><div className="skeleton mt-2 h-3 w-1/3" /></div>
           </div>
         ))}

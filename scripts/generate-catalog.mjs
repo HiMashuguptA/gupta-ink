@@ -190,9 +190,11 @@ const shapes = {
     <text x="275" y="300" text-anchor="middle" font-family="Georgia, serif" font-size="58" font-weight="700" fill="#fff" opacity=".9">2027</text>`,
 };
 
-function svg(shape, color) {
+// Category tiles keep their tinted square; product art is on a transparent ground so it sits
+// straight on the app's white product board
+function svg(shape, color, ground = true) {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" role="img">
-  <rect width="600" height="600" rx="48" fill="${tint(color, 0.13)}"/>
+  ${ground ? `<rect width="600" height="600" rx="48" fill="${tint(color, 0.13)}"/>` : ""}
   <ellipse cx="300" cy="520" rx="180" ry="22" fill="${shade(color, 0.5)}" opacity=".10"/>
   ${shapes[shape](color)}
 </svg>`;
@@ -314,7 +316,7 @@ for (const g of groups) {
   from public.categories where slug = ${q(g.cat)};\n`;
   g.v.forEach(([label, colour, hex, mrp, price, stock, featured], i) => {
     const file = `${g.slug}-${i + 1}.svg`;
-    writeFileSync(join(outDir, file), svg(g.shape, hex));
+    writeFileSync(join(outDir, file), svg(g.shape, hex, false));
     const sku = `GI-${g.slug.toUpperCase().replace(/[^A-Z0-9]+/g, "").slice(0, 10)}-${i + 1}`;
     sql += `insert into public.products (group_id, sku, variant_label, colour, colour_hex, unit, images, mrp_paise, price_paise, gst_rate, hsn, stock, featured, sort)
   select id, ${q(sku)}, ${q(label)}, ${q(colour)}, ${q(hex)}, ${q(g.unit)}, ${arr(["/catalog/" + file])}, ${mrp}, ${price}, ${g.gst}, ${q(g.hsn)}, ${stock}, ${featured}, ${i}
@@ -324,17 +326,14 @@ for (const g of groups) {
 
 // Banners (generated art, linked to categories / products)
 const banners = [
-  { file: "banner-exam.svg", title: "Exam season, sorted", subtitle: "Geometry boxes, gel pens and clipboards at your door in under an hour", link_type: "category", link_value: "exam", c1: "#1f2a6e", c2: "#3f5bd8", shape: "geometry", color: "#ffd166" },
-  { file: "banner-monsoon.svg", title: "Kohima rain? Keep it dry", subtitle: "Waterproof folders, pouches and book covers", link_type: "category", link_value: "monsoon", c1: "#0b7285", c2: "#15aabf", shape: "docfolder", color: "#e6fcf5" },
-  { file: "banner-gifts.svg", title: "Gifts that get used", subtitle: "Pen sets, diaries and kids kits from ₹199", link_type: "category", link_value: "gifts", c1: "#a61e4d", c2: "#e64980", shape: "gift", color: "#ffe066" },
+  { file: "banner-exam.svg", title: "Exam season, sorted", subtitle: "Geometry boxes, gel pens and clipboards at your door in under an hour", link_type: "category", link_value: "exam", shape: "geometry", color: "#f5b800" },
+  { file: "banner-monsoon.svg", title: "Kohima rain? Keep it dry", subtitle: "Waterproof folders, pouches and book covers", link_type: "category", link_value: "monsoon", shape: "docfolder", color: "#ffffff" },
+  { file: "banner-gifts.svg", title: "Gifts that get used", subtitle: "Pen sets, diaries and kids kits from ₹199", link_type: "category", link_value: "gifts", shape: "gift", color: "#f5b800" },
 ];
 for (const [i, b] of banners.entries()) {
-  writeFileSync(join(outDir, b.file), `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 520" role="img">
-  <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${b.c1}"/><stop offset="1" stop-color="${b.c2}"/></linearGradient></defs>
-  <rect width="1200" height="520" fill="url(#g)"/>
-  ${Array.from({ length: 18 }, (_, k) => `<line x1="0" y1="${28 + k * 28}" x2="1200" y2="${28 + k * 28}" stroke="#fff" stroke-opacity=".07"/>`).join("")}
-  <line x1="70" y1="0" x2="70" y2="520" stroke="#ff8787" stroke-opacity=".5" stroke-width="3"/>
-  <g transform="translate(610 -60) scale(1.12)">${shapes[b.shape](b.color)}</g>
+  // Product art only, on a transparent ground: the app paints the signboard colour behind it
+  writeFileSync(join(outDir, b.file), `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 520" role="img">
+  <g transform="translate(-10 -60) scale(1.08)">${shapes[b.shape](b.color)}</g>
 </svg>`);
   sql += `insert into public.banners (title, subtitle, image_url, placement, size, link_type, link_value, position) values (${q(b.title)}, ${q(b.subtitle)}, ${q("/catalog/" + b.file)}, 'hero', 'full', ${q(b.link_type)}, ${q(b.link_value)}, ${i});\n`;
 }

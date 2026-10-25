@@ -22,7 +22,7 @@ export function UpiPayPanel({ order, upi, utr, onSubmitted }: { order: OrderRow;
   const link = `upi://pay?pa=${encodeURIComponent(upi.vpa)}&pn=${encodeURIComponent(upi.name)}&am=${amount}&cu=INR&tn=${encodeURIComponent(order.order_no)}`;
 
   useEffect(() => {
-    void QRCode.toDataURL(link, { margin: 1, width: 220, color: { dark: "#141c4d", light: "#ffffff" } }).then(setQr);
+    void QRCode.toDataURL(link, { margin: 1, width: 220, color: { dark: "#0a3329", light: "#ffffff" } }).then(setQr);
   }, [link]);
 
   useEffect(() => {
@@ -45,7 +45,7 @@ export function UpiPayPanel({ order, upi, utr, onSubmitted }: { order: OrderRow;
 
   if (utr) {
     return (
-      <div className="flex gap-3 rounded-2xl border border-ok/30 bg-ok/5 p-4">
+      <div className="flex gap-3 rounded-[12px] border border-ok/30 bg-ok/5 p-4">
         <CheckCircle2 className="size-6 shrink-0 text-ok" />
         <div className="text-sm">
           <p className="font-bold">We&apos;re checking your payment</p>
@@ -57,7 +57,7 @@ export function UpiPayPanel({ order, upi, utr, onSubmitted }: { order: OrderRow;
 
   const mm = String(Math.floor(left / 60)).padStart(2, "0"), ss = String(left % 60).padStart(2, "0");
   return (
-    <section className="rounded-2xl border-[1.5px] border-nib bg-nib-soft/50 p-4" aria-label="Pay by UPI">
+    <section className="rounded-[12px] border-[1.5px] border-nib bg-nib-soft/50 p-4" aria-label="Pay by UPI">
       <div className="flex items-center justify-between">
         <p className="font-bold">Pay {rupees(order.payable_paise)} by UPI</p>
         <p className="inline-flex items-center gap-1 text-sm font-semibold tabular-nums text-ink-deep" aria-live="off"><Clock className="size-4" /> {mm}:{ss}</p>
@@ -65,9 +65,9 @@ export function UpiPayPanel({ order, upi, utr, onSubmitted }: { order: OrderRow;
       <p className="mt-0.5 text-sm text-muted">Pay within 30 minutes or the order is cancelled automatically.</p>
       <div className="mt-3 grid gap-4 sm:grid-cols-[auto_1fr] sm:items-center">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        {qr && <img src={qr} alt={`UPI QR code to pay ${rupees(order.payable_paise)} to ${upi.name}`} className="mx-auto size-44 rounded-xl border border-line bg-white p-1 sm:mx-0" />}
+        {qr && <img src={qr} alt={`UPI QR code to pay ${rupees(order.payable_paise)} to ${upi.name}`} className="mx-auto size-44 rounded-[10px] border border-line bg-white p-1 sm:mx-0" />}
         <div className="space-y-2 text-sm">
-          <a href={link} className="flex h-12 items-center justify-center gap-2 rounded-xl bg-ink font-semibold text-white sm:hidden"><Smartphone className="size-5" /> Open UPI app</a>
+          <a href={link} className="flex h-12 items-center justify-center gap-2 rounded-[10px] bg-ink font-semibold text-on-ink sm:hidden"><Smartphone className="size-5" /> Open UPI app</a>
           <p className="hidden sm:block">Scan with any UPI app, or pay to <b className="select-all">{upi.vpa}</b>. Add <b>{order.order_no}</b> as the note.</p>
           <p className="sm:hidden text-center text-muted">or pay to <b className="select-all text-graphite">{upi.vpa}</b></p>
         </div>
@@ -76,8 +76,8 @@ export function UpiPayPanel({ order, upi, utr, onSubmitted }: { order: OrderRow;
         <label htmlFor="utr" className="text-sm font-semibold">After paying, enter the 12-digit UPI reference (UTR)</label>
         <div className="mt-1.5 flex gap-2">
           <input id="utr" value={ref} onChange={(e) => setRef(e.target.value.replace(/[^\d ]/g, "").slice(0, 15))} inputMode="numeric" placeholder="e.g. 412345678901"
-            className="h-11 flex-1 rounded-xl border border-line bg-card px-3 font-semibold tracking-wider outline-none focus:border-ink" />
-          <button disabled={busy || ref.replace(/\s/g, "").length !== 12} className="h-11 rounded-xl bg-ink px-4 text-sm font-semibold text-white disabled:opacity-40">{busy ? "Sending…" : "Submit"}</button>
+            className="h-11 min-w-0 flex-1 rounded-[10px] border border-line bg-card px-3 font-semibold tracking-wider outline-none focus:border-ink" />
+          <button disabled={busy || ref.replace(/\s/g, "").length !== 12} className="press h-11 shrink-0 rounded-[10px] bg-nib px-4 text-sm font-bold text-on-nib disabled:opacity-40">{busy ? "Sending…" : "Submit"}</button>
         </div>
         <p className="mt-1 text-xs text-muted">Find it in your payment app under the transaction details.</p>
       </form>

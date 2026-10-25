@@ -1,0 +1,267 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-25T09:17:30.956443Z",
+  "title": "Design System: Gupta Enterprises",
+  "extensions": {
+    "colorMeta": {
+      "signboard-green": {
+        "role": "primary",
+        "displayName": "Signboard Green",
+        "canonical": "#0b5a45",
+        "tonalRamp": [
+          "#03241b",
+          "#063629",
+          "#0a4d3b",
+          "#0b5a45",
+          "#2e7a63",
+          "#5f9c88",
+          "#a6c9bc",
+          "#dfeee7"
+        ]
+      },
+      "chrome-yellow": {
+        "role": "secondary",
+        "displayName": "Chrome Yellow",
+        "canonical": "#f5b800",
+        "tonalRamp": [
+          "#3a2b00",
+          "#6b5000",
+          "#a37a00",
+          "#d99e00",
+          "#f5b800",
+          "#ffcf4d",
+          "#ffe08f",
+          "#fff1c2"
+        ]
+      },
+      "postbox-red": {
+        "role": "tertiary",
+        "displayName": "Post-box Red",
+        "canonical": "#cf1f2b",
+        "tonalRamp": [
+          "#3d0a0d",
+          "#6b1218",
+          "#9c1822",
+          "#cf1f2b",
+          "#e5535c",
+          "#f08990",
+          "#f7bcc0",
+          "#fde4e4"
+        ]
+      },
+      "limewash": {
+        "role": "neutral",
+        "displayName": "Limewash",
+        "canonical": "#eef2ee",
+        "tonalRamp": [
+          "#13201a",
+          "#2c3a33",
+          "#536259",
+          "#7d8b83",
+          "#cfdbd3",
+          "#dbe3dd",
+          "#e5ebe6",
+          "#eef2ee"
+        ]
+      },
+      "island-black": {
+        "role": "neutral",
+        "displayName": "Island Black",
+        "canonical": "#0b1914",
+        "tonalRamp": [
+          "#0b1914",
+          "#13241d",
+          "#1e3229",
+          "#2c443a",
+          "#4a6157",
+          "#7a8f86",
+          "#b4c2bc",
+          "#e7f0ea"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Sign caps",
+        "purpose": "Page titles and painted boards (Big Shoulders Display 800, uppercase)."
+      },
+      "headline": {
+        "displayName": "Section sign",
+        "purpose": "Section and sheet headings."
+      },
+      "price": {
+        "displayName": "Price",
+        "purpose": "Every price and total, tabular; totals roll digit by digit."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Descriptions, addresses, help text (Schibsted Grotesk)."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Meta, chips, nav labels, sentence case."
+      }
+    },
+    "shadows": [
+      {
+        "name": "float",
+        "value": "0 12px 32px -12px rgb(8 40 30 / 0.35), 0 2px 6px rgb(8 40 30 / 0.08)",
+        "purpose": "Only on things that float: popovers, sheets, island, toasts, slide handle."
+      },
+      {
+        "name": "sign-shade",
+        "value": "text-shadow: 0.055em 0.055em 0 <darker board tone>",
+        "purpose": "Signwriter's flat shade under big lettering on painted boards."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out",
+        "value": "cubic-bezier(0.23, 1, 0.32, 1)",
+        "purpose": "Default UI easing, entrances and feedback (150-300ms)."
+      },
+      {
+        "name": "ease-drawer",
+        "value": "cubic-bezier(0.32, 0.72, 0, 1)",
+        "purpose": "Bottom sheets (420ms in, 220ms out)."
+      },
+      {
+        "name": "spring-board",
+        "value": "spring duration 0.4 bounce 0.2",
+        "purpose": "Sliding selection boards (tabs, variants, delivery type)."
+      },
+      {
+        "name": "swing",
+        "value": "rotate -11, 7, -3.5, 1.5, 0 over 1.4s",
+        "purpose": "Hanging sign and dropped signs settling on their strings."
+      },
+      {
+        "name": "reveal",
+        "value": "opacity + translateY(18px), 480-620ms, 55ms stagger",
+        "purpose": "List items entering on scroll; visible by default without JS."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "640px"
+      },
+      {
+        "name": "md",
+        "value": "768px"
+      },
+      {
+        "name": "lg",
+        "value": "1024px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Action Button",
+      "kind": "button",
+      "refersTo": "button-action",
+      "description": "The only call-to-action colour.",
+      "html": "<button class=\"ds-btn-action\">ADD TO CART</button>",
+      "css": ".ds-btn-action{background:#f5b800;color:#1d1600;font-family:'Big Shoulders Display Variable','Arial Narrow',sans-serif;font-weight:800;text-transform:uppercase;letter-spacing:.02em;font-size:19px;height:48px;padding:0 20px;border:0;border-radius:9px;transition:transform 140ms cubic-bezier(.23,1,.32,1),background-color 160ms ease}.ds-btn-action:hover{background:#d99e00}.ds-btn-action:active{transform:scale(.97)}.ds-btn-action:focus-visible{outline:2.5px solid #f5b800;outline-offset:2px}"
+    },
+    {
+      "name": "Board Button",
+      "kind": "button",
+      "refersTo": "button-board",
+      "description": "Strong secondary action on signboard green.",
+      "html": "<button class=\"ds-btn-board\">BUY NOW</button>",
+      "css": ".ds-btn-board{background:#0a4d3b;color:#fff;font-family:'Big Shoulders Display Variable','Arial Narrow',sans-serif;font-weight:800;text-transform:uppercase;font-size:19px;height:48px;padding:0 20px;border:0;border-radius:9px;transition:transform 140ms cubic-bezier(.23,1,.32,1)}.ds-btn-board:hover{background:#0b5a45}.ds-btn-board:active{transform:scale(.97)}"
+    },
+    {
+      "name": "Search Input",
+      "kind": "input",
+      "refersTo": "input-search",
+      "description": "White field on the green header; yellow focus ring.",
+      "html": "<input class=\"ds-input\" placeholder=\"Search for gel pen\">",
+      "css": ".ds-input{background:#fff;color:#13201a;height:44px;padding:0 14px;border:0;border-radius:10px;font:15px 'Schibsted Grotesk Variable',system-ui,sans-serif;outline:none;box-shadow:0 0 0 2px transparent;transition:box-shadow 150ms}.ds-input:focus{box-shadow:0 0 0 2px #f5b800}"
+    },
+    {
+      "name": "Chip",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Filter chip; selected chips turn signboard green.",
+      "html": "<span class=\"ds-chip\">In stock</span> <span class=\"ds-chip ds-chip-on\">Pens &amp; Ink</span>",
+      "css": ".ds-chip{display:inline-flex;align-items:center;height:36px;padding:0 14px;border-radius:9px;background:#fff;color:#13201a;box-shadow:inset 0 0 0 1px #dbe3dd;font:600 14px 'Schibsted Grotesk Variable',sans-serif}.ds-chip-on{background:#0a4d3b;color:#fff;box-shadow:none}"
+    },
+    {
+      "name": "Price Plate",
+      "kind": "custom",
+      "refersTo": "price-plate",
+      "description": "Prices painted on a small tag plate.",
+      "html": "<span class=\"ds-price\">&#8377;349</span>",
+      "css": ".ds-price{display:inline-block;background:#dfeee7;color:#083f31;font:800 21px/1 'Big Shoulders Display Variable','Arial Narrow',sans-serif;padding:5px 6px 3px;border-radius:5px;font-variant-numeric:tabular-nums}"
+    },
+    {
+      "name": "Hanging Sign",
+      "kind": "custom",
+      "description": "Signature: the two-sided OPEN/CLOSED board hung from a nail.",
+      "html": "<div class=\"ds-sign\"><svg viewBox=\"0 0 96 22\" width=\"96\" height=\"22\"><path d=\"M16 22 L48 4 L80 22\" fill=\"none\" stroke=\"#a9cfc0\" stroke-width=\"1.7\"/><circle cx=\"48\" cy=\"4\" r=\"3\" fill=\"#f5b800\"/></svg><span class=\"ds-sign-face\"><b>OPEN</b><small>45-60 MIN</small></span></div>",
+      "css": ".ds-sign{position:relative;width:96px;height:58px;background:#0a4d3b;border-radius:8px}.ds-sign svg{position:absolute;top:0;left:0}.ds-sign-face{position:absolute;left:0;right:0;bottom:0;height:36px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#f5b800;color:#1d1600;border-radius:6px;font-family:'Big Shoulders Display Variable','Arial Narrow',sans-serif;text-transform:uppercase;line-height:1;box-shadow:0 3px 6px -1px rgb(0 0 0/.3);transform-origin:50% -18px;transition:transform 600ms cubic-bezier(.22,1,.36,1)}.ds-sign:hover .ds-sign-face{transform:rotate(-6deg)}.ds-sign-face b{font-size:18px}.ds-sign-face small{font-size:11.5px;font-weight:800}"
+    },
+    {
+      "name": "Tab Bar",
+      "kind": "nav",
+      "description": "Phone tab bar with a sliding green board under the active tab.",
+      "html": "<nav class=\"ds-tabs\"><a class=\"on\">Home</a><a>Shop</a><a>Cart</a></nav>",
+      "css": ".ds-tabs{display:flex;gap:6px;background:#fff;padding:6px;border-top:1px solid #dbe3dd}.ds-tabs a{flex:1;text-align:center;padding:8px 0;border-radius:10px;font:600 11px 'Schibsted Grotesk Variable',sans-serif;color:#536259;transition:background-color 200ms,color 200ms}.ds-tabs a.on{background:#0a4d3b;color:#f5b800}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Khedi Market Signboard",
+    "overview": "The app is the shop's own front at Khedi Market, Kohima: hand-painted enamel colour on boards, condensed sign lettering, and a shelf of products that is always the clearest thing on screen. Premium comes from motion and type, not ornament: the OPEN/CLOSED board swings and flips, offer boards are a deck you flick away, the order-placed sign drops in on its strings; everything else is quick, quiet feedback.",
+    "keyCharacteristics": [
+      "Solid enamel colour fields, no gradients, glows or glass.",
+      "Condensed sign caps for headings, prices, tags and buttons; a sturdy grotesque for reading.",
+      "Flat boards separated by tone steps; shadows only on things that float.",
+      "One action colour (chrome yellow); green for selection and shell; red for offers and alerts.",
+      "Motion explains state and stays under 300ms for routine UI; physical swings and drops are the only long moves."
+    ],
+    "rules": [
+      {
+        "name": "The One Paint For Action Rule",
+        "body": "Chrome yellow is the only colour that asks for a tap. Green selects, red warns; neither is ever a primary call to action.",
+        "section": "colors"
+      },
+      {
+        "name": "The Fixed Red Board Rule",
+        "body": "A board painted red (offers, ticker) uses #cf1f2b in light and dark; theme-adaptive red is for text and small tags only.",
+        "section": "colors"
+      },
+      {
+        "name": "The Painted Detail Rule",
+        "body": "Big lettering on a painted board carries the signwriter's flat shade, and those boards carry a painted keyline 6px inside the edge. Nowhere else.",
+        "section": "typography"
+      },
+      {
+        "name": "The Sign Caps Rule",
+        "body": "Uppercase lives only in the display face. Body-face text is always sentence case; no tiny tracked labels.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat Board Rule",
+        "body": "A board at rest has no border and no shadow. If it needs separation, step its tone.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do paint shell surfaces solid signboard green (#0a4d3b) and keep product boards white on limewash (#eef2ee).",
+      "Do use chrome yellow (#f5b800) for every primary action and nothing decorative.",
+      "Do set headings, prices and action labels in Big Shoulders Display caps; roll changing numbers with NumberFlow.",
+      "Do use ease-out cubic-bezier(0.23, 1, 0.32, 1) for UI, the drawer curve cubic-bezier(0.32, 0.72, 0, 1) for sheets, and springs (bounce 0.15-0.3) for physical objects.",
+      "Do keep content visible by default; scroll reveals only hide items once the watcher script is running, and reduced motion removes travel."
+    ],
+    "donts": [
+      "Don't use gradients, glows, aurora or beam backgrounds, or blurred glass panels (the owner chose skills-first over Aceternity's look).",
+      "Don't put borders or shadows on boards at rest.",
+      "Don't use red for anything but offers, closed status and errors.",
+      "Don't set body text in uppercase or add small tracked labels above headings.",
+      "Don't animate keyboard actions or routine state changes longer than 300ms."
+    ]
+  }
+}

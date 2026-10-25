@@ -23,7 +23,7 @@ export default async function EditProduct({ params }: { params: Promise<{ id: st
     <div className="max-w-4xl">
       <div className="flex items-center gap-2">
         <Link href="/admin/products" className="grid size-9 place-items-center rounded-full hover:bg-ink-soft" aria-label="All products"><ChevronLeft className="size-5" /></Link>
-        <h1 className="text-2xl font-extrabold">{isNew ? "New product" : group.data!.name}</h1>
+        <h1 className="text-[34px] uppercase">{isNew ? "New product" : group.data!.name}</h1>
         {!isNew && <Link href={`/p/${group.data!.slug}`} target="_blank" className="ml-auto text-sm font-semibold text-ink hover:underline">View in shop</Link>}
       </div>
       <ProductEditor initial={(group.data as unknown as EditGroup) ?? null} categories={cats.data ?? []} allTags={allTags} />

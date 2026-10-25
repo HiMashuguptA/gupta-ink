@@ -55,7 +55,7 @@ export function ReviewDialog({ item, existing, onClose, onSaved }: {
         <div className="space-y-4">
           <div className="flex items-center gap-3">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={item.image_url ?? "/brand/logo.svg"} alt="" className="size-12 rounded-lg" />
+            <img src={item.image_url ?? "/brand/logo.svg"} alt="" className="size-12 rounded-[8px]" />
             <p className="font-semibold">{item.name}</p>
           </div>
           <div>
@@ -70,22 +70,22 @@ export function ReviewDialog({ item, existing, onClose, onSaved }: {
             <p className="mt-1 h-5 text-sm font-semibold text-ink">{WORDS[shown]}</p>
           </div>
           <textarea value={comment} onChange={(e) => setComment(e.target.value.slice(0, 1000))} rows={3} placeholder="What did you like or dislike? (optional)"
-            className="w-full rounded-xl border border-line bg-paper p-3 text-sm outline-none focus:border-ink" aria-label="Review" />
+            className="w-full rounded-[10px] border border-line bg-paper p-3 text-sm outline-none focus:border-ink" aria-label="Review" />
           {kept.length > 0 && (
             <div className="flex gap-2">
               {kept.map((ph) => (
                 <div key={ph} className="relative">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={storageUrl("reviews", ph)} alt="Saved photo" className="size-20 rounded-xl object-cover" />
+                  <img src={storageUrl("reviews", ph)} alt="Saved photo" className="size-20 rounded-[10px] object-cover" />
                   <button type="button" onClick={() => setKept((k) => k.filter((x) => x !== ph))} aria-label="Remove photo"
-                    className="absolute -right-1.5 -top-1.5 grid size-6 place-items-center rounded-full bg-ink text-white"><X className="size-3.5" /></button>
+                    className="absolute -right-1.5 -top-1.5 grid size-6 place-items-center rounded-full bg-ink text-on-ink"><X className="size-3.5" /></button>
                 </div>
               ))}
             </div>
           )}
           <PhotoPicker files={files} onChange={setFiles} max={Math.max(0, 3 - kept.length)} label={kept.length ? "Add more photos" : "Photos (optional, up to 3)"} />
           <p className="text-xs text-muted">Your first name and last initial show with the review.</p>
-          <button onClick={save} disabled={!stars || busy} className="h-12 w-full rounded-xl bg-ink font-semibold text-white disabled:opacity-40">{busy ? "Saving…" : "Submit review"}</button>
+          <button onClick={save} disabled={!stars || busy} className="h-12 w-full rounded-[10px] bg-ink font-semibold text-on-ink disabled:opacity-40">{busy ? "Saving…" : "Submit review"}</button>
         </div>
       )}
     </Sheet>

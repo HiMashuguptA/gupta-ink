@@ -28,10 +28,10 @@ export function ReturnActions({ ret, isPickupOrder, agents }: { ret: ReturnRow; 
     if (note) void run(() => sb.rpc("admin_review_return", { p_return: ret.id, p_approve: false, p_note: note }), "Return rejected. The customer was told.");
   };
   const s = ret.status;
-  const btn = "h-10 w-full rounded-lg font-semibold disabled:opacity-50";
+  const btn = "h-10 w-full rounded-[8px] font-semibold disabled:opacity-50";
 
   return (
-    <section className="rounded-2xl border-[1.5px] border-ink bg-card p-4" aria-label="Return actions">
+    <section className="rounded-[12px] border-[1.5px] border-ink bg-card p-4" aria-label="Return actions">
       <h2 className="font-bold">Next step</h2>
       <div className="mt-3 space-y-2 text-sm">
         {s === "requested" && (
@@ -46,16 +46,16 @@ export function ReturnActions({ ret, isPickupOrder, agents }: { ret: ReturnRow; 
           agents.length ? (
             <div>
               <label htmlFor="ragent" className="font-semibold">{s === "approved" ? "Send a partner to collect" : "Pickup partner"}</label>
-              <select id="ragent" value={agent} onChange={(e) => setAgent(e.target.value)} className="mt-1 h-10 w-full rounded-lg border border-line bg-paper px-2">
+              <select id="ragent" value={agent} onChange={(e) => setAgent(e.target.value)} className="mt-1 h-10 w-full rounded-[8px] border border-line bg-paper px-2">
                 {agents.map((a) => <option key={a.id} value={a.id}>{a.name ?? "Agent"}{a.agent_online ? " (online)" : ""}</option>)}
               </select>
-              <button disabled={busy || !agent} onClick={() => run(() => sb.rpc("admin_assign_return_agent", { p_return: ret.id, p_agent: agent }), "Partner assigned.")} className={`${btn} mt-2 bg-ink text-white`}>
+              <button disabled={busy || !agent} onClick={() => run(() => sb.rpc("admin_assign_return_agent", { p_return: ret.id, p_agent: agent }), "Partner assigned.")} className={`${btn} mt-2 bg-ink text-on-ink`}>
                 {s === "approved" ? "Assign pickup" : "Change partner"}
               </button>
             </div>
           ) : <p className="text-muted">No delivery agents yet. Add one in Users and roles, or receive the items at the counter.</p>
         )}
-        {s === "pickup_assigned" && <p className="rounded-lg bg-ink-soft px-3 py-2">Waiting for the partner to collect the items.</p>}
+        {s === "pickup_assigned" && <p className="rounded-[8px] bg-ink-soft px-3 py-2">Waiting for the partner to collect the items.</p>}
 
         {(s === "approved" || s === "pickup_assigned" || s === "picked_up") && (
           <div className="border-t border-dashed border-line pt-3">
@@ -63,7 +63,7 @@ export function ReturnActions({ ret, isPickupOrder, agents }: { ret: ReturnRow; 
             <label className="mt-2 flex items-center gap-2">
               <input type="checkbox" checked={restock} onChange={(e) => setRestock(e.target.checked)} className="size-4 accent-[var(--ink)]" /> Put back in stock (can be sold again)
             </label>
-            <button disabled={busy} onClick={() => run(() => sb.rpc("admin_receive_return", { p_return: ret.id, p_restock: restock }), "Marked received. Now send the refund.")} className={`${btn} mt-2 bg-ink text-white`}>Items received at store</button>
+            <button disabled={busy} onClick={() => run(() => sb.rpc("admin_receive_return", { p_return: ret.id, p_restock: restock }), "Marked received. Now send the refund.")} className={`${btn} mt-2 bg-ink text-on-ink`}>Items received at store</button>
           </div>
         )}
 

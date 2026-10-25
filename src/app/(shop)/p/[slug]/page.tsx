@@ -26,7 +26,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   if (!p) notFound();
 
   return (
-    <div className="pb-16 pt-4 md:pb-0">
+    <div className="pt-4">
       {/* New reviews and stock changes show without reloading */}
       <LiveRefresh id={`product-${p.card.group_id}`} waitMs={1500}
         watch={[{ table: "reviews", filter: `group_id=eq.${p.card.group_id}` }, { table: "products", filter: `group_id=eq.${p.card.group_id}` }]} />
@@ -35,13 +35,13 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
       </div>
 
       <section id="reviews" className="mt-10 px-4">
-        <h2 className="text-lg font-bold">Reviews</h2>
+        <h2 className="text-[26px] uppercase">Reviews</h2>
         {p.reviews.length === 0 ? (
           <p className="mt-1 text-sm text-muted">No written reviews yet. Customers can review after their order is delivered.</p>
         ) : (
           <ul className="mt-3 space-y-3">
             {p.reviews.map((r) => (
-              <li key={r.id} className="rounded-2xl border border-line bg-card p-4">
+              <li key={r.id} className="reveal rounded-[12px] bg-card p-4">
                 <p className="flex items-center gap-1" aria-label={`${r.stars} out of 5 stars`}>
                   {Array.from({ length: 5 }, (_, i) => <Star key={i} className={`size-4 ${i < r.stars ? "fill-nib text-nib" : "text-line"}`} />)}
                 </p>
@@ -49,7 +49,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                 {r.photos.length > 0 && (
                   <div className="mt-2 flex gap-2">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    {r.photos.map((ph) => <a key={ph} href={ph} target="_blank" rel="noopener noreferrer"><img src={ph} alt="Customer photo" className="size-16 rounded-lg object-cover hover:opacity-90" /></a>)}
+                    {r.photos.map((ph) => <a key={ph} href={ph} target="_blank" rel="noopener noreferrer"><img src={ph} alt="Customer photo" className="size-16 rounded-[8px] object-cover hover:opacity-90" /></a>)}
                   </div>
                 )}
                 <p className="mt-2 text-xs text-muted">{r.reviewer_name ? `${r.reviewer_name} · ` : ""}Verified purchase · {new Date(r.created_at).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", year: "numeric" })}</p>

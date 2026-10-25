@@ -9,7 +9,7 @@ export function StatTile({ label, value, now, before, hint }: { label: string; v
   }
   const Icon = delta?.dir === "up" ? ArrowUpRight : delta?.dir === "down" ? ArrowDownRight : Minus;
   return (
-    <div className="rounded-2xl border border-line bg-card p-4">
+    <div className="rounded-[12px] bg-card p-4">
       <p className="text-sm text-muted">{label}</p>
       <p className="mt-1 font-display text-xl font-extrabold tabular-nums sm:text-2xl">{value}</p>
       {delta ? (

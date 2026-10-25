@@ -60,7 +60,7 @@ export function ColumnChart({ data, kind, height = 200, labelEvery, caption }: {
           {/* tooltip */}
           {a && (
             <div id={`${id}-tip`} role="tooltip"
-              className="pointer-events-none absolute top-0 z-10 -translate-x-1/2 rounded-lg border border-line bg-card px-2.5 py-1.5 text-xs shadow-lg"
+              className="pointer-events-none absolute top-0 z-10 -translate-x-1/2 rounded-[8px] border border-line bg-card px-2.5 py-1.5 text-xs shadow-float"
               style={{ left: `${((active! + 0.5) / data.length) * 100}%` }}>
               <p className="font-semibold text-graphite">{a.label}</p>
               <p className="tabular-nums text-graphite">{format(a.value)}</p>

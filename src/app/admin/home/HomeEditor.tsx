@@ -99,7 +99,7 @@ export function HomeEditor({ banners: initialBanners, sections: initialSections,
     void done();
   };
 
-  const field = "mt-1 h-10 w-full rounded-lg border border-line bg-paper px-3 text-sm outline-none focus:border-ink";
+  const field = "mt-1 h-10 w-full rounded-[8px] border border-line bg-paper px-3 text-sm outline-none focus:border-ink";
   return (
     <div className="mt-5 space-y-6">
       {PLACES.map((pl) => {
@@ -107,14 +107,14 @@ export function HomeEditor({ banners: initialBanners, sections: initialSections,
         return (
           <section key={pl.key}>
             <div className="flex items-center gap-2">
-              <div><h2 className="text-lg font-bold">{pl.label}</h2><p className="text-xs text-muted">{pl.hint}</p></div>
-              <button onClick={() => { setErr(null); setDraft(blank(pl.key)); }} className="ml-auto inline-flex h-9 items-center gap-1.5 rounded-xl bg-ink px-3 text-sm font-semibold text-white"><Plus className="size-4" /> Add</button>
+              <div><h2 className="text-[24px] uppercase">{pl.label}</h2><p className="text-xs text-muted">{pl.hint}</p></div>
+              <button onClick={() => { setErr(null); setDraft(blank(pl.key)); }} className="ml-auto inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-ink px-3 text-sm font-semibold text-on-ink"><Plus className="size-4" /> Add</button>
             </div>
             <ul className={clsx("mt-3 grid gap-3", pl.key === "hero" ? "sm:grid-cols-2" : "grid-cols-2 sm:grid-cols-3")}>
               {list.map((b, i) => {
                 const live = b.active && (!b.start_at || new Date(b.start_at) <= new Date()) && (!b.end_at || new Date(b.end_at) > new Date());
                 return (
-                  <li key={b.id} className={clsx("overflow-hidden rounded-2xl border bg-card", live ? "border-line" : "border-dashed border-line opacity-70")}>
+                  <li key={b.id} className={clsx("overflow-hidden rounded-[12px] border bg-card", live ? "border-line" : "border-dashed border-line opacity-70")}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={b.image_url} alt="" className={clsx("w-full object-cover", pl.key === "hero" ? "aspect-[16/7]" : "aspect-[4/3]")} />
                     <div className="p-3 text-sm">
@@ -131,20 +131,20 @@ export function HomeEditor({ banners: initialBanners, sections: initialSections,
                   </li>
                 );
               })}
-              {!list.length && <li className="rounded-2xl border border-dashed border-line p-6 text-center text-sm text-muted">None yet.</li>}
+              {!list.length && <li className="rounded-[12px] border border-dashed border-line p-6 text-center text-sm text-muted">None yet.</li>}
             </ul>
           </section>
         );
       })}
 
       <section>
-        <h2 className="text-lg font-bold">Sections</h2>
+        <h2 className="text-[24px] uppercase">Sections</h2>
         <p className="text-xs text-muted">The rows on the home page, top to bottom. Rename them or hide the ones you don&apos;t want.</p>
-        <ul className="mt-3 divide-y divide-line rounded-2xl border border-line bg-card">
+        <ul className="mt-3 divide-y divide-line rounded-[12px] bg-card">
           {[...sections].sort((a, b) => a.position - b.position).map((s, i, arr) => (
             <li key={s.key} className={clsx("flex items-center gap-2 p-3", !s.visible && "opacity-60")}>
               <input defaultValue={s.title} onBlur={(e) => { const t = e.target.value.trim(); if (t && t !== s.title) void patchSection(s, { title: t }); }}
-                aria-label={`Title for ${s.key}`} className="h-9 min-w-0 flex-1 rounded-lg border border-transparent bg-transparent px-2 text-sm font-semibold hover:border-line focus:border-ink focus:outline-none" />
+                aria-label={`Title for ${s.key}`} className="h-9 min-w-0 flex-1 rounded-[8px] border border-transparent bg-transparent px-2 text-sm font-semibold hover:border-line focus:border-ink focus:outline-none" />
               <span className="hidden text-xs text-muted sm:inline">{s.key.replace(/_/g, " ")}</span>
               <button onClick={() => moveSection(s, -1)} disabled={i === 0} className="grid size-8 place-items-center rounded-full hover:bg-ink-soft disabled:opacity-30" aria-label="Move up"><ArrowUp className="size-4" /></button>
               <button onClick={() => moveSection(s, 1)} disabled={i === arr.length - 1} className="grid size-8 place-items-center rounded-full hover:bg-ink-soft disabled:opacity-30" aria-label="Move down"><ArrowDown className="size-4" /></button>
@@ -159,7 +159,7 @@ export function HomeEditor({ banners: initialBanners, sections: initialSections,
       <Sheet open={!!draft} onClose={() => setDraft(null)} title={draft?.id ? "Edit banner" : "New banner"} wide>
         {draft && (
           <div className="grid gap-3 text-sm">
-            <label className="grid cursor-pointer place-items-center overflow-hidden rounded-xl border-[1.5px] border-dashed border-line bg-paper text-muted hover:border-ink" style={{ aspectRatio: draft.placement === "hero" ? "16/7" : "4/3" }}>
+            <label className="grid cursor-pointer place-items-center overflow-hidden rounded-[10px] border-[1.5px] border-dashed border-line bg-paper text-muted hover:border-ink" style={{ aspectRatio: draft.placement === "hero" ? "16/7" : "4/3" }}>
               {draft.image_url
                 // eslint-disable-next-line @next/next/no-img-element
                 ? <img src={draft.image_url} alt="Banner preview" className="size-full object-cover" />
@@ -187,7 +187,7 @@ export function HomeEditor({ banners: initialBanners, sections: initialSections,
             </div>
             <label className="flex items-center gap-2"><input type="checkbox" checked={draft.active} onChange={(e) => setDraft({ ...draft, active: e.target.checked })} className="size-4 accent-[var(--ink)]" /> On</label>
             {err && <p className="font-semibold text-margin" role="alert">{err}</p>}
-            <button onClick={saveDraft} disabled={busy} className="h-11 rounded-xl bg-ink font-semibold text-white disabled:opacity-50">{busy ? "Saving…" : "Save banner"}</button>
+            <button onClick={saveDraft} disabled={busy} className="h-11 rounded-[10px] bg-ink font-semibold text-on-ink disabled:opacity-50">{busy ? "Saving…" : "Save banner"}</button>
           </div>
         )}
       </Sheet>

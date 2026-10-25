@@ -25,18 +25,18 @@ export function AddressBook({ initial, radiusKm }: { initial: SavedAddress[]; ra
       {list.map((a) => (
         <AddressCard key={a.id} a={a} radiusKm={radiusKm}>
           <div className="flex flex-col gap-1">
-            <button onClick={() => { setEditing(a); setOpen(true); }} className="grid size-9 place-items-center rounded-lg hover:bg-paper" aria-label={`Edit ${a.label} address`}><Pencil className="size-4" /></button>
-            <button onClick={() => remove(a)} className="grid size-9 place-items-center rounded-lg text-muted hover:bg-paper hover:text-margin" aria-label={`Delete ${a.label} address`}><Trash2 className="size-4" /></button>
+            <button onClick={() => { setEditing(a); setOpen(true); }} className="grid size-9 place-items-center rounded-[8px] hover:bg-paper" aria-label={`Edit ${a.label} address`}><Pencil className="size-4" /></button>
+            <button onClick={() => remove(a)} className="grid size-9 place-items-center rounded-[8px] text-muted hover:bg-paper hover:text-margin" aria-label={`Delete ${a.label} address`}><Trash2 className="size-4" /></button>
           </div>
         </AddressCard>
       ))}
       {!list.length && (
-        <div className="ruled rounded-3xl p-6 pl-14">
+        <div className="rounded-[16px] bg-card p-6">
           <p className="font-bold">No saved addresses yet</p>
           <p className="text-sm text-muted">Add one now, or at checkout. We check the road distance so you know delivery is possible.</p>
         </div>
       )}
-      <button onClick={() => { setEditing(null); setOpen(true); }} className="flex h-12 items-center justify-center gap-2 rounded-xl border-[1.5px] border-dashed border-ink font-semibold text-ink">
+      <button onClick={() => { setEditing(null); setOpen(true); }} className="flex h-12 items-center justify-center gap-2 rounded-[10px] border-[1.5px] border-dashed border-ink font-semibold text-ink">
         <Plus className="size-4" /> Add address
       </button>
       <AddressForm open={open} initial={editing} onClose={() => setOpen(false)}

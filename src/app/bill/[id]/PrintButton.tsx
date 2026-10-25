@@ -5,7 +5,7 @@ export function PrintButton() {
   return (
     <div className="flex flex-wrap gap-2">
       <button type="button" onClick={() => window.print()}
-        className="inline-flex h-11 items-center gap-2 rounded-xl bg-ink px-4 text-sm font-semibold text-white">
+        className="inline-flex h-11 items-center gap-2 rounded-xl bg-ink px-4 text-sm font-semibold text-on-ink">
         <Download className="size-4" /> Download PDF
       </button>
       <button type="button" onClick={() => window.print()}

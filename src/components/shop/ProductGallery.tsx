@@ -10,6 +10,7 @@ import clsx from "clsx";
  * Children (badges, wishlist heart) sit on top of the main photo.
  */
 export function ProductGallery({ images, alt, resetKey, children }: { images: string[]; alt: string; resetKey: string; children?: React.ReactNode }) {
+  const [lens, setLens] = useState<{ x: number; y: number; w: number; h: number; src: string } | null>(null);
   const pics = images.length ? images : ["/brand/logo.svg"];
   const [i, setI] = useState(0);
   const [zoom, setZoom] = useState(false);
@@ -46,24 +47,37 @@ export function ProductGallery({ images, alt, resetKey, children }: { images: st
 
   return (
     <div>
-      <div className="group relative aspect-square overflow-hidden rounded-3xl border border-line bg-card">
+      <div className="group relative aspect-square overflow-hidden rounded-[14px] bg-white"
+        onPointerMove={(e) => {
+          // Desktop magnifier (Aceternity "Lens"): mouse only, never on touch
+          if (e.pointerType !== "mouse") return;
+          const r = e.currentTarget.getBoundingClientRect();
+          setLens({ x: e.clientX - r.left, y: e.clientY - r.top, w: r.width, h: r.height, src: pics[i] });
+        }}
+        onPointerLeave={() => setLens(null)}>
         <div ref={strip} onScroll={onScroll} className="no-scrollbar flex size-full snap-x snap-mandatory overflow-x-auto" aria-roledescription="carousel" aria-label={`${alt} photos`}>
           {pics.map((src, k) => (
             <button key={src + k} type="button" onClick={() => { setI(k); setZoom(true); }} className="size-full shrink-0 snap-center cursor-zoom-in"
               aria-label={`Photo ${k + 1} of ${pics.length}, open full screen`}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={src} alt={k === 0 ? alt : `${alt}, photo ${k + 1}`} className="size-full object-cover" loading={k === 0 ? "eager" : "lazy"} draggable={false} />
+              <img src={src} alt={k === 0 ? alt : `${alt}, photo ${k + 1}`} className="size-full object-cover" loading={k === 0 ? "eager" : "lazy"} draggable={false}
+                style={k === 0 ? { viewTransitionName: "product-hero" } : undefined} />
             </button>
           ))}
         </div>
         {pics.length > 1 && (
           <>
-            <button type="button" onClick={() => go(i - 1)} aria-label="Previous photo" className="absolute left-2 top-1/2 hidden size-9 -translate-y-1/2 place-items-center rounded-full bg-card/90 shadow md:group-hover:grid"><ChevronLeft className="size-5" /></button>
-            <button type="button" onClick={() => go(i + 1)} aria-label="Next photo" className="absolute right-2 top-1/2 hidden size-9 -translate-y-1/2 place-items-center rounded-full bg-card/90 shadow md:group-hover:grid"><ChevronRight className="size-5" /></button>
+            <button type="button" onClick={() => go(i - 1)} aria-label="Previous photo" className="press absolute left-2 top-1/2 z-10 hidden size-9 -translate-y-1/2 place-items-center rounded-full bg-card shadow-float md:group-hover:grid"><ChevronLeft className="size-5" /></button>
+            <button type="button" onClick={() => go(i + 1)} aria-label="Next photo" className="press absolute right-2 top-1/2 z-10 hidden size-9 -translate-y-1/2 place-items-center rounded-full bg-card shadow-float md:group-hover:grid"><ChevronRight className="size-5" /></button>
             <div className="pointer-events-none absolute inset-x-0 bottom-3 flex justify-center gap-1.5" aria-hidden>
               {pics.map((_, k) => <span key={k} className={clsx("h-1.5 rounded-full transition-all", k === i ? "w-5 bg-ink" : "w-1.5 bg-ink/30")} />)}
             </div>
           </>
+        )}
+        {lens && (
+          <span aria-hidden className="pointer-events-none absolute hidden size-40 -translate-x-1/2 -translate-y-1/2 rounded-full border-4 border-card shadow-float md:block"
+            style={{ left: lens.x, top: lens.y, backgroundImage: `url(${lens.src})`, backgroundRepeat: "no-repeat",
+              backgroundSize: "260%", backgroundPosition: `${(lens.x / lens.w) * 100}% ${(lens.y / lens.h) * 100}%` }} />
         )}
         {children}
       </div>
@@ -72,7 +86,7 @@ export function ProductGallery({ images, alt, resetKey, children }: { images: st
         <div className="no-scrollbar mt-3 flex gap-2 overflow-x-auto">
           {pics.map((src, k) => (
             <button key={src + k} type="button" onClick={() => go(k)} aria-label={`Show photo ${k + 1}`} aria-current={k === i}
-              className={clsx("size-16 shrink-0 overflow-hidden rounded-xl border-2 bg-card transition-colors", k === i ? "border-ink" : "border-transparent opacity-70 hover:opacity-100")}>
+              className={clsx("press size-16 shrink-0 overflow-hidden rounded-[10px] border-2 bg-white transition-[border-color,opacity] duration-200", k === i ? "border-ink" : "border-transparent opacity-70 hover:opacity-100")}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={src} alt="" className="size-full object-cover" loading="lazy" />
             </button>
@@ -90,7 +104,7 @@ export function ProductGallery({ images, alt, resetKey, children }: { images: st
                 <button type="button" onClick={() => setZoom(false)} className="grid size-10 place-items-center rounded-full bg-white/10 text-white" aria-label="Close"><X className="size-5" /></button>
               </div>
               <div className="relative flex min-h-0 flex-1 items-center justify-center p-4" onClick={(e) => e.stopPropagation()}>
-                <motion.img key={pics[i]} src={pics[i]} alt={alt} className="max-h-full max-w-full rounded-xl object-contain" initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }}
+                <motion.img key={pics[i]} src={pics[i]} alt={alt} className="max-h-full max-w-full rounded-[10px] object-contain" initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }}
                   drag={pics.length > 1 ? "x" : false} dragConstraints={{ left: 0, right: 0 }} dragElastic={0.4}
                   onDragEnd={(_, info) => { if (info.offset.x < -60) setI((x) => (x + 1) % pics.length); else if (info.offset.x > 60) setI((x) => (x - 1 + pics.length) % pics.length); }} />
                 {pics.length > 1 && (

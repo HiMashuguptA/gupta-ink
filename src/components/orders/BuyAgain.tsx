@@ -30,7 +30,7 @@ export function BuyAgain({ items, className }: { items: { product_id: string; qt
   };
   return (
     <button type="button" onClick={go} disabled={busy}
-      className={className ?? "inline-flex h-11 items-center gap-2 rounded-xl border border-ink px-4 text-sm font-semibold text-ink disabled:opacity-50"}>
+      className={className ?? "inline-flex h-11 items-center gap-2 rounded-[10px] border border-ink px-4 text-sm font-semibold text-ink disabled:opacity-50"}>
       <RotateCw className="size-4" /> {busy ? "Adding…" : "Buy again"}
     </button>
   );

@@ -1,36 +1,35 @@
 import Link from "next/link";
+import { Phone, MapPin, Clock } from "lucide-react";
 import { Logo } from "@/components/brand/Logo";
 
 export function Footer() {
   return (
-    <footer className="border-t border-line bg-card pb-24 pt-8 md:pb-8">
-      <div className="mx-auto grid max-w-6xl gap-6 px-4 sm:grid-cols-[1.4fr_1fr_1fr]">
+    <footer className="mt-9 bg-sign pb-[calc(7rem+var(--island-pad,0px))] pt-9 text-on-sign md:mt-12 md:pb-10">
+      <div className="mx-auto grid max-w-6xl gap-8 px-4 sm:grid-cols-[1.5fr_1fr_1fr]">
         <div>
-          <Logo size={30} />
-          <p className="mt-3 max-w-xs text-sm text-muted">
-            Gupta Enterprises, Khedi Market, New NST, opposite Hotel Galaxy, Kohima, Nagaland 797001
-          </p>
-          <p className="mt-1 text-sm text-muted">
-            Call <a className="font-semibold text-ink" href="tel:+917905529544">7905529544</a>
-          </p>
-          <p className="text-sm text-muted">Store open 10:00 to 17:30, deliveries 11:00 to 16:00</p>
-        </div>
-        <div className="text-sm">
-          <p className="font-semibold">Help</p>
-          <ul className="mt-2 space-y-1.5 text-muted">
-            <li><Link href="/policies/shipping" className="hover:text-ink">Delivery and pickup</Link></li>
-            <li><Link href="/policies/cancellation" className="hover:text-ink">Cancellations</Link></li>
-            <li><Link href="/policies/returns" className="hover:text-ink">Returns and refunds</Link></li>
+          <Logo size={40} tone="sign" />
+          <ul className="mt-4 space-y-2 text-sm text-on-sign-muted">
+            <li className="flex gap-2"><MapPin className="mt-0.5 size-4 shrink-0 text-nib" /> Khedi Market, New NST, opposite Hotel Galaxy, Kohima, Nagaland 797001</li>
+            <li className="flex gap-2"><Phone className="mt-0.5 size-4 shrink-0 text-nib" /> <a className="font-bold text-on-sign hover:underline" href="tel:+917905529544">79055 29544</a></li>
+            <li className="flex gap-2"><Clock className="mt-0.5 size-4 shrink-0 text-nib" /> Store 10 am to 5:30 pm, deliveries 11 am to 4 pm</li>
           </ul>
         </div>
-        <div className="text-sm">
-          <p className="font-semibold">Legal</p>
-          <ul className="mt-2 space-y-1.5 text-muted">
-            <li><Link href="/policies/privacy" className="hover:text-ink">Privacy policy</Link></li>
-            <li><Link href="/policies/terms" className="hover:text-ink">Terms of use</Link></li>
-            <li>GSTIN 13CNAPG5572Q1ZP</li>
+        <nav className="text-sm" aria-label="Help">
+          <p className="sign-type text-[20px] text-nib">Help</p>
+          <ul className="mt-2 space-y-2 text-on-sign-muted">
+            <li><Link href="/policies/shipping" className="hover:text-on-sign">Delivery and pickup</Link></li>
+            <li><Link href="/policies/cancellation" className="hover:text-on-sign">Cancellations</Link></li>
+            <li><Link href="/policies/returns" className="hover:text-on-sign">Returns and refunds</Link></li>
           </ul>
-        </div>
+        </nav>
+        <nav className="text-sm" aria-label="Legal">
+          <p className="sign-type text-[20px] text-nib">Legal</p>
+          <ul className="mt-2 space-y-2 text-on-sign-muted">
+            <li><Link href="/policies/privacy" className="hover:text-on-sign">Privacy policy</Link></li>
+            <li><Link href="/policies/terms" className="hover:text-on-sign">Terms of use</Link></li>
+            <li className="num">GSTIN 13CNAPG5572Q1ZP</li>
+          </ul>
+        </nav>
       </div>
     </footer>
   );

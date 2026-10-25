@@ -42,15 +42,15 @@ export function ProductTable({ groups, categories }: { groups: GroupRow[]; categ
         <label className="relative min-w-60 flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name, SKU or variant" aria-label="Search products"
-            className="h-10 w-full rounded-xl border border-line bg-card pl-9 pr-3 text-sm outline-none focus:border-ink" />
+            className="h-10 w-full rounded-[10px] border border-line bg-card pl-9 pr-3 text-sm outline-none focus:border-ink" />
         </label>
-        <select value={cat} onChange={(e) => setCat(e.target.value)} aria-label="Category" className="h-10 rounded-xl border border-line bg-card px-3 text-sm">
+        <select value={cat} onChange={(e) => setCat(e.target.value)} aria-label="Category" className="h-10 rounded-[10px] border border-line bg-card px-3 text-sm">
           <option value="">All categories</option>
           {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
         {(["all", "low", "hidden"] as const).map((k) => (
           <button key={k} onClick={() => setOnly(k)} aria-pressed={only === k}
-            className={clsx("h-10 rounded-full border px-3.5 text-sm font-semibold", only === k ? "border-ink bg-ink text-white" : "border-line bg-card")}>
+            className={clsx("h-10 rounded-full border px-3.5 text-sm font-semibold", only === k ? "border-ink bg-ink text-on-ink" : "border-line bg-card")}>
             {k === "all" ? "All" : k === "low" ? "Low stock" : "Hidden"}
           </button>
         ))}
@@ -62,12 +62,12 @@ export function ProductTable({ groups, categories }: { groups: GroupRow[]; categ
         {shown.map((g) => {
           const vs = [...g.products].sort((a, b) => a.sort - b.sort);
           return (
-            <li key={g.id} className="rounded-2xl border border-line bg-card">
+            <li key={g.id} className="rounded-[12px] bg-card">
               <div className="flex items-center gap-3 p-3">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={vs[0]?.images[0] ?? "/brand/logo.svg"} alt="" className="size-12 shrink-0 rounded-lg" />
+                <img src={vs[0]?.images[0] ?? "/brand/logo.svg"} alt="" className="size-12 shrink-0 rounded-[8px]" />
                 <div className="min-w-0 flex-1"><p className="truncate font-semibold">{g.name}</p><p className="text-xs text-muted">{catName[g.category_id] ?? ""} · {g.sold_count} sold</p></div>
-                <Link href={`/admin/products/${g.id}`} className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-line px-3 text-sm font-semibold text-ink" aria-label={`Edit ${g.name}`}><Pencil className="size-4" /> Edit</Link>
+                <Link href={`/admin/products/${g.id}`} className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-[8px] border border-line px-3 text-sm font-semibold text-ink" aria-label={`Edit ${g.name}`}><Pencil className="size-4" /> Edit</Link>
               </div>
               <ul className="divide-y divide-line border-t border-line">
                 {vs.map((p) => (
@@ -78,7 +78,7 @@ export function ProductTable({ groups, categories }: { groups: GroupRow[]; categ
                     </div>
                     <input type="number" inputMode="numeric" min={0} defaultValue={p.stock} aria-label={`Stock for ${g.name} ${p.variant_label ?? ""}`}
                       onBlur={(e) => { const n = Math.max(0, Math.floor(Number(e.target.value) || 0)); if (n !== p.stock) void patch(p, { stock: n }); }}
-                      className={clsx("h-9 w-16 shrink-0 rounded-lg border bg-paper px-2 tabular-nums outline-none focus:border-ink", p.stock <= p.low_stock_at ? "border-margin/50 text-margin" : "border-line")} />
+                      className={clsx("h-9 w-16 shrink-0 rounded-[8px] border bg-paper px-2 tabular-nums outline-none focus:border-ink", p.stock <= p.low_stock_at ? "border-margin/50 text-margin" : "border-line")} />
                     <button role="switch" aria-checked={p.active} onClick={() => patch(p, { active: !p.active })} aria-label={`${p.sku} on sale`}
                       className={clsx("relative h-6 w-11 shrink-0 rounded-full transition-colors", p.active ? "bg-ok" : "bg-line")}>
                       <span className={clsx("absolute top-0.5 size-5 rounded-full bg-white shadow transition-all", p.active ? "left-[22px]" : "left-0.5")} />
@@ -90,9 +90,9 @@ export function ProductTable({ groups, categories }: { groups: GroupRow[]; categ
             </li>
           );
         })}
-        {!shown.length && <li className="rounded-2xl border border-line bg-card p-6 text-center text-sm text-muted">No products match.</li>}
+        {!shown.length && <li className="rounded-[12px] bg-card p-6 text-center text-sm text-muted">No products match.</li>}
       </ul>
-      <div className="mt-4 hidden overflow-x-auto rounded-2xl border border-line bg-card md:block">
+      <div className="mt-4 hidden overflow-x-auto rounded-[12px] bg-card md:block">
         <table className="w-full min-w-[820px] text-sm">
           <thead><tr className="text-left text-muted">
             <th className="p-3 font-semibold">Product</th><th className="p-3 font-semibold">Variant / SKU</th><th className="p-3 text-right font-semibold">Price</th>
@@ -105,7 +105,7 @@ export function ProductTable({ groups, categories }: { groups: GroupRow[]; categ
                   <td className="p-3 align-top" rowSpan={g.products.length}>
                     <div className="flex items-start gap-3">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={p.images[0] ?? "/brand/logo.svg"} alt="" className="size-11 rounded-lg" />
+                      <img src={p.images[0] ?? "/brand/logo.svg"} alt="" className="size-11 rounded-[8px]" />
                       <div><p className="font-semibold">{g.name}</p><p className="text-xs text-muted">{catName[g.category_id] ?? ""} · {g.sold_count} sold</p></div>
                     </div>
                   </td>
@@ -115,7 +115,7 @@ export function ProductTable({ groups, categories }: { groups: GroupRow[]; categ
                 <td className="p-3">
                   <input type="number" min={0} defaultValue={p.stock} aria-label={`Stock for ${g.name} ${p.variant_label ?? ""}`}
                     onBlur={(e) => { const n = Math.max(0, Math.floor(Number(e.target.value) || 0)); if (n !== p.stock) void patch(p, { stock: n }); }}
-                    className={clsx("h-9 w-20 rounded-lg border bg-paper px-2 tabular-nums outline-none focus:border-ink", p.stock <= p.low_stock_at ? "border-margin/50 text-margin" : "border-line")} />
+                    className={clsx("h-9 w-20 rounded-[8px] border bg-paper px-2 tabular-nums outline-none focus:border-ink", p.stock <= p.low_stock_at ? "border-margin/50 text-margin" : "border-line")} />
                   {saving === p.id && <span className="ml-2 text-xs text-muted">Saving…</span>}
                 </td>
                 <td className="p-3">

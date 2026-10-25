@@ -1,10 +1,11 @@
 import type { GroupCard, ProductCard } from "./types";
 
-const inr = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 2, minimumFractionDigits: 0 });
+const inr = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0, minimumFractionDigits: 0 });
+const inrPaise = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 2, minimumFractionDigits: 2 });
 
-/** Format paise as rupees, e.g. 4900 -> ₹49 */
+/** Format paise as rupees: 4900 -> ₹49, 88910 -> ₹889.10 (never ₹889.1) */
 export function rupees(paise: number) {
-  return inr.format(paise / 100);
+  return paise % 100 ? inrPaise.format(paise / 100) : inr.format(paise / 100);
 }
 
 /**

@@ -6,7 +6,7 @@ import { supabaseBrowser } from "@/lib/supabase/client";
 import { haversineKm } from "@/lib/format";
 import type { OrderRow } from "@/lib/orders";
 
-const LiveMap = dynamic(() => import("./LiveMap"), { ssr: false, loading: () => <div className="skeleton h-[240px] rounded-2xl" /> });
+const LiveMap = dynamic(() => import("./LiveMap"), { ssr: false, loading: () => <div className="skeleton h-[240px] rounded-[12px]" /> });
 
 type Loc = { lat: number; lng: number; updated_at: string };
 
@@ -44,7 +44,7 @@ export function DeliveryTracker({ order, shop }: { order: OrderRow; shop: { lat:
   return (
     <section className="mt-4 space-y-3" aria-label="Live delivery">
       {out && (
-        <div className="flex items-center gap-3 rounded-2xl border-[1.5px] border-ink bg-card p-4">
+        <div className="flex items-center gap-3 rounded-[12px] border-[1.5px] border-ink bg-card p-4">
           <span className="grid size-10 shrink-0 place-items-center rounded-full bg-nib-soft"><KeyRound className="size-5 text-ink" /></span>
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold">Delivery code</p>
@@ -53,7 +53,7 @@ export function DeliveryTracker({ order, shop }: { order: OrderRow; shop: { lat:
           <p className="font-display text-3xl font-extrabold tracking-[0.25em] text-ink" aria-live="polite">{code ?? "····"}</p>
         </div>
       )}
-      <div className="rounded-2xl border border-line bg-card p-3">
+      <div className="rounded-[12px] bg-card p-3">
         <LiveMap dest={dest} shop={shop} agent={loc && fresh ? loc : null} />
         <p className="mt-2 flex items-center gap-2 px-1 text-sm">
           <Navigation className="size-4 text-ink" />

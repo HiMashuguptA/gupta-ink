@@ -19,7 +19,7 @@ export default async function CollectionPage({ params }: { params: Promise<{ key
   const cards = await getCollection(key, 100);
   return (
     <div className="px-4 pt-4">
-      <h1 className="mb-3 text-2xl font-extrabold">{c.title}</h1>
+      <h1 className="mb-3 text-[40px] uppercase">{c.title}</h1>
       <FilteredGrid cards={cards} showCategoryFilter />
     </div>
   );

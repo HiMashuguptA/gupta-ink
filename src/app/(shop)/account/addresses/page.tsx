@@ -12,7 +12,7 @@ export default async function AddressesPage() {
   const { data } = await supabase.from("addresses").select("*").eq("user_id", user.id).order("is_default", { ascending: false }).order("created_at", { ascending: false });
   return (
     <div className="px-4 pt-4">
-      <h1 className="mb-4 text-2xl font-extrabold">Saved addresses</h1>
+      <h1 className="mb-4 text-[40px] uppercase">Saved addresses</h1>
       <AddressBook initial={(data ?? []) as SavedAddress[]} radiusKm={Number(settings?.delivery_radius_km ?? 15)} />
     </div>
   );

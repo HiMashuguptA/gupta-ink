@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Num } from "@/components/ui/Num";
 import { redirect } from "next/navigation";
 import clsx from "clsx";
 import { ChevronLeft, Coins, Clock, Gift, ShoppingBag, Hourglass } from "lucide-react";
@@ -40,21 +41,21 @@ export default async function CoinsPage() {
       <LiveRefresh at={Date.now()} id={`acct-coins-${user.id}`} watch={[{ table: "coin_ledger", filter: `user_id=eq.${user.id}` }, { table: "wallets", filter: `user_id=eq.${user.id}` }, { table: "referrals" }, { table: "orders", filter: `user_id=eq.${user.id}` }]} />
       <div className="flex items-center gap-2">
         <Link href="/account" className="grid size-9 place-items-center rounded-full hover:bg-ink-soft" aria-label="Account"><ChevronLeft className="size-5" /></Link>
-        <h1 className="text-2xl font-extrabold">SuperCoins</h1>
+        <h1 className="text-[34px] uppercase">SuperCoins</h1>
       </div>
 
-      <section className="relative mt-4 overflow-hidden rounded-3xl bg-ink p-5 text-white">
+      <section className="relative mt-4 overflow-hidden rounded-[16px] bg-sign p-5 text-on-sign">
         <Coins className="absolute -right-4 -top-4 size-32 text-white/10" aria-hidden />
-        <p className="text-sm text-white/70">Your balance</p>
-        <p className="font-display text-5xl font-extrabold">{balance}<span className="ml-2 text-lg font-bold text-nib">= ₹{balance}</span></p>
+        <p className="text-sm text-on-sign-muted">Your balance</p>
+        <p className="sign-type text-[64px]"><Num value={balance} /><span className="ml-2 text-[22px] text-nib">= ₹<Num value={balance} /></span></p>
         <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold">
           {onTheWay > 0 && <span className="rounded-full bg-white/15 px-3 py-1">+{onTheWay} on the way</span>}
           {expiring > 0 && <span className="rounded-full bg-nib px-3 py-1 text-ink-deep">{expiring} expire by {fmt(soonest!)}</span>}
         </div>
-        <Link href="/" className="mt-4 inline-flex h-10 items-center gap-2 rounded-xl bg-white px-4 text-sm font-bold text-ink"><ShoppingBag className="size-4" /> Use them on your next order</Link>
+        <Link href="/" className="mt-4 inline-flex h-10 items-center gap-2 rounded-[10px] bg-white px-4 text-sm font-bold text-ink"><ShoppingBag className="size-4" /> Use them on your next order</Link>
       </section>
 
-      <section className="mt-4 grid gap-2 rounded-2xl border border-line bg-card p-4 text-sm sm:grid-cols-3">
+      <section className="mt-4 grid gap-2 rounded-[12px] bg-card p-4 text-sm sm:grid-cols-3">
         <p><b className="block">Earn {rate}%</b><span className="text-muted">of what you pay for items, credited after the {settings?.return_window_days ?? 3}-day return window.</span></p>
         <p><b className="block">1 coin = ₹1</b><span className="text-muted">Turn on SuperCoins at checkout. Delivery fees and fines can&apos;t be paid with coins.</span></p>
         <p><b className="block">Use within {days} days</b><span className="text-muted">Oldest coins are used first. We remind you 2 days before they lapse.</span></p>
@@ -65,17 +66,17 @@ export default async function CoinsPage() {
         <p className="mt-1 text-sm text-muted">Your friend enters your code when they sign up. After their first order is delivered and its return window closes, you both get {reward} coins.</p>
         <div className="mt-3"><ReferralCard code={profile.referral_code} /></div>
         <div className="mt-3 grid grid-cols-2 gap-2 text-center">
-          <div className="rounded-2xl border border-line bg-card p-3"><p className="font-display text-2xl font-extrabold">{joined}</p><p className="text-xs text-muted">friends joined</p></div>
-          <div className="rounded-2xl border border-line bg-card p-3"><p className="font-display text-2xl font-extrabold">{rewarded * reward}</p><p className="text-xs text-muted">coins earned from referrals</p></div>
+          <div className="rounded-[12px] bg-card p-3"><p className="font-display text-2xl font-extrabold">{joined}</p><p className="text-xs text-muted">friends joined</p></div>
+          <div className="rounded-[12px] bg-card p-3"><p className="font-display text-2xl font-extrabold">{rewarded * reward}</p><p className="text-xs text-muted">coins earned from referrals</p></div>
         </div>
       </section>
 
       <section className="mt-6">
-        <h2 className="text-lg font-bold">History</h2>
+        <h2 className="text-[24px] uppercase">History</h2>
         {entries.length === 0 ? (
-          <p className="mt-2 rounded-2xl border border-dashed border-line p-6 text-center text-sm text-muted">No coins yet. Place an order and they&apos;ll show up here after the return window.</p>
+          <p className="mt-2 rounded-[12px] border border-dashed border-line p-6 text-center text-sm text-muted">No coins yet. Place an order and they&apos;ll show up here after the return window.</p>
         ) : (
-          <ul className="mt-2 divide-y divide-line rounded-2xl border border-line bg-card">
+          <ul className="mt-2 divide-y divide-line rounded-[12px] bg-card">
             {entries.map((e) => {
               const plus = e.amount > 0;
               const live = e.remaining > 0 && e.expires_at;

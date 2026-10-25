@@ -29,7 +29,7 @@ export function OrderAfterCare({ order, items, returns, reviews: initialReviews,
   return (
     <>
       {order.status === "cancelled" && order.refund_due_paise > 0 && (
-        <section className={clsx("mt-4 rounded-2xl border p-4 text-sm", order.refunded_at ? "border-ok/30 bg-ok/5" : "border-line bg-card")} aria-label="Refund">
+        <section className={clsx("mt-4 rounded-[12px] border p-4 text-sm", order.refunded_at ? "border-ok/30 bg-ok/5" : "border-line bg-card")} aria-label="Refund">
           <p className="flex items-center gap-2 font-bold"><ReceiptText className="size-4" /> {order.refunded_at ? `Refund of ${rupees(order.refund_due_paise)} sent` : `Refund of ${rupees(order.refund_due_paise)} is on its way`}</p>
           <p className="mt-1 text-muted">
             {order.refunded_at ? `To ${order.refund_upi_id ?? "your UPI ID"} on ${day(order.refunded_at)}${order.refund_utr ? ` · UTR ${order.refund_utr}` : ""}.` : `To ${order.refund_upi_id ?? "your UPI ID"}, within 7 working days.`}
@@ -39,7 +39,7 @@ export function OrderAfterCare({ order, items, returns, reviews: initialReviews,
       )}
 
       {done && (
-        <section className="mt-4 rounded-2xl border border-line bg-card p-4" aria-label="Rate your items">
+        <section className="mt-4 rounded-[12px] bg-card p-4" aria-label="Rate your items">
           <h2 className="font-bold">Rate your items</h2>
           <ul className="mt-2 divide-y divide-line">
             {items.map((it) => {
@@ -50,13 +50,13 @@ export function OrderAfterCare({ order, items, returns, reviews: initialReviews,
                     {links[it.product_id] ? (
                       <Link href={links[it.product_id]} className="flex min-w-0 flex-1 items-center gap-3" aria-label={`Open ${it.name}`}>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={it.image_url ?? "/brand/logo.svg"} alt="" className="size-10 rounded-lg" />
+                        <img src={it.image_url ?? "/brand/logo.svg"} alt="" className="size-10 rounded-[8px]" />
                         <span className="min-w-0 flex-1 truncate text-sm font-semibold text-ink">{it.name}</span>
                       </Link>
                     ) : (
                       <span className="flex min-w-0 flex-1 items-center gap-3">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={it.image_url ?? "/brand/logo.svg"} alt="" className="size-10 rounded-lg" />
+                        <img src={it.image_url ?? "/brand/logo.svg"} alt="" className="size-10 rounded-[8px]" />
                         <span className="min-w-0 flex-1 truncate text-sm font-semibold">{it.name}</span>
                       </span>
                     )}
@@ -72,7 +72,7 @@ export function OrderAfterCare({ order, items, returns, reviews: initialReviews,
                           {r.photos.map((ph) => (
                             <a key={ph} href={storageUrl("reviews", ph)} target="_blank" rel="noopener noreferrer">
                               {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img src={storageUrl("reviews", ph)} alt="Your review photo" className="size-12 rounded-lg object-cover" />
+                              <img src={storageUrl("reviews", ph)} alt="Your review photo" className="size-12 rounded-[8px] object-cover" />
                             </a>
                           ))}
                         </div>
@@ -88,7 +88,7 @@ export function OrderAfterCare({ order, items, returns, reviews: initialReviews,
       )}
 
       {(windowOpen || returns.length > 0) && (
-        <section className="mt-4 rounded-2xl border border-line bg-card p-4" aria-label="Returns">
+        <section className="mt-4 rounded-[12px] bg-card p-4" aria-label="Returns">
           <div className="flex items-center gap-2">
             <h2 className="font-bold">Returns</h2>
             {windowOpen && (
@@ -104,7 +104,7 @@ export function OrderAfterCare({ order, items, returns, reviews: initialReviews,
             {returns.map((r) => {
               const idx = RETURN_STEPS.indexOf(r.status === "pickup_assigned" ? "approved" : r.status);
               return (
-                <li key={r.id} className="rounded-xl border border-line p-3 text-sm">
+                <li key={r.id} className="rounded-[10px] border border-line p-3 text-sm">
                   <div className="flex items-center gap-2">
                     <span className={clsx("rounded-full px-2.5 py-0.5 text-xs font-bold", returnTone(r.status))}>{RETURN_LABEL[r.status]}</span>
                     <span className="text-xs text-muted">{day(r.created_at)}</span>

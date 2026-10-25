@@ -9,8 +9,8 @@ export function StoreNotice({ quickOpen, storeOpen, paused }: { quickOpen: boole
       ? "Quick delivery runs 11:00 to 15:00. You can still schedule a delivery or pick up from the store today."
       : "We're closed right now. Schedule a delivery slot or a store pickup, and we'll have it ready.";
   return (
-    <div className="mx-4 mt-4 flex items-start gap-2.5 rounded-2xl border border-nib/40 bg-nib-soft px-3.5 py-3 text-sm">
-      <Clock className="mt-0.5 size-4 shrink-0 text-nib" />
+    <div className="mx-4 mt-4 flex items-start gap-2.5 rounded-[12px] bg-nib-soft px-3.5 py-3 text-sm text-graphite">
+      <Clock className="mt-0.5 size-4 shrink-0 text-nib-deep" />
       <p>{text}</p>
     </div>
   );

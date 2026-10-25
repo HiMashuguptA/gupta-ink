@@ -30,20 +30,20 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
     <div className="max-w-5xl">
       <div className="flex flex-wrap items-center gap-2">
         <Link href="/admin/orders" className="grid size-9 place-items-center rounded-full hover:bg-ink-soft" aria-label="All orders"><ChevronLeft className="size-5" /></Link>
-        <h1 className="text-2xl font-extrabold">{o.order_no}</h1>
+        <h1 className="text-[34px] uppercase">{o.order_no}</h1>
         <span className={clsx("rounded-full px-3 py-1 text-xs font-bold", statusTone(o.status))}>{STATUS_LABEL[o.status]}</span>
         <span className="text-sm text-muted">{new Date(o.created_at).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", dateStyle: "medium", timeStyle: "short" })}</span>
-        <Link href={`/bill/${o.id}?from=admin`} className="ml-auto inline-flex h-9 items-center gap-1.5 rounded-lg border border-ink px-3 text-sm font-semibold text-ink"><ReceiptText className="size-4" /> Bill</Link>
+        <Link href={`/bill/${o.id}?from=admin`} className="ml-auto inline-flex h-9 items-center gap-1.5 rounded-[8px] border border-ink px-3 text-sm font-semibold text-ink"><ReceiptText className="size-4" /> Bill</Link>
       </div>
 
       <div className="mt-5 grid gap-5 lg:grid-cols-[1fr_340px]">
         <div className="space-y-5">
-          <section className="rounded-2xl border border-line bg-card">
+          <section className="rounded-[12px] bg-card">
             <ul className="divide-y divide-line">
               {(items.data ?? []).map((it) => (
                 <li key={it.id} className="flex items-center gap-3 p-3">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={it.image_url ?? "/brand/logo.svg"} alt="" className="size-12 rounded-lg" />
+                  <img src={it.image_url ?? "/brand/logo.svg"} alt="" className="size-12 rounded-[8px]" />
                   <div className="min-w-0 flex-1 text-sm"><p className="font-semibold">{links[it.product_id] ? <Link href={links[it.product_id]} target="_blank" className="text-ink hover:underline">{it.name}</Link> : it.name}</p><p className="text-muted">{it.variant_label} × <b className="text-graphite">{it.qty}</b></p></div>
                   <p className="text-sm font-semibold">{rupees(it.price_paise * it.qty)}</p>
                 </li>
@@ -59,9 +59,9 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
             </dl>
           </section>
 
-          {o.note && <section className="rounded-2xl border border-nib/40 bg-nib-soft p-4 text-sm"><p className="font-bold">Customer note</p><p>{o.note}</p></section>}
+          {o.note && <section className="rounded-[12px] border border-nib/40 bg-nib-soft p-4 text-sm"><p className="font-bold">Customer note</p><p>{o.note}</p></section>}
 
-          <section className="rounded-2xl border border-line bg-card p-4">
+          <section className="rounded-[12px] bg-card p-4">
             <h2 className="font-bold">History</h2>
             <ol className="mt-3 space-y-2 text-sm">
               {(events.data ?? []).map((e) => (
@@ -77,14 +77,14 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
         <div className="space-y-5">
           <AdminOrderActions order={o} utr={payment.data?.utr ?? null} agents={(agents.data ?? []) as { id: string; name: string | null; phone: string | null; agent_online: boolean }[]} />
 
-          <section className="rounded-2xl border border-line bg-card p-4 text-sm">
+          <section className="rounded-[12px] bg-card p-4 text-sm">
             <h2 className="font-bold">Customer</h2>
             <p className="mt-2 font-semibold">{customer.data?.name ?? "Customer"}</p>
             {customer.data?.phone && <a href={`tel:+91${customer.data.phone}`} className="mt-1 flex items-center gap-2 text-ink"><Phone className="size-4" /> {customer.data.phone}</a>}
             {customer.data?.email && <a href={`mailto:${customer.data.email}`} className="mt-1 flex items-center gap-2 text-ink"><Mail className="size-4" /> {customer.data.email}</a>}
           </section>
 
-          <section className="rounded-2xl border border-line bg-card p-4 text-sm">
+          <section className="rounded-[12px] bg-card p-4 text-sm">
             <h2 className="font-bold">{o.type === "pickup" ? "Store pickup" : "Deliver to"}</h2>
             <p className="mt-1 text-muted">{when(o)}</p>
             {o.type === "pickup" && (
@@ -102,7 +102,7 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
                 <p className="mt-1">{o.address.house_name}, {o.address.road}{o.address.landmark ? `, near ${o.address.landmark}` : ""}</p>
                 {o.road_km != null && <p className="text-muted">{Number(o.road_km).toFixed(1)} km by road</p>}
                 <a href={`https://www.google.com/maps/dir/?api=1&destination=${o.address.lat},${o.address.lng}`} target="_blank" rel="noopener noreferrer"
-                  className="mt-2 inline-flex items-center gap-2 rounded-lg border border-line px-3 py-1.5 font-semibold"><MapPin className="size-4" /> Open in Maps</a>
+                  className="mt-2 inline-flex items-center gap-2 rounded-[8px] border border-line px-3 py-1.5 font-semibold"><MapPin className="size-4" /> Open in Maps</a>
               </>
             )}
           </section>

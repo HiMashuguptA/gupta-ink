@@ -58,7 +58,7 @@ export function SettingsForm({ initial }: { initial: Settings }) {
   const [holiday, setHoliday] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
-  const field = "mt-1 h-10 w-full rounded-lg border border-line bg-paper px-3 text-sm outline-none focus:border-ink";
+  const field = "mt-1 h-10 w-full rounded-[8px] border border-line bg-paper px-3 text-sm outline-none focus:border-ink";
   const hhmm = (t: string) => t.slice(0, 5);
 
   const save = async (override?: Partial<Settings>) => {
@@ -91,14 +91,14 @@ export function SettingsForm({ initial }: { initial: Settings }) {
 
   return (
     <div className="mt-5 space-y-5 pb-24 text-sm">
-      <section className={clsx("flex items-center gap-3 rounded-2xl border-[1.5px] p-4", s.orders_paused ? "border-margin bg-margin/5" : "border-line bg-card")}>
+      <section className={clsx("flex items-center gap-3 rounded-[12px] border-[1.5px] p-4", s.orders_paused ? "border-margin bg-margin/5" : "border-line bg-card")}>
         {s.orders_paused ? <PauseCircle className="size-7 text-margin" /> : <PlayCircle className="size-7 text-ok" />}
         <div className="flex-1"><p className="font-bold">{s.orders_paused ? "Orders are paused" : "Taking orders"}</p><p className="text-muted">Pause for stock-taking or emergencies. Customers can still browse.</p></div>
         <button disabled={busy} onClick={() => save({ orders_paused: !s.orders_paused })}
-          className={clsx("h-10 rounded-xl px-4 font-semibold text-white disabled:opacity-50", s.orders_paused ? "bg-ok" : "bg-margin")}>{s.orders_paused ? "Resume orders" : "Pause orders"}</button>
+          className={clsx("h-10 rounded-[10px] px-4 font-semibold text-white disabled:opacity-50", s.orders_paused ? "bg-ok" : "bg-margin")}>{s.orders_paused ? "Resume orders" : "Pause orders"}</button>
       </section>
 
-      <section className="rounded-2xl border border-line bg-card p-4">
+      <section className="rounded-[12px] bg-card p-4">
         <h2 className="font-bold">Contact and payments</h2>
         <div className="mt-3 grid gap-3 sm:grid-cols-3">
           <label className="font-semibold">Store phone<input value={s.store_phone} onChange={(e) => setS({ ...s, store_phone: e.target.value.replace(/\D/g, "").slice(0, 10) })} className={field} inputMode="tel" /></label>
@@ -107,7 +107,7 @@ export function SettingsForm({ initial }: { initial: Settings }) {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-line bg-card p-4">
+      <section className="rounded-[12px] bg-card p-4">
         <h2 className="font-bold">Hours (India time)</h2>
         <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-5">
           {TIMES.map((t) => <label key={t.key} className="font-semibold">{t.label}<input type="time" value={hhmm(String(s[t.key]))} onChange={(e) => setS({ ...s, [t.key]: e.target.value })} className={field} /></label>)}
@@ -116,9 +116,9 @@ export function SettingsForm({ initial }: { initial: Settings }) {
         <ul className="mt-1 space-y-2">
           {s.slot_windows.map((w, i) => (
             <li key={i} className="flex items-center gap-2">
-              <input type="time" value={w.start} onChange={(e) => setS({ ...s, slot_windows: s.slot_windows.map((x, k) => (k === i ? { ...x, start: e.target.value } : x)) })} className="h-10 rounded-lg border border-line bg-paper px-2" aria-label={`Slot ${i + 1} start`} />
+              <input type="time" value={w.start} onChange={(e) => setS({ ...s, slot_windows: s.slot_windows.map((x, k) => (k === i ? { ...x, start: e.target.value } : x)) })} className="h-10 rounded-[8px] border border-line bg-paper px-2" aria-label={`Slot ${i + 1} start`} />
               <span className="text-muted">to</span>
-              <input type="time" value={w.end} onChange={(e) => setS({ ...s, slot_windows: s.slot_windows.map((x, k) => (k === i ? { ...x, end: e.target.value } : x)) })} className="h-10 rounded-lg border border-line bg-paper px-2" aria-label={`Slot ${i + 1} end`} />
+              <input type="time" value={w.end} onChange={(e) => setS({ ...s, slot_windows: s.slot_windows.map((x, k) => (k === i ? { ...x, end: e.target.value } : x)) })} className="h-10 rounded-[8px] border border-line bg-paper px-2" aria-label={`Slot ${i + 1} end`} />
               <button type="button" onClick={() => setS({ ...s, slot_windows: s.slot_windows.filter((_, k) => k !== i) })} disabled={s.slot_windows.length === 1} className="grid size-9 place-items-center rounded-full text-margin hover:bg-margin/10 disabled:opacity-30" aria-label="Remove slot"><Trash2 className="size-4" /></button>
             </li>
           ))}
@@ -133,13 +133,13 @@ export function SettingsForm({ initial }: { initial: Settings }) {
               <button type="button" onClick={() => setS({ ...s, holidays: s.holidays.filter((x) => x !== d) })} aria-label={`Remove ${d}`} className="text-margin">×</button>
             </span>
           ))}
-          <input type="date" value={holiday} onChange={(e) => setHoliday(e.target.value)} className="h-9 rounded-lg border border-line bg-paper px-2" aria-label="Add holiday" />
+          <input type="date" value={holiday} onChange={(e) => setHoliday(e.target.value)} className="h-9 rounded-[8px] border border-line bg-paper px-2" aria-label="Add holiday" />
           <button type="button" disabled={!holiday} onClick={() => { setS({ ...s, holidays: [...new Set([...s.holidays, holiday])].sort() }); setHoliday(""); }} className="h-9 rounded-full border border-ink px-3 font-semibold text-ink disabled:opacity-40">Add</button>
         </div>
       </section>
 
       {GROUPS.map((g) => (
-        <section key={g.title} className="rounded-2xl border border-line bg-card p-4">
+        <section key={g.title} className="rounded-[12px] bg-card p-4">
           <h2 className="font-bold">{g.title}</h2>
           <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
             {g.fields.map((f) => (
@@ -152,10 +152,10 @@ export function SettingsForm({ initial }: { initial: Settings }) {
         </section>
       ))}
 
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-card/95 p-3 backdrop-blur md:left-[220px]">
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-card p-3 md:left-[220px]">
         <div className="mx-auto flex max-w-3xl items-center gap-3">
           {msg && <p className={clsx("min-w-0 flex-1 font-semibold", msg.ok ? "text-ok" : "text-margin")} role="status">{msg.text}</p>}
-          <button onClick={() => save()} disabled={busy} className="ml-auto h-11 rounded-xl bg-ink px-6 font-semibold text-white disabled:opacity-50">{busy ? "Saving…" : "Save settings"}</button>
+          <button onClick={() => save()} disabled={busy} className="ml-auto h-11 rounded-[10px] bg-ink px-6 font-semibold text-on-ink disabled:opacity-50">{busy ? "Saving…" : "Save settings"}</button>
         </div>
       </div>
     </div>

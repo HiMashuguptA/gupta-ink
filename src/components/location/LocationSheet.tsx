@@ -7,7 +7,7 @@ import { LocateFixed, MapPin, X } from "lucide-react";
 import { useLocation } from "@/components/providers/LocationProvider";
 import { haversineKm } from "@/lib/format";
 
-const MapPicker = dynamic(() => import("./MapPicker"), { ssr: false, loading: () => <div className="skeleton h-[300px] rounded-2xl" /> });
+const MapPicker = dynamic(() => import("./MapPicker"), { ssr: false, loading: () => <div className="skeleton h-[300px] rounded-[12px]" /> });
 
 export function LocationSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { location, status, locate, setLocation, store } = useLocation();
@@ -33,7 +33,7 @@ export function LocationSheet({ open, onClose }: { open: boolean; onClose: () =>
   return createPortal(
     <AnimatePresence>
       {open && (
-        <motion.div className="fixed inset-0 z-[55] flex items-end justify-center bg-ink-deep/40 sm:items-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}>
+        <motion.div className="fixed inset-0 z-[55] flex items-end justify-center bg-scrim sm:items-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}>
           <motion.div
             role="dialog"
             aria-modal="true"
@@ -43,7 +43,7 @@ export function LocationSheet({ open, onClose }: { open: boolean; onClose: () =>
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 60, opacity: 0 }}
             transition={{ type: "spring", stiffness: 380, damping: 34 }}
-            className="w-full max-w-md rounded-t-3xl bg-card p-5 pb-7 sm:rounded-3xl"
+            className="w-full max-w-md rounded-t-3xl bg-card p-5 pb-7 sm:rounded-[16px]"
           >
             <div className="flex items-start justify-between">
               <h2 id="loc-title" className="text-xl font-bold">{mode === "map" ? "Drop a pin on the door" : "Where should we deliver?"}</h2>
@@ -58,7 +58,7 @@ export function LocationSheet({ open, onClose }: { open: boolean; onClose: () =>
                 <button
                   onClick={locate}
                   disabled={status === "locating"}
-                  className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-ink font-semibold text-white disabled:opacity-70"
+                  className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-[10px] bg-ink font-semibold text-on-ink disabled:opacity-70"
                 >
                   <LocateFixed className="size-5" />
                   {status === "locating" ? "Finding you…" : "Use my current location"}
@@ -66,7 +66,7 @@ export function LocationSheet({ open, onClose }: { open: boolean; onClose: () =>
                 {status === "denied" && (
                   <p className="mt-2 text-sm text-margin">Location access is off. Allow it in your browser settings, or pick on the map.</p>
                 )}
-                <button onClick={() => setMode("map")} className="mt-2.5 flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-line font-semibold">
+                <button onClick={() => setMode("map")} className="mt-2.5 flex h-12 w-full items-center justify-center gap-2 rounded-[10px] border border-line font-semibold">
                   <MapPin className="size-5 text-ink" /> Pick on the map
                 </button>
                 <button onClick={onClose} className="mt-3 w-full text-center text-sm font-semibold text-muted underline-offset-4 hover:underline">
@@ -86,7 +86,7 @@ export function LocationSheet({ open, onClose }: { open: boolean; onClose: () =>
                 </p>
                 <button
                   onClick={() => { setLocation({ ...pick, label: "Pinned location", source: "map" }); onClose(); }}
-                  className="mt-3 h-12 w-full rounded-xl bg-ink font-semibold text-white"
+                  className="mt-3 h-12 w-full rounded-[10px] bg-ink font-semibold text-on-ink"
                 >
                   Use this location
                 </button>

@@ -9,9 +9,9 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@fontsource-variable/bricolage-grotesque": "^5.3.0",
-    "@fontsource-variable/figtree": "^5.3.0",
-    "@fontsource/caveat": "^5.3.0",
+    "@fontsource-variable/big-shoulders-display": "^5.3.0",
+    "@fontsource-variable/schibsted-grotesk": "^5.3.0",
+    "@number-flow/react": "^0.6.2",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.118.0",
     "browser-image-compression": "^2.0.2",
@@ -21,6 +21,7 @@
     "leaflet": "^1.9.4",
     "lucide-react": "^1.60.0",
     "next": "15.5.28",
+    "next-view-transitions": "^0.3.5",
     "qrcode": "^1.5.4",
     "react": "19.1.0",
     "react-dom": "19.1.0",

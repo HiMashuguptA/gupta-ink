@@ -23,7 +23,7 @@ async function loadWishlist(userId: string) {
   return promise;
 }
 
-export function WishlistHeart({ productId, className }: { productId: string; className?: string }) {
+export function WishlistHeart({ productId, className, plain = false }: { productId: string; className?: string; plain?: boolean }) {
   const { user, ready } = useSession();
   const router = useRouter();
   const toast = useToast();
@@ -61,7 +61,7 @@ export function WishlistHeart({ productId, className }: { productId: string; cla
       whileTap={{ scale: 0.8 }}
       aria-pressed={on}
       aria-label={on ? "Remove from wishlist" : "Save to wishlist"}
-      className={clsx("grid size-8 place-items-center rounded-full bg-card/85 backdrop-blur", className)}
+      className={clsx("grid size-9 place-items-center rounded-full", !plain && "bg-card/90", className)}
     >
       <motion.span key={String(on)} initial={{ scale: on ? 0.4 : 1 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 500, damping: 14 }}>
         <Heart className={clsx("size-[18px]", on ? "fill-margin text-margin" : "text-muted")} />

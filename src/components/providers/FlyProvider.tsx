@@ -21,8 +21,8 @@ export function FlyProvider({ children }: { children: React.ReactNode }) {
     setTimeout(() => {
       setFlights((f) => f.filter((x) => x.id !== id));
       target.animate(
-        [{ transform: "scale(1)" }, { transform: "scale(1.3) rotate(-8deg)" }, { transform: "scale(0.95)" }, { transform: "scale(1)" }],
-        { duration: 420, easing: "cubic-bezier(.2,.9,.3,1.3)" },
+        [{ transform: "scale(1)" }, { transform: "scale(1.2) rotate(-6deg)" }, { transform: "scale(1)" }],
+        { duration: 380, easing: "cubic-bezier(0.23, 1, 0.32, 1)" },
       );
     }, 620);
   }, []);
@@ -43,7 +43,7 @@ export function FlyProvider({ children }: { children: React.ReactNode }) {
                 key={f.id}
                 src={f.src}
                 alt=""
-                className="absolute rounded-xl shadow-xl"
+                className="absolute rounded-[10px] shadow-float"
                 style={{ width: size, height: size, left: 0, top: 0 }}
                 initial={{ x: sx, y: sy, scale: 1, opacity: 1 }}
                 animate={{ x: [sx, (sx + tx) / 2, tx], y: [sy, Math.min(sy, ty) - 80, ty], scale: [1, 0.8, 0.25], opacity: [1, 1, 0.6] }}

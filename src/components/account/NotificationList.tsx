@@ -23,15 +23,15 @@ export function NotificationList({ initial, userId }: { initial: N[]; userId: st
 
   if (!items.length) {
     return (
-      <div className="ruled rounded-3xl p-8 pl-14">
-        <h2 className="text-lg font-bold">No notifications yet</h2>
+      <div className="rounded-[16px] bg-card p-8">
+        <h2 className="text-[24px] uppercase">No notifications yet</h2>
         <p className="mt-1 text-muted">Order updates, coupons and coin credits will show up here.</p>
       </div>
     );
   }
 
   return (
-    <ul className="divide-y divide-line rounded-2xl border border-line bg-card">
+    <ul className="divide-y divide-line rounded-[12px] bg-card">
       <AnimatePresence initial={false}>
         {items.map((n) => (
           <motion.li key={n.id} initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }}>

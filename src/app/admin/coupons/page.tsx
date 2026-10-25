@@ -12,7 +12,7 @@ export default async function AdminCoupons() {
   ]);
   return (
     <div className="max-w-5xl">
-      <h1 className="text-2xl font-extrabold">Coupons</h1>
+      <h1 className="text-[34px] uppercase">Coupons</h1>
       <p className="mt-1 text-sm text-muted">Active coupons show at checkout for the customers they&apos;re meant for. The database checks every rule again when an order is placed.</p>
       <CouponManager initial={(coupons.data ?? []) as unknown as Coupon[]} categories={categories.map((c) => ({ id: c.id, name: c.name }))} />
     </div>

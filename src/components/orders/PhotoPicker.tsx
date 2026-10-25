@@ -19,14 +19,14 @@ export function PhotoPicker({ files, onChange, max, label }: { files: File[]; on
         {urls.map((u, i) => (
           <div key={u} className="relative">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={u} alt={`Photo ${i + 1}`} className="size-20 rounded-xl object-cover" />
+            <img src={u} alt={`Photo ${i + 1}`} className="size-20 rounded-[10px] object-cover" />
             <button type="button" onClick={() => onChange(files.filter((_, k) => k !== i))} aria-label={`Remove photo ${i + 1}`}
-              className="absolute -right-1.5 -top-1.5 grid size-6 place-items-center rounded-full bg-ink text-white"><X className="size-3.5" /></button>
+              className="absolute -right-1.5 -top-1.5 grid size-6 place-items-center rounded-full bg-ink text-on-ink"><X className="size-3.5" /></button>
           </div>
         ))}
         {files.length < max && (
           <button type="button" onClick={() => input.current?.click()}
-            className="grid size-20 place-items-center rounded-xl border-[1.5px] border-dashed border-line text-muted hover:border-ink hover:text-ink">
+            className="grid size-20 place-items-center rounded-[10px] border-[1.5px] border-dashed border-line text-muted hover:border-ink hover:text-ink">
             <span className="grid justify-items-center gap-1 text-xs font-semibold"><Camera className="size-5" /> Add</span>
           </button>
         )}

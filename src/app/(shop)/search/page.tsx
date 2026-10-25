@@ -12,7 +12,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   const { q = "" } = await searchParams;
   const term = q.trim().slice(0, 80);
   if (term.length < 2) {
-    return <div className="px-4 pt-6"><h1 className="text-xl font-bold">Type at least two letters to search</h1></div>;
+    return <div className="px-4 pt-6"><h1 className="text-[30px] uppercase">Type at least two letters to search</h1></div>;
   }
   const { matches, related } = await searchCatalog(term);
 
@@ -20,8 +20,8 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
     const categories = await getCategories();
     return (
       <div className="px-4 pt-6">
-        <div className="ruled rounded-3xl p-6 pl-14">
-          <h1 className="text-xl font-bold">No results for &ldquo;{term}&rdquo;</h1>
+        <div className="rounded-[16px] bg-card p-6">
+          <h1 className="text-[30px] uppercase">No results for &ldquo;{term}&rdquo;</h1>
           <p className="mt-1 text-muted">Check the spelling, try a shorter word, or browse a category. We&apos;ve noted the search so the store can stock it.</p>
         </div>
         <div className="mt-5 flex flex-wrap gap-2">
@@ -36,7 +36,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   return (
     <div className="pt-4">
       <div className="px-4">
-        <h1 className="text-xl font-bold">Results for &ldquo;{term}&rdquo;</h1>
+        <h1 className="text-[30px] uppercase">Results for &ldquo;{term}&rdquo;</h1>
         <div className="mt-3"><FilteredGrid cards={matches} showCategoryFilter /></div>
       </div>
       <Rail title={`More in ${matches[0].category_name}`} href={`/c/${matches[0].category_slug}`} cards={related} />

@@ -50,7 +50,7 @@ export function AdminLive({ userId }: { userId: string }) {
       <AnimatePresence>
         {items.map((n) => (
           <motion.div key={n.id} initial={{ x: 60, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 60, opacity: 0 }}
-            className="pointer-events-auto flex gap-3 rounded-2xl border border-nib bg-card p-3.5 shadow-xl shadow-ink/15">
+            className="pointer-events-auto flex gap-3 rounded-[12px] border border-nib bg-card p-3.5 shadow-float shadow-ink/15">
             <motion.span animate={{ rotate: [0, -15, 12, -8, 0] }} transition={{ duration: 0.7 }}><BellRing className="size-5 text-nib" /></motion.span>
             <div className="min-w-0 flex-1">
               <p className="text-sm font-bold">{n.title}</p>

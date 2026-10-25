@@ -10,7 +10,7 @@ export default async function NotificationsPage() {
   const { data } = await supabase.from("notifications").select("id, type, title, body, link, read_at, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(60);
   return (
     <div className="px-4 pt-4">
-      <h1 className="mb-4 text-2xl font-extrabold">Notifications</h1>
+      <h1 className="mb-4 text-[40px] uppercase">Notifications</h1>
       <NotificationList initial={data ?? []} userId={user.id} />
     </div>
   );

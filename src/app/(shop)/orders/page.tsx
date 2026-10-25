@@ -27,14 +27,14 @@ export default async function OrdersPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 pt-4">
       <LiveRefresh at={Date.now()} id={`orders-${user.id}`} watch={[{ table: "orders", filter: `user_id=eq.${user.id}` }, { table: "returns", filter: `user_id=eq.${user.id}` }]} />
-      <h1 className="mb-4 text-2xl font-extrabold">Your orders</h1>
+      <h1 className="mb-4 text-[40px] uppercase">Your orders</h1>
       {orders.length ? (
         <ul className="grid gap-3">
           {orders.map((o) => {
             const awaiting = o.payment_method === "upi" && o.status === "placed";
             const n = o.order_items.reduce((a, i) => a + i.qty, 0);
             return (
-              <li key={o.id} className="overflow-hidden rounded-2xl border border-line bg-card">
+              <li key={o.id} className="overflow-hidden rounded-[12px] bg-card">
                 <Link href={`/orders/${o.id}`} className="flex items-center gap-3 p-3.5 hover:bg-paper">
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center gap-2">
@@ -50,11 +50,11 @@ export default async function OrdersPage() {
                   <ul className="no-scrollbar flex min-w-0 flex-1 gap-2 overflow-x-auto" aria-label={`Items in ${o.order_no}`}>
                     {o.order_items.map((it, i) => {
                       // eslint-disable-next-line @next/next/no-img-element
-                      const img = <img src={it.image_url ?? "/brand/logo.svg"} alt={it.name} className="size-11 rounded-lg border border-line object-cover" />;
+                      const img = <img src={it.image_url ?? "/brand/logo.svg"} alt={it.name} className="size-11 rounded-[8px] border border-line object-cover" />;
                       return (
                         <li key={i} className="shrink-0">
                           {links[it.product_id]
-                            ? <Link href={links[it.product_id]} title={`Open ${it.name}`} className="block rounded-lg hover:ring-2 hover:ring-ink/30">{img}</Link>
+                            ? <Link href={links[it.product_id]} title={`Open ${it.name}`} className="block rounded-[8px] hover:ring-2 hover:ring-ink/30">{img}</Link>
                             : <span title={`${it.name} (no longer sold)`} className="block opacity-60">{img}</span>}
                         </li>
                       );
@@ -70,10 +70,10 @@ export default async function OrdersPage() {
           })}
         </ul>
       ) : (
-        <div className="ruled rounded-3xl p-8 pl-14">
-          <h2 className="text-lg font-bold">No orders yet</h2>
+        <div className="rounded-[16px] bg-card p-8">
+          <h2 className="text-[24px] uppercase">No orders yet</h2>
           <p className="mt-1 text-muted">When you place an order, you&apos;ll track it here live, right up to your door.</p>
-          <Link href="/" className="mt-4 inline-flex rounded-xl bg-ink px-4 py-2.5 text-sm font-semibold text-white">Start shopping</Link>
+          <Link href="/" className="mt-4 inline-flex rounded-[10px] bg-ink px-4 py-2.5 text-sm font-semibold text-on-ink">Start shopping</Link>
         </div>
       )}
     </div>

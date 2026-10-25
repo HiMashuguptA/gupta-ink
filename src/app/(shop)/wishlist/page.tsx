@@ -18,14 +18,14 @@ export default async function WishlistPage() {
 
   return (
     <div className="px-4 pt-4">
-      <h1 className="mb-4 text-2xl font-extrabold">Wishlist</h1>
+      <h1 className="mb-4 text-[40px] uppercase">Wishlist</h1>
       {cards.length ? (
         <Grid cards={cards} />
       ) : (
-        <div className="ruled rounded-3xl p-8 pl-14">
-          <h2 className="text-lg font-bold">Nothing saved yet</h2>
+        <div className="rounded-[16px] bg-card p-8">
+          <h2 className="text-[24px] uppercase">Nothing saved yet</h2>
           <p className="mt-1 text-muted">Tap the heart on any product to keep it here for later.</p>
-          <Link href="/" className="mt-4 inline-flex rounded-xl bg-ink px-4 py-2.5 text-sm font-semibold text-white">Browse products</Link>
+          <Link href="/" className="mt-4 inline-flex rounded-[10px] bg-ink px-4 py-2.5 text-sm font-semibold text-on-ink">Browse products</Link>
         </div>
       )}
     </div>

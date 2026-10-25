@@ -10,7 +10,7 @@ export default async function AdminOrdersPage() {
   const { data } = await supabase.from("orders").select(ADMIN_ORDER_SELECT).gte("created_at", since).order("created_at", { ascending: false }).limit(300);
   return (
     <div>
-      <h1 className="text-2xl font-extrabold">Orders</h1>
+      <h1 className="text-[34px] uppercase">Orders</h1>
       <p className="mt-1 text-sm text-muted">Last 30 days. New orders appear here instantly with a chime.</p>
       <OrdersBoard initial={(data ?? []) as unknown as BoardOrder[]} />
     </div>

@@ -58,24 +58,24 @@ export default async function Reports({ searchParams }: { searchParams: Promise<
 
   return (
     <div className="max-w-6xl">
-      <h1 className="text-2xl font-extrabold">Reports</h1>
+      <h1 className="text-[34px] uppercase">Reports</h1>
       <p className="mt-1 text-sm text-muted">{day(from, { day: "numeric", month: "short", year: "numeric" })} to {day(to, { day: "numeric", month: "short", year: "numeric" })}. Cancelled orders are left out.</p>
 
       {/* Filters: one row above the charts */}
       <div className="mt-4 flex flex-wrap items-center gap-2">
         {PRESETS.map((p) => (
           <Link key={p.key} href={`/admin/reports?range=${p.key}`} aria-current={range === p.key ? "page" : undefined}
-            className={clsx("inline-flex h-9 items-center rounded-full border px-3.5 text-sm font-semibold", range === p.key ? "border-ink bg-ink text-white" : "border-line bg-card")}>{p.label}</Link>
+            className={clsx("inline-flex h-9 items-center rounded-full border px-3.5 text-sm font-semibold", range === p.key ? "border-ink bg-ink text-on-ink" : "border-line bg-card")}>{p.label}</Link>
         ))}
         <form className="flex flex-wrap items-center gap-2 text-sm" action="/admin/reports">
-          <input type="date" name="from" defaultValue={from} max={today} aria-label="From" className="h-9 rounded-lg border border-line bg-card px-2" />
+          <input type="date" name="from" defaultValue={from} max={today} aria-label="From" className="h-9 rounded-[8px] border border-line bg-card px-2" />
           <span className="text-muted">to</span>
-          <input type="date" name="to" defaultValue={to} max={today} aria-label="To" className="h-9 rounded-lg border border-line bg-card px-2" />
-          <button className={clsx("h-9 rounded-full border px-3.5 font-semibold", range === "custom" ? "border-ink bg-ink text-white" : "border-line bg-card")}>Apply</button>
+          <input type="date" name="to" defaultValue={to} max={today} aria-label="To" className="h-9 rounded-[8px] border border-line bg-card px-2" />
+          <button className={clsx("h-9 rounded-full border px-3.5 font-semibold", range === "custom" ? "border-ink bg-ink text-on-ink" : "border-line bg-card")}>Apply</button>
         </form>
       </div>
 
-      {error || !r ? <p className="mt-6 rounded-2xl bg-margin/10 p-4 text-sm text-margin">{error?.message ?? "Couldn't load the report."}</p> : (
+      {error || !r ? <p className="mt-6 rounded-[12px] bg-margin/10 p-4 text-sm text-margin">{error?.message ?? "Couldn't load the report."}</p> : (
         <>
           <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
             <StatTile label="Sales" value={rupees(r.totals.revenue)} now={r.totals.revenue} before={r.prev.revenue} />
@@ -90,36 +90,36 @@ export default async function Reports({ searchParams }: { searchParams: Promise<
             <StatTile label="Cancelled orders" value={String(r.cancelled)} hint={r.totals.orders + r.cancelled ? `${Math.round((r.cancelled / (r.totals.orders + r.cancelled)) * 100)}% of all orders` : undefined} />
           </div>
 
-          <section className="mt-5 rounded-2xl border border-line bg-card p-4">
+          <section className="mt-5 rounded-[12px] bg-card p-4">
             <h2 className="font-bold">Sales per {long ? "week" : "day"}</h2>
             <p className="mb-3 text-xs text-muted">Hover or tap a bar for the exact amount.</p>
             <ColumnChart data={series} kind="rupees" caption={`Sales per ${long ? "week" : "day"}`} />
           </section>
 
           <div className="mt-5 grid gap-5 lg:grid-cols-2">
-            <section className="rounded-2xl border border-line bg-card p-4">
+            <section className="rounded-[12px] bg-card p-4">
               <h2 className="font-bold">Sales by category</h2>
               <p className="mb-3 text-xs text-muted">Item value after returns.</p>
               <BarList rows={r.categories.map((c) => ({ name: c.name, value: c.revenue, note: `${c.units} sold` }))} format={rupees} sub={(x) => x.note} />
             </section>
-            <section className="rounded-2xl border border-line bg-card p-4">
+            <section className="rounded-[12px] bg-card p-4">
               <h2 className="font-bold">Busiest hours</h2>
               <p className="mb-3 text-xs text-muted">Orders placed by hour of day (India time).</p>
               <ColumnChart data={r.hours.filter((h) => h.hour >= 7 && h.hour <= 22).map((h) => ({ key: String(h.hour), label: hourLabel(h.hour), value: h.orders }))}
                 kind="count" height={170} labelEvery={2} caption="Orders by hour of day" />
             </section>
-            <section className="rounded-2xl border border-line bg-card p-4">
+            <section className="rounded-[12px] bg-card p-4">
               <h2 className="font-bold">How customers got their orders</h2>
               <div className="mt-3"><BarList rows={r.types.map((t) => ({ name: TYPE_LABEL[t.name] ?? t.name, value: t.orders, note: rupees(t.revenue) }))} format={(v) => `${v} orders`} sub={(x) => x.note} /></div>
             </section>
-            <section className="rounded-2xl border border-line bg-card p-4">
+            <section className="rounded-[12px] bg-card p-4">
               <h2 className="font-bold">How customers paid</h2>
               <div className="mt-3"><BarList rows={r.payments.map((t) => ({ name: PAY_LABEL[t.name] ?? t.name, value: t.orders, note: rupees(t.revenue) }))} format={(v) => `${v} orders`} sub={(x) => x.note} /></div>
             </section>
           </div>
 
           <div className="mt-5 grid gap-5 lg:grid-cols-2">
-            <section className="rounded-2xl border border-line bg-card p-4">
+            <section className="rounded-[12px] bg-card p-4">
               <h2 className="font-bold">Best sellers</h2>
               <table className="mt-3 w-full text-sm">
                 <thead><tr className="text-left text-xs text-muted"><th className="pb-2 font-semibold">Product</th><th className="pb-2 pl-3 text-right font-semibold">Sold</th><th className="pb-2 pl-3 text-right font-semibold">Sales</th></tr></thead>
@@ -132,7 +132,7 @@ export default async function Reports({ searchParams }: { searchParams: Promise<
               </table>
               {!r.products.length && <p className="py-4 text-sm text-muted">No sales in this period.</p>}
             </section>
-            <section className="rounded-2xl border border-line bg-card p-4">
+            <section className="rounded-[12px] bg-card p-4">
               <h2 className="font-bold">Top customers by spend</h2>
               <table className="mt-3 w-full text-sm">
                 <thead><tr className="text-left text-xs text-muted"><th className="pb-2 font-semibold">Customer</th><th className="pb-2 pl-3 text-right font-semibold">Orders</th><th className="pb-2 pl-3 text-right font-semibold">Spent</th></tr></thead>

@@ -37,16 +37,16 @@ export function ProfileForm({ initial }: { initial: { id: string; email: string 
   };
 
   return (
-    <form onSubmit={save} className="grid gap-4 rounded-2xl border border-line bg-card p-4" noValidate>
+    <form onSubmit={save} className="grid gap-4 rounded-[12px] bg-card p-4" noValidate>
       <div>
         <label htmlFor="name" className="text-sm font-semibold">Name</label>
         <input id="name" value={name} onChange={(e) => setName(e.target.value)} autoComplete="name"
-          className="mt-1.5 h-11 w-full rounded-xl border border-line bg-paper px-3 outline-none focus:border-ink" aria-invalid={!!errors.name} />
+          className="mt-1.5 h-11 w-full rounded-[10px] border border-line bg-paper px-3 outline-none focus:border-ink" aria-invalid={!!errors.name} />
         {errors.name && <p className="mt-1 text-sm text-margin">{errors.name}</p>}
       </div>
       <div>
         <label htmlFor="phone" className="text-sm font-semibold">Mobile number</label>
-        <div className="mt-1.5 flex h-11 items-center rounded-xl border border-line bg-paper focus-within:border-ink">
+        <div className="mt-1.5 flex h-11 items-center rounded-[10px] border border-line bg-paper focus-within:border-ink">
           <span className="pl-3 text-muted">+91</span>
           <input id="phone" value={phone} onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))} inputMode="numeric" autoComplete="tel-national"
             className="h-full flex-1 bg-transparent px-2 outline-none" aria-invalid={!!errors.phone} />
@@ -57,7 +57,7 @@ export function ProfileForm({ initial }: { initial: { id: string; email: string 
         <p className="text-sm font-semibold">Email</p>
         <p className="mt-1 text-sm text-muted">{profile?.email} (from your Google account)</p>
       </div>
-      <button disabled={busy} className="h-11 rounded-xl bg-ink font-semibold text-white disabled:opacity-60">{busy ? "Saving…" : "Save details"}</button>
+      <button disabled={busy} className="h-11 rounded-[10px] bg-ink font-semibold text-on-ink disabled:opacity-60">{busy ? "Saving…" : "Save details"}</button>
     </form>
   );
 }

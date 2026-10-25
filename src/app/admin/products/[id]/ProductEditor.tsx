@@ -47,7 +47,7 @@ export function ProductEditor({ initial, categories: initialCats, allTags }: { i
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   const setV = (key: string, change: Partial<V>) => setVariants((all) => all.map((v) => (v.key === key ? { ...v, ...change } : v)));
-  const field = "mt-1 h-10 w-full rounded-lg border border-line bg-paper px-3 text-sm outline-none focus:border-ink";
+  const field = "mt-1 h-10 w-full rounded-[8px] border border-line bg-paper px-3 text-sm outline-none focus:border-ink";
 
   const addImages = async (v: V, picked: File[]) => {
     if (!picked.length) return;
@@ -134,12 +134,12 @@ export function ProductEditor({ initial, categories: initialCats, allTags }: { i
 
   return (
     <div className="mt-5 space-y-5 pb-24">
-      <section className="grid gap-3 rounded-2xl border border-line bg-card p-4 text-sm sm:grid-cols-2">
+      <section className="grid gap-3 rounded-[12px] bg-card p-4 text-sm sm:grid-cols-2">
         <label className="font-semibold sm:col-span-2">Product name
           <input value={name} onChange={(e) => { setName(e.target.value); if (!slugTouched) setSlug(slugify(e.target.value)); }} className={field} placeholder="Gel Pen 0.5 mm" />
         </label>
         <label className="font-semibold">Web address
-          <div className="mt-1 flex items-center rounded-lg border border-line bg-paper focus-within:border-ink">
+          <div className="mt-1 flex items-center rounded-[8px] border border-line bg-paper focus-within:border-ink">
             <span className="pl-3 text-muted">/p/</span>
             <input value={slug} onChange={(e) => { setSlug(slugify(e.target.value)); setSlugTouched(true); }} className="h-10 min-w-0 flex-1 bg-transparent pr-3 outline-none" />
           </div>
@@ -148,25 +148,25 @@ export function ProductEditor({ initial, categories: initialCats, allTags }: { i
           <label htmlFor="cat">Category</label>
           {newCat === null ? (
             <div className="mt-1 flex gap-2">
-              <select id="cat" value={category} onChange={(e) => setCategory(e.target.value)} className="h-10 min-w-0 flex-1 rounded-lg border border-line bg-paper px-3 text-sm outline-none focus:border-ink">
+              <select id="cat" value={category} onChange={(e) => setCategory(e.target.value)} className="h-10 min-w-0 flex-1 rounded-[8px] border border-line bg-paper px-3 text-sm outline-none focus:border-ink">
                 {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
-              <button type="button" onClick={() => setNewCat("")} className="inline-flex h-10 shrink-0 items-center gap-1 rounded-lg border border-dashed border-ink px-3 text-sm font-semibold text-ink"><Plus className="size-4" /> New</button>
+              <button type="button" onClick={() => setNewCat("")} className="inline-flex h-10 shrink-0 items-center gap-1 rounded-[8px] border border-dashed border-ink px-3 text-sm font-semibold text-ink"><Plus className="size-4" /> New</button>
             </div>
           ) : (
             <div className="mt-1 flex gap-2">
               <input autoFocus value={newCat} onChange={(e) => setNewCat(e.target.value)} placeholder="New category name" aria-label="New category name"
                 onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); void createCategory(); } if (e.key === "Escape") setNewCat(null); }}
-                className="h-10 min-w-0 flex-1 rounded-lg border border-ink bg-paper px-3 text-sm outline-none" />
-              <button type="button" disabled={catBusy || !newCat.trim()} onClick={createCategory} className="h-10 shrink-0 rounded-lg bg-ink px-3 text-sm font-semibold text-white disabled:opacity-50">{catBusy ? "Adding…" : "Add"}</button>
-              <button type="button" onClick={() => setNewCat(null)} className="h-10 shrink-0 rounded-lg px-2 text-sm font-semibold text-muted">Cancel</button>
+                className="h-10 min-w-0 flex-1 rounded-[8px] border border-ink bg-paper px-3 text-sm outline-none" />
+              <button type="button" disabled={catBusy || !newCat.trim()} onClick={createCategory} className="h-10 shrink-0 rounded-[8px] bg-ink px-3 text-sm font-semibold text-on-ink disabled:opacity-50">{catBusy ? "Adding…" : "Add"}</button>
+              <button type="button" onClick={() => setNewCat(null)} className="h-10 shrink-0 rounded-[8px] px-2 text-sm font-semibold text-muted">Cancel</button>
             </div>
           )}
         </div>
         <label className="font-semibold">Brand (optional)<input value={brand} onChange={(e) => setBrand(e.target.value)} className={field} /></label>
         <label className="font-semibold">Season tag (optional)<input value={seasonal} onChange={(e) => setSeasonal(e.target.value)} className={field} placeholder="monsoon, back-to-school" /></label>
         <label className="font-semibold sm:col-span-2">Description
-          <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} className="mt-1 w-full rounded-lg border border-line bg-paper p-3 outline-none focus:border-ink" />
+          <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} className="mt-1 w-full rounded-[8px] border border-line bg-paper p-3 outline-none focus:border-ink" />
         </label>
         <div className="font-semibold sm:col-span-2">
           <label htmlFor="tags">Tags <span className="font-normal text-muted">(help customers find it in search; pick existing ones or create new)</span></label>
@@ -176,11 +176,11 @@ export function ProductEditor({ initial, categories: initialCats, allTags }: { i
       </section>
 
       <div className="flex items-center gap-2">
-        <h2 className="text-lg font-bold">Variants</h2>
+        <h2 className="text-[24px] uppercase">Variants</h2>
         <span className="text-sm text-muted">Colours, sizes or pack sizes. Each has its own price, stock and photos.</span>
       </div>
       {variants.map((v, i) => (
-        <section key={v.key} className={clsx("rounded-2xl border bg-card p-4 text-sm", v.active ? "border-line" : "border-dashed border-line opacity-80")}>
+        <section key={v.key} className={clsx("rounded-[12px] border bg-card p-4 text-sm", v.active ? "border-line" : "border-dashed border-line opacity-80")}>
           <div className="flex items-center gap-2">
             <p className="font-bold">{v.label || `Variant ${i + 1}`}</p>
             {!v.active && <span className="rounded-full bg-paper px-2 py-0.5 text-xs font-semibold text-muted">Hidden</span>}
@@ -201,7 +201,7 @@ export function ProductEditor({ initial, categories: initialCats, allTags }: { i
             <label className="font-semibold">Colour name<input value={v.colour} onChange={(e) => setV(v.key, { colour: e.target.value })} className={field} placeholder="Optional" /></label>
             <label className="font-semibold">Colour swatch
               <div className="mt-1 flex items-center gap-2">
-                <input type="color" value={/^#[0-9a-f]{6}$/i.test(v.hex) ? v.hex : "#1f2a6e"} onChange={(e) => setV(v.key, { hex: e.target.value })} className="h-10 w-12 rounded-lg border border-line" aria-label="Pick colour" />
+                <input type="color" value={/^#[0-9a-f]{6}$/i.test(v.hex) ? v.hex : "#0b5a45"} onChange={(e) => setV(v.key, { hex: e.target.value })} className="h-10 w-12 rounded-[8px] border border-line" aria-label="Pick colour" />
                 {v.hex ? <button type="button" onClick={() => setV(v.key, { hex: "" })} className="text-xs font-semibold text-muted">Clear</button> : <span className="text-xs text-muted">None</span>}
               </div>
             </label>
@@ -212,7 +212,7 @@ export function ProductEditor({ initial, categories: initialCats, allTags }: { i
             {v.images.map((src, k) => (
               <div key={src + k} className="group relative">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={src} alt={`Photo ${k + 1}`} className={clsx("size-24 rounded-xl border object-cover", k === 0 ? "border-ink" : "border-line")} />
+                <img src={src} alt={`Photo ${k + 1}`} className={clsx("size-24 rounded-[10px] border object-cover", k === 0 ? "border-ink" : "border-line")} />
                 <div className="absolute inset-x-1 bottom-1 flex justify-between">
                   <button type="button" onClick={() => moveImage(v, k, -1)} disabled={k === 0} className="grid size-6 place-items-center rounded-full bg-card/90 disabled:opacity-0" aria-label="Move left"><ArrowLeft className="size-3.5" /></button>
                   <button type="button" onClick={() => setV(v.key, { images: v.images.filter((_, x) => x !== k) })} className="grid size-6 place-items-center rounded-full bg-card/90 text-margin" aria-label="Remove photo"><Trash2 className="size-3.5" /></button>
@@ -221,7 +221,7 @@ export function ProductEditor({ initial, categories: initialCats, allTags }: { i
               </div>
             ))}
             {v.images.length < 6 && (
-              <label className="grid size-24 cursor-pointer place-items-center rounded-xl border-[1.5px] border-dashed border-line text-muted hover:border-ink hover:text-ink">
+              <label className="grid size-24 cursor-pointer place-items-center rounded-[10px] border-[1.5px] border-dashed border-line text-muted hover:border-ink hover:text-ink">
                 <span className="grid justify-items-center gap-1 text-xs font-semibold"><ImagePlus className="size-5" />{uploading === v.key ? "Uploading…" : "Add photos"}</span>
                 <input type="file" accept="image/jpeg,image/jpg,image/png,image/webp,.jpg,.jpeg,.png,.webp" multiple hidden onChange={(e) => { const picked = Array.from(e.target.files ?? []); e.target.value = ""; void addImages(v, picked); }} />
               </label>
@@ -234,12 +234,12 @@ export function ProductEditor({ initial, categories: initialCats, allTags }: { i
           </div>
         </section>
       ))}
-      <button type="button" onClick={() => setVariants((all) => [...all, newV(all[all.length - 1])])} className="inline-flex h-10 items-center gap-2 rounded-xl border border-dashed border-ink px-4 text-sm font-semibold text-ink"><Plus className="size-4" /> Add variant</button>
+      <button type="button" onClick={() => setVariants((all) => [...all, newV(all[all.length - 1])])} className="inline-flex h-10 items-center gap-2 rounded-[10px] border border-dashed border-ink px-4 text-sm font-semibold text-ink"><Plus className="size-4" /> Add variant</button>
 
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-card/95 p-3 backdrop-blur md:left-[220px]">
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-card p-3 md:left-[220px]">
         <div className="mx-auto flex max-w-4xl items-center gap-3">
           {msg && <p className={clsx("min-w-0 flex-1 text-sm font-semibold", msg.ok ? "text-ok" : "text-margin")} role="status">{msg.text}</p>}
-          <button onClick={save} disabled={busy} className="ml-auto h-11 rounded-xl bg-ink px-6 font-semibold text-white disabled:opacity-50">{busy ? "Saving…" : initial ? "Save changes" : "Create product"}</button>
+          <button onClick={save} disabled={busy} className="ml-auto h-11 rounded-[10px] bg-ink px-6 font-semibold text-on-ink disabled:opacity-50">{busy ? "Saving…" : initial ? "Save changes" : "Create product"}</button>
         </div>
       </div>
       <p className="text-xs text-muted">Variants that have been ordered can&apos;t be deleted; switch off &ldquo;On sale&rdquo; to hide them.</p>

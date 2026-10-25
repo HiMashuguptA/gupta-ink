@@ -93,16 +93,16 @@ export function CouponManager({ initial, categories }: { initial: Coupon[]; cate
     router.refresh();
   };
 
-  const field = "mt-1 h-10 w-full rounded-lg border border-line bg-paper px-3 outline-none focus:border-ink";
+  const field = "mt-1 h-10 w-full rounded-[8px] border border-line bg-paper px-3 outline-none focus:border-ink";
   return (
     <>
-      <button onClick={() => { setErr(null); setForm(blank()); }} className="mt-5 inline-flex h-10 items-center gap-2 rounded-xl bg-ink px-4 text-sm font-semibold text-white"><Plus className="size-4" /> New coupon</button>
+      <button onClick={() => { setErr(null); setForm(blank()); }} className="mt-5 inline-flex h-10 items-center gap-2 rounded-[10px] bg-ink px-4 text-sm font-semibold text-on-ink"><Plus className="size-4" /> New coupon</button>
 
       <ul className="mt-4 grid gap-2.5 md:hidden">
         {initial.map((c) => {
           const expired = c.valid_to && new Date(c.valid_to) < new Date();
           return (
-            <li key={c.code} className="rounded-2xl border border-line bg-card p-3.5 text-sm">
+            <li key={c.code} className="rounded-[12px] bg-card p-3.5 text-sm">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <span className="rounded-md border border-dashed border-ink px-2 py-0.5 font-mono font-bold text-ink">{c.code}</span>
@@ -125,9 +125,9 @@ export function CouponManager({ initial, categories }: { initial: Coupon[]; cate
             </li>
           );
         })}
-        {!initial.length && <li className="rounded-2xl border border-line bg-card p-6 text-center text-sm text-muted">No coupons yet.</li>}
+        {!initial.length && <li className="rounded-[12px] bg-card p-6 text-center text-sm text-muted">No coupons yet.</li>}
       </ul>
-      <div className="mt-4 hidden overflow-x-auto rounded-2xl border border-line bg-card md:block">
+      <div className="mt-4 hidden overflow-x-auto rounded-[12px] bg-card md:block">
         <table className="w-full min-w-[720px] text-sm">
           <thead><tr className="text-left text-muted">
             <th className="p-3 font-semibold">Code</th><th className="p-3 font-semibold">Offer</th><th className="p-3 font-semibold">Rules</th>
@@ -196,7 +196,7 @@ export function CouponManager({ initial, categories }: { initial: Coupon[]; cate
                 {categories.map((c) => {
                   const on = form.categories.includes(c.id);
                   return <button key={c.id} type="button" aria-pressed={on} onClick={() => set("categories", on ? form.categories.filter((x) => x !== c.id) : [...form.categories, c.id])}
-                    className={clsx("rounded-full border px-2.5 py-1 text-xs", on ? "border-ink bg-ink text-white" : "border-line")}>{c.name}</button>;
+                    className={clsx("rounded-full border px-2.5 py-1 text-xs", on ? "border-ink bg-ink text-on-ink" : "border-line")}>{c.name}</button>;
                 })}
               </div>
             </fieldset>
@@ -205,17 +205,17 @@ export function CouponManager({ initial, categories }: { initial: Coupon[]; cate
               <div className="mt-1.5 flex gap-2">
                 {(["all", "selected"] as const).map((a) => (
                   <button key={a} type="button" aria-pressed={form.audience === a} onClick={() => set("audience", a)}
-                    className={clsx("rounded-full border px-3 py-1.5", form.audience === a ? "border-ink bg-ink text-white" : "border-line")}>{a === "all" ? "Everyone" : "Chosen customers"}</button>
+                    className={clsx("rounded-full border px-3 py-1.5", form.audience === a ? "border-ink bg-ink text-on-ink" : "border-line")}>{a === "all" ? "Everyone" : "Chosen customers"}</button>
                 ))}
               </div>
               {form.audience === "selected" && (
                 <textarea value={form.emails} onChange={(e) => set("emails", e.target.value)} rows={3} placeholder="One email per line" aria-label="Customer emails"
-                  className="mt-2 w-full rounded-lg border border-line bg-paper p-3 outline-none focus:border-ink" />
+                  className="mt-2 w-full rounded-[8px] border border-line bg-paper p-3 outline-none focus:border-ink" />
               )}
             </fieldset>
             <label className="flex items-center gap-2"><input type="checkbox" checked={form.active} onChange={(e) => set("active", e.target.checked)} className="size-4 accent-[var(--ink)]" /> Live now</label>
             {err && <p className="font-semibold text-margin" role="alert">{err}</p>}
-            <button onClick={save} disabled={busy} className="h-11 rounded-xl bg-ink font-semibold text-white disabled:opacity-50">{busy ? "Saving…" : form.existing ? "Save changes" : "Create coupon"}</button>
+            <button onClick={save} disabled={busy} className="h-11 rounded-[10px] bg-ink font-semibold text-on-ink disabled:opacity-50">{busy ? "Saving…" : form.existing ? "Save changes" : "Create coupon"}</button>
           </div>
         )}
       </Sheet>

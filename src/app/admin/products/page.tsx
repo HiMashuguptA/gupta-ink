@@ -16,21 +16,21 @@ export default async function AdminProducts({ searchParams }: { searchParams: Pr
   return (
     <div className="max-w-6xl">
       {saved && (
-        <div className="mb-4 flex flex-wrap items-center gap-3 rounded-2xl border border-ok/30 bg-ok/10 p-3 text-sm" role="status">
+        <div className="mb-4 flex flex-wrap items-center gap-3 rounded-[12px] border border-ok/30 bg-ok/10 p-3 text-sm" role="status">
           <CheckCircle2 className="size-5 text-ok" />
           <p className="font-semibold">{saved.name} {sp.new === "1" ? "created" : "saved"}. It&apos;s live in the shop now.</p>
           <span className="ml-auto flex gap-2">
-            <Link href={`/p/${saved.slug}`} target="_blank" className="rounded-lg border border-ink px-3 py-1.5 font-semibold text-ink">View in shop</Link>
-            <Link href={`/admin/products/${saved.id}`} className="rounded-lg px-3 py-1.5 font-semibold text-ink hover:bg-ink-soft">Edit again</Link>
+            <Link href={`/p/${saved.slug}`} target="_blank" className="rounded-[8px] border border-ink px-3 py-1.5 font-semibold text-ink">View in shop</Link>
+            <Link href={`/admin/products/${saved.id}`} className="rounded-[8px] px-3 py-1.5 font-semibold text-ink hover:bg-ink-soft">Edit again</Link>
           </span>
         </div>
       )}
       <div className="flex flex-wrap items-center gap-3">
         <div>
-          <h1 className="text-2xl font-extrabold">Products</h1>
+          <h1 className="text-[34px] uppercase">Products</h1>
           <p className="mt-1 text-sm text-muted">Change stock and prices here; open a product to edit details, variants and photos.</p>
         </div>
-        <Link href="/admin/products/new" className="ml-auto inline-flex h-10 items-center gap-2 rounded-xl bg-ink px-4 text-sm font-semibold text-white"><Plus className="size-4" /> New product</Link>
+        <Link href="/admin/products/new" className="ml-auto inline-flex h-10 items-center gap-2 rounded-[10px] bg-ink px-4 text-sm font-semibold text-on-ink"><Plus className="size-4" /> New product</Link>
       </div>
       <ProductTable groups={(groups.data ?? []) as unknown as GroupRow[]} categories={cats.data ?? []} />
     </div>

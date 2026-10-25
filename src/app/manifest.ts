@@ -7,8 +7,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "Stationery from Gupta Enterprises, Kohima, delivered in under an hour.",
     start_url: "/",
     display: "standalone",
-    background_color: "#f6f7fb",
-    theme_color: "#1f2a6e",
+    background_color: "#0a4d3b",
+    theme_color: "#0a4d3b",
     icons: [
       { src: "/brand/icon-192.png", sizes: "192x192", type: "image/png" },
       { src: "/brand/icon-512.png", sizes: "512x512", type: "image/png" },

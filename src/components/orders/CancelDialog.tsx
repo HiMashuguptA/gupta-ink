@@ -45,13 +45,13 @@ export function CancelDialog({ open, onClose, order, onCancelled }: { open: bool
   return createPortal(
     <AnimatePresence>
       {open && (
-        <motion.div className="fixed inset-0 z-[60] flex items-end justify-center bg-ink-deep/40 sm:items-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}>
+        <motion.div className="fixed inset-0 z-[60] flex items-end justify-center bg-scrim sm:items-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}>
           <motion.div role="dialog" aria-modal="true" aria-labelledby="cancel-title" onClick={(e) => e.stopPropagation()}
             initial={{ y: 60 }} animate={{ y: 0 }} exit={{ y: 60 }} transition={{ type: "spring", stiffness: 380, damping: 34 }}
-            className="w-full max-w-md rounded-t-3xl bg-card p-5 sm:rounded-3xl">
+            className="w-full max-w-md rounded-t-3xl bg-card p-5 sm:rounded-[16px]">
             <h2 id="cancel-title" className="text-lg font-bold">Cancel order {order.order_no}?</h2>
             {preview && (
-              <p className={clsx("mt-2 rounded-xl px-3 py-2 text-sm", fined ? "bg-margin/10 text-margin" : "bg-ok/10 text-ok")}>
+              <p className={clsx("mt-2 rounded-[10px] px-3 py-2 text-sm", fined ? "bg-margin/10 text-margin" : "bg-ok/10 text-ok")}>
                 {fined
                   ? `You've used your 3 free cancellations this week. Cancelling adds a ${rupees(preview.fine_paise)} fine to your next order.`
                   : `This one is free. ${preview.free_left - 1} free cancellation${preview.free_left - 1 === 1 ? "" : "s"} left this week after this.`}
@@ -61,7 +61,7 @@ export function CancelDialog({ open, onClose, order, onCancelled }: { open: bool
               <legend className="mb-2 text-sm font-semibold">Why are you cancelling?</legend>
               <div className="grid gap-1.5">
                 {REASONS.map((r) => (
-                  <label key={r} className={clsx("flex cursor-pointer items-center gap-2 rounded-xl border px-3 py-2.5 text-sm", reason === r ? "border-ink bg-ink-soft" : "border-line")}>
+                  <label key={r} className={clsx("flex cursor-pointer items-center gap-2 rounded-[10px] border px-3 py-2.5 text-sm", reason === r ? "border-ink bg-ink-soft" : "border-line")}>
                     <input type="radio" name="reason" checked={reason === r} onChange={() => setReason(r)} className="accent-[var(--ink)]" /> {r}
                   </label>
                 ))}
@@ -71,13 +71,13 @@ export function CancelDialog({ open, onClose, order, onCancelled }: { open: bool
               <div className="mt-4">
                 <label htmlFor="refund-upi" className="text-sm font-semibold">UPI ID for your refund</label>
                 <input id="refund-upi" value={upi} onChange={(e) => setUpi(e.target.value.trim())} placeholder="name@okaxis"
-                  className="mt-1.5 h-11 w-full rounded-xl border border-line bg-paper px-3 outline-none focus:border-ink" />
+                  className="mt-1.5 h-11 w-full rounded-[10px] border border-line bg-paper px-3 outline-none focus:border-ink" />
                 <p className="mt-1 text-xs text-muted">We refund {rupees(order.payable_paise)} within 7 working days and show the proof here.</p>
               </div>
             )}
             <div className="mt-5 flex gap-2">
-              <button onClick={onClose} className="h-12 flex-1 rounded-xl border border-line font-semibold">Keep order</button>
-              <button onClick={confirm} disabled={busy || (paid && !/^[\w.-]{2,64}@[a-zA-Z]{2,64}$/.test(upi))} className="h-12 flex-1 rounded-xl bg-margin font-semibold text-white disabled:opacity-50">
+              <button onClick={onClose} className="h-12 flex-1 rounded-[10px] border border-line font-semibold">Keep order</button>
+              <button onClick={confirm} disabled={busy || (paid && !/^[\w.-]{2,64}@[a-zA-Z]{2,64}$/.test(upi))} className="h-12 flex-1 rounded-[10px] bg-margin font-semibold text-white disabled:opacity-50">
                 {busy ? "Cancelling…" : "Cancel order"}
               </button>
             </div>

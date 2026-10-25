@@ -10,7 +10,7 @@ import { useLocation } from "@/components/providers/LocationProvider";
 import { useSession } from "@/components/providers/SessionProvider";
 import { haversineKm } from "@/lib/format";
 
-const MapPicker = dynamic(() => import("@/components/location/MapPicker"), { ssr: false, loading: () => <div className="skeleton h-full min-h-[240px] rounded-2xl" /> });
+const MapPicker = dynamic(() => import("@/components/location/MapPicker"), { ssr: false, loading: () => <div className="skeleton h-full min-h-[240px] rounded-[12px]" /> });
 
 const LABELS = ["Home", "Work", "School", "Other"];
 
@@ -140,7 +140,7 @@ export function AddressForm({
       <label htmlFor={`addr-${k}`} className="text-sm font-semibold">{label}</label>
       <input id={`addr-${k}`} value={f[k] as string} onChange={(e) => set(k, k === "contact_phone" ? e.target.value.replace(/\D/g, "").slice(0, 10) : e.target.value)}
         aria-invalid={err?.field === k} {...props}
-        className={clsx("mt-1 h-11 w-full rounded-xl border bg-paper px-3 text-[16px] outline-none sm:text-sm focus:border-ink", err?.field === k ? "border-margin" : "border-line")} />
+        className={clsx("mt-1 h-11 w-full rounded-[10px] border bg-paper px-3 text-[16px] outline-none sm:text-sm focus:border-ink", err?.field === k ? "border-margin" : "border-line")} />
     </div>
   );
 
@@ -148,12 +148,12 @@ export function AddressForm({
   return createPortal(
     <AnimatePresence>
       {open && (
-        <motion.div className="fixed inset-0 z-[60] flex items-end justify-center bg-ink-deep/40 sm:items-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}>
+        <motion.div className="fixed inset-0 z-[60] flex items-end justify-center bg-scrim sm:items-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}>
           <motion.form
             onSubmit={submit} onClick={(e) => e.stopPropagation()} noValidate
             role="dialog" aria-modal="true" aria-labelledby="addr-title"
             initial={{ y: 60 }} animate={{ y: 0 }} exit={{ y: 60 }} transition={{ type: "spring", stiffness: 380, damping: 34 }}
-            className="flex max-h-[92dvh] w-full max-w-lg flex-col rounded-t-3xl bg-card sm:rounded-3xl"
+            className="flex max-h-[92dvh] w-full max-w-lg flex-col rounded-t-3xl bg-card sm:rounded-[16px]"
           >
             <div className="flex items-center justify-between border-b border-line px-5 py-4">
               <div className="flex items-center gap-1">
@@ -173,13 +173,13 @@ export function AddressForm({
                   <div className="relative">
                     <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
                     <input value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); if (hits[0]) { setQ(""); setHits([]); void movePin(hits[0].lat, hits[0].lng); } } }} enterKeyHint="search" placeholder="Search area, street or landmark" aria-label="Search for a place"
-                      className="h-11 w-full rounded-xl border border-line bg-paper pl-9 pr-3 text-[16px] outline-none focus:border-ink sm:text-sm" />
+                      className="h-11 w-full rounded-[10px] border border-line bg-paper pl-9 pr-3 text-[16px] outline-none focus:border-ink sm:text-sm" />
                     {hits.length > 0 && (
-                      <ul className="absolute inset-x-0 top-full z-[600] mt-1 max-h-60 overflow-y-auto rounded-xl border border-line bg-card p-1 shadow-lg">
+                      <ul className="absolute inset-x-0 top-full z-[600] mt-1 max-h-60 overflow-y-auto rounded-[10px] border border-line bg-card p-1 shadow-float">
                         {hits.map((h) => (
                           <li key={`${h.lat},${h.lng}`}>
                             <button type="button" onClick={() => { setQ(""); setHits([]); void movePin(h.lat, h.lng); }}
-                              className="flex w-full items-start gap-2 rounded-lg px-3 py-2 text-left text-sm hover:bg-ink-soft">
+                              className="flex w-full items-start gap-2 rounded-[8px] px-3 py-2 text-left text-sm hover:bg-ink-soft">
                               <MapPin className="mt-0.5 size-4 shrink-0 text-ink" /> {h.name}
                             </button>
                           </li>
@@ -195,7 +195,7 @@ export function AddressForm({
                     </button>
                   </div>
                   <p className="text-xs text-muted">Move the map so the pin sits exactly on your door. Pinch to zoom in.</p>
-                  {err && <p className="rounded-xl bg-margin/10 px-3 py-2 text-sm font-semibold text-margin" role="alert">{err.text}</p>}
+                  {err && <p className="rounded-[10px] bg-margin/10 px-3 py-2 text-sm font-semibold text-margin" role="alert">{err.text}</p>}
                 </div>
                 <div className="space-y-3 border-t border-line p-4">
                   <div className="flex items-start gap-2.5 text-sm">
@@ -208,7 +208,7 @@ export function AddressForm({
                     </div>
                   </div>
                   <button type="button" onClick={confirmPin} disabled={!touched && !location}
-                    className="h-12 w-full rounded-xl bg-ink font-semibold text-white disabled:opacity-50">
+                    className="h-12 w-full rounded-[10px] bg-ink font-semibold text-on-ink disabled:opacity-50">
                     {!touched && !location ? "Move the map or use current location" : "Confirm location"}
                   </button>
                 </div>
@@ -216,7 +216,7 @@ export function AddressForm({
             ) : (
             <>
             <div className="flex-1 space-y-4 overflow-y-auto px-5 py-4">
-              <button type="button" onClick={() => setStep("pin")} className="flex w-full items-center gap-3 rounded-2xl border border-line bg-paper p-3 text-left text-sm">
+              <button type="button" onClick={() => setStep("pin")} className="flex w-full items-center gap-3 rounded-[12px] border border-line bg-paper p-3 text-left text-sm">
                 <MapPin className="size-5 shrink-0 text-ink" />
                 <span className="min-w-0 flex-1"><span className="block truncate font-semibold">{area || "Pinned location"}</span><span className="text-xs text-muted">{pin.lat.toFixed(5)}, {pin.lng.toFixed(5)} · {km.toFixed(1)} km from the store</span></span>
                 <span className="shrink-0 font-semibold text-ink">Change</span>
@@ -225,7 +225,7 @@ export function AddressForm({
               <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Who is this for">
                 {[{ on: false, label: "For me", icon: UserRound }, { on: true, label: "For someone else", icon: Users }].map(({ on, label, icon: Icon }) => (
                   <button key={label} type="button" role="radio" aria-checked={f.for_someone_else === on} onClick={() => toggleSomeoneElse(on)}
-                    className={clsx("flex h-11 items-center justify-center gap-2 rounded-xl border-[1.5px] text-sm font-semibold", f.for_someone_else === on ? "border-ink bg-ink-soft text-ink" : "border-line")}>
+                    className={clsx("flex h-11 items-center justify-center gap-2 rounded-[10px] border-[1.5px] text-sm font-semibold", f.for_someone_else === on ? "border-ink bg-ink-soft text-ink" : "border-line")}>
                     <Icon className="size-4" /> {label}
                   </button>
                 ))}
@@ -244,7 +244,7 @@ export function AddressForm({
                 <div className="flex flex-wrap gap-2">
                   {LABELS.map((l) => (
                     <button key={l} type="button" onClick={() => set("label", l)} aria-pressed={f.label === l}
-                      className={clsx("h-9 rounded-full border px-3.5 text-sm font-semibold", f.label === l ? "border-ink bg-ink text-white" : "border-line")}>{l}</button>
+                      className={clsx("h-9 rounded-full border px-3.5 text-sm font-semibold", f.label === l ? "border-ink bg-ink text-on-ink" : "border-line")}>{l}</button>
                   ))}
                 </div>
               </fieldset>
@@ -252,10 +252,10 @@ export function AddressForm({
                 <input type="checkbox" checked={f.is_default} onChange={(e) => set("is_default", e.target.checked)} className="size-4 accent-[var(--ink)]" />
                 Make this my default address
               </label>
-              {err && <p className="rounded-xl bg-margin/10 px-3 py-2 text-sm font-semibold text-margin" role="alert">{err.text}</p>}
+              {err && <p className="rounded-[10px] bg-margin/10 px-3 py-2 text-sm font-semibold text-margin" role="alert">{err.text}</p>}
             </div>
             <div className="border-t border-line p-4">
-              <button disabled={busy} className="h-12 w-full rounded-xl bg-ink font-semibold text-white disabled:opacity-60">
+              <button disabled={busy} className="h-12 w-full rounded-[10px] bg-ink font-semibold text-on-ink disabled:opacity-60">
                 {busy ? "Checking road distance…" : "Save address"}
               </button>
             </div>

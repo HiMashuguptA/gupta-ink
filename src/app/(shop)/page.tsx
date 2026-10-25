@@ -1,9 +1,8 @@
 import { getHome, getSettings } from "@/lib/catalog";
-import { storeStatus } from "@/lib/hours";
 import { HeroCarousel } from "@/components/home/HeroCarousel";
 import { CategoryGrid } from "@/components/home/CategoryGrid";
 import { PromoTiles } from "@/components/home/PromoTiles";
-import { StoreNotice } from "@/components/home/StoreNotice";
+import { FactsTicker } from "@/components/home/FactsTicker";
 import { Rail } from "@/components/shop/Rail";
 import { PickedForYou, RecentlyViewed } from "@/components/home/PersonalRails";
 
@@ -22,7 +21,6 @@ const RAIL_LINKS: Record<string, string> = {
 
 export default async function Home() {
   const [home, settings] = await Promise.all([getHome(), getSettings()]);
-  const status = storeStatus(settings);
 
   // Admin controls which sections show and in what order (home_sections table)
   const sections = home.sections.length
@@ -31,8 +29,8 @@ export default async function Home() {
 
   return (
     <>
-      <StoreNotice quickOpen={status.quickOpen} storeOpen={status.storeOpen} paused={!!settings?.orders_paused} />
       <HeroCarousel banners={home.hero} />
+      <FactsTicker s={settings} />
       {sections.map((s) => {
         switch (s.key) {
           case "promos":
@@ -50,7 +48,7 @@ export default async function Home() {
         }
       })}
       {!home.categories.length && (
-        <div className="ruled mx-4 mt-8 rounded-3xl p-8 pl-14">
+        <div className="mx-4 mt-8 rounded-[14px] bg-card p-8">
           <h2 className="text-xl font-bold">The shelves are empty</h2>
           <p className="mt-1 text-muted">Load the test catalogue (supabase/seed.sql) or add products from the admin panel.</p>
         </div>

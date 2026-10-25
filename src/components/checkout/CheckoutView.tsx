@@ -7,6 +7,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Bike, CalendarClock, Store, Plus, Tag, Coins, Smartphone, Banknote, Check, ChevronDown, AlertCircle, X } from "lucide-react";
 import clsx from "clsx";
 import { useCart, lineFrom, type CartLine } from "@/components/providers/CartProvider";
+import { Price } from "@/components/ui/Num";
+import { SlideToConfirm } from "@/components/ui/SlideToConfirm";
 import type { ProductCard } from "@/lib/types";
 import { useToast } from "@/components/providers/ToastProvider";
 import { supabaseBrowser } from "@/lib/supabase/client";
@@ -155,14 +157,14 @@ export function CheckoutView({ addresses: initialAddresses, slots, coupons, radi
   }, [quote, blocking, method, sb, payload, note, toast, removeMany, lines, router, kind, pickName, pickPhone]);
 
   if (buyNow && !buyLine && !buyMissing) {
-    return <div className="mx-auto max-w-5xl px-4 pt-4"><div className="skeleton h-10 w-48 rounded-xl" /><div className="skeleton mt-4 h-64 rounded-2xl" /></div>;
+    return <div className="mx-auto max-w-5xl px-4 pt-4"><div className="skeleton h-10 w-48 rounded-[10px]" /><div className="skeleton mt-4 h-64 rounded-[12px]" /></div>;
   }
   if (!lines.length && !placing) {
     return (
-      <div className="ruled mx-4 mt-6 rounded-3xl p-8 pl-14">
-        <h1 className="text-2xl font-extrabold">Your cart is empty</h1>
-        <p className="mt-1 text-muted">Add a few things, then come back to check out.</p>
-        <Link href="/" className="mt-5 inline-flex rounded-xl bg-ink px-5 py-3 font-semibold text-white">Start shopping</Link>
+      <div className="mx-4 mt-6 rounded-[16px] bg-sign p-7 text-on-sign">
+        <h1 className="text-[40px] uppercase">Your cart is empty</h1>
+        <p className="mt-1 text-on-sign-muted">Add a few things, then come back to check out.</p>
+        <Link href="/" className="sign-type press mt-5 inline-flex h-12 items-center rounded-[10px] bg-nib px-5 text-[19px] text-on-nib">Start shopping</Link>
       </div>
     );
   }
@@ -175,21 +177,22 @@ export function CheckoutView({ addresses: initialAddresses, slots, coupons, radi
   ];
 
   return (
-    <div className="grid gap-5 px-4 pb-32 pt-4 lg:grid-cols-[1fr_380px] lg:pb-8">
+    <div className="grid gap-6 px-4 pb-36 pt-4 lg:grid-cols-[1fr_380px] lg:pb-8">
       <div className="space-y-5">
-        <h1 className="text-2xl font-extrabold">Checkout</h1>
+        <h1 className="text-[40px] uppercase">Checkout</h1>
 
         {/* 1. How */}
         <Section title="How do you want it?">
-          <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Delivery option">
+          <div className="grid grid-cols-3 gap-1.5 rounded-[14px] bg-card p-1.5" role="radiogroup" aria-label="Delivery option">
             {kinds.map(({ key, title, sub, icon: Icon, disabled }) => (
               <button key={key} type="button" role="radio" aria-checked={kind === key} disabled={!!disabled}
                 onClick={() => setKind(key)}
-                className={clsx("flex flex-col items-start gap-1 rounded-2xl border-[1.5px] p-3 text-left transition-colors disabled:opacity-50",
-                  kind === key ? "border-ink bg-ink-soft" : "border-line bg-card hover:border-ink/40")}>
-                <Icon className={clsx("size-5", kind === key ? "text-ink" : "text-muted")} />
-                <span className="text-sm font-bold leading-tight">{title}</span>
-                <span className="text-xs text-muted">{disabled ?? sub}</span>
+                className={clsx("press relative flex flex-col items-start gap-1 rounded-[10px] p-2.5 text-left disabled:opacity-45",
+                  kind !== key && "hover:bg-sunk")}>
+                {kind === key && <motion.span layoutId="kind-board" className="absolute inset-0 rounded-[10px] bg-sign" transition={{ type: "spring", duration: 0.4, bounce: 0.18 }} />}
+                <Icon className={clsx("relative size-5 transition-colors", kind === key ? "text-nib" : "text-muted")} />
+                <span className={clsx("relative text-sm font-bold leading-tight transition-colors", kind === key ? "text-on-sign" : "text-graphite")}>{title}</span>
+                <span className={clsx("relative text-xs transition-colors", kind === key ? "text-on-sign-muted" : "text-muted")}>{disabled ?? sub}</span>
               </button>
             ))}
           </div>
@@ -212,14 +215,14 @@ export function CheckoutView({ addresses: initialAddresses, slots, coupons, radi
                   </button>
                 );
               })}
-              <button type="button" onClick={() => setFormOpen(true)} className="flex h-12 items-center justify-center gap-2 rounded-xl border-[1.5px] border-dashed border-ink font-semibold text-ink">
+              <button type="button" onClick={() => setFormOpen(true)} className="press flex h-12 items-center justify-center gap-2 rounded-[10px] border-[1.5px] border-dashed border-ink/50 font-semibold text-ink hover:bg-ink-soft">
                 <Plus className="size-4" /> {addresses.length ? "Add a new address" : "Add delivery address"}
               </button>
             </div>
           </Section>
         ) : (
           <Section title="Pick up from">
-            <div className="flex gap-3 rounded-2xl border border-line bg-card p-3.5">
+            <div className="flex gap-3 rounded-[12px] bg-card p-3.5">
               <Store className="mt-0.5 size-5 shrink-0 text-ink" />
               <div className="text-sm">
                 <p className="font-semibold">Gupta Enterprises</p>
@@ -227,15 +230,15 @@ export function CheckoutView({ addresses: initialAddresses, slots, coupons, radi
                 <p className="text-muted">Open {storeHours}. We&apos;ll tell you when it&apos;s ready; collect within 48 hours.</p>
               </div>
             </div>
-            <div className="mt-3 rounded-2xl border border-line bg-card p-3.5">
+            <div className="mt-3 rounded-[12px] bg-card p-3.5">
               <p className="text-sm font-semibold">Who will collect it?</p>
               <div className="mt-2 grid gap-2 sm:grid-cols-2">
                 <label className="text-xs font-semibold text-muted">Name
                   <input value={pickName} onChange={(e) => setPickName(e.target.value.slice(0, 80))} autoComplete="name" placeholder="Full name"
-                    className="mt-1 h-11 w-full rounded-xl border border-line bg-paper px-3 text-sm font-normal text-graphite outline-none focus:border-ink" />
+                    className="mt-1 h-11 w-full rounded-[10px] border border-line bg-paper px-3 text-sm font-normal text-graphite outline-none focus:border-ink" />
                 </label>
                 <label className="text-xs font-semibold text-muted">Mobile number
-                  <div className="mt-1 flex h-11 items-center rounded-xl border border-line bg-paper focus-within:border-ink">
+                  <div className="mt-1 flex h-11 items-center rounded-[10px] border border-line bg-paper focus-within:border-ink">
                     <span className="pl-3 text-sm text-muted">+91</span>
                     <input value={pickPhone} onChange={(e) => setPickPhone(e.target.value.replace(/\D/g, "").slice(0, 10))} inputMode="tel" autoComplete="tel-national" placeholder="10-digit mobile"
                       className="h-full min-w-0 flex-1 bg-transparent px-2 text-sm font-normal text-graphite outline-none" />
@@ -255,8 +258,8 @@ export function CheckoutView({ addresses: initialAddresses, slots, coupons, radi
                 const anyOpen = slots.some((s) => s.slot_date === d && s.open);
                 return (
                   <button key={d} type="button" onClick={() => { setDay(d); setSlot(null); }} aria-pressed={day === d} disabled={!anyOpen}
-                    className={clsx("shrink-0 rounded-xl border-[1.5px] px-3.5 py-2 text-sm font-semibold disabled:opacity-40",
-                      day === d ? "border-ink bg-ink text-white" : "border-line bg-card")}>
+                    className={clsx("press shrink-0 rounded-[10px] px-3.5 py-2 text-sm font-semibold disabled:opacity-40",
+                      day === d ? "bg-sign text-on-sign" : "bg-card text-graphite hover:bg-sunk")}>
                     {dayLabel(d, i)}
                   </button>
                 );
@@ -267,10 +270,10 @@ export function CheckoutView({ addresses: initialAddresses, slots, coupons, radi
                 const on = slot?.slot_date === s.slot_date && slot.window_start === s.window_start;
                 return (
                   <button key={s.window_start} type="button" disabled={!s.open} onClick={() => setSlot(s)} aria-pressed={on}
-                    className={clsx("rounded-xl border-[1.5px] px-3 py-2.5 text-left disabled:opacity-45",
-                      on ? "border-ink bg-ink-soft" : "border-line bg-card hover:border-ink/40")}>
-                    <span className="block text-sm font-bold">{time12(s.window_start)} to {time12(s.window_end)}</span>
-                    <span className="block text-xs text-muted">{s.open ? (s.available <= 3 ? `${s.available} left` : "Available") : s.reason}</span>
+                    className={clsx("press rounded-[10px] px-3 py-2.5 text-left ring-2 disabled:opacity-45",
+                      on ? "bg-nib-soft ring-nib" : "bg-card ring-transparent hover:bg-sunk")}>
+                    <span className="num block text-sm font-bold">{time12(s.window_start)} to {time12(s.window_end)}</span>
+                    <span className={clsx("block text-xs", s.open && s.available <= 3 ? "font-semibold text-margin" : "text-muted")}>{s.open ? (s.available <= 3 ? `${s.available} left` : "Available") : s.reason}</span>
                   </button>
                 );
               })}
@@ -279,13 +282,13 @@ export function CheckoutView({ addresses: initialAddresses, slots, coupons, radi
         )}
 
         {/* 4. Items */}
-        {buyNow && <p className="rounded-xl bg-nib-soft px-3 py-2 text-sm">Buying this item now. Your cart stays as it is.</p>}
+        {buyNow && <p className="rounded-[10px] bg-nib-soft px-3 py-2 text-sm">Buying this item now. Your cart stays as it is.</p>}
         <Section title={`Items (${count})`}>
-          <button type="button" onClick={() => setShowItems((v) => !v)} className="flex w-full items-center gap-2 rounded-2xl border border-line bg-card p-3" aria-expanded={showItems}>
+          <button type="button" onClick={() => setShowItems((v) => !v)} className="flex w-full items-center gap-2 rounded-[12px] bg-card p-3" aria-expanded={showItems}>
             <span className="flex -space-x-2">
               {lines.slice(0, 5).map((l) => (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img key={l.product_id} src={l.image ?? "/brand/logo.svg"} alt="" className="size-10 rounded-lg border-2 border-card" />
+                <img key={l.product_id} src={l.image ?? "/brand/logo.svg"} alt="" className="size-10 rounded-[8px] border-2 border-card bg-white" />
               ))}
             </span>
             <span className="ml-1 text-sm text-muted">{lines.length > 5 ? `+${lines.length - 5} more` : ""}</span>
@@ -293,11 +296,11 @@ export function CheckoutView({ addresses: initialAddresses, slots, coupons, radi
           </button>
           <AnimatePresence initial={false}>
             {showItems && (
-              <motion.ul initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="mt-2 divide-y divide-line overflow-hidden rounded-2xl border border-line bg-card">
+              <motion.ul initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ type: "spring", duration: 0.4, bounce: 0.15 }} className="mt-2 divide-y divide-line overflow-hidden rounded-[12px] bg-card">
                 {lines.map((l) => (
                   <li key={l.product_id} className="flex items-center justify-between gap-3 p-3 text-sm">
                     <span className="min-w-0"><span className="block truncate font-semibold">{l.name}</span><span className="text-muted">{l.variant_label} × {l.qty}</span></span>
-                    <span className="font-semibold">{rupees(l.price_paise * l.qty)}</span>
+                    <span className="num font-semibold">{rupees(l.price_paise * l.qty)}</span>
                   </li>
                 ))}
               </motion.ul>
@@ -308,7 +311,7 @@ export function CheckoutView({ addresses: initialAddresses, slots, coupons, radi
         {/* 5. Offers */}
         <Section title="Offers">
           {coupon && !couponError && quote?.coupon ? (
-            <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="flex items-center gap-3 rounded-2xl border border-ok/40 bg-ok/10 p-3">
+            <motion.div initial={{ scale: 0.96, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", duration: 0.4, bounce: 0.3 }} className="flex items-center gap-3 rounded-[12px] bg-ok/12 p-3 ring-1 ring-ok/30">
               <Tag className="size-5 text-ok" />
               <div className="flex-1 text-sm">
                 <p className="font-bold">{quote.coupon.code} applied</p>
@@ -321,11 +324,11 @@ export function CheckoutView({ addresses: initialAddresses, slots, coupons, radi
               <form onSubmit={(e) => { e.preventDefault(); applyCoupon(couponInput); }} className="flex gap-2">
                 <input value={couponInput} onChange={(e) => setCouponInput(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 20))}
                   placeholder="Coupon code" aria-label="Coupon code"
-                  className="h-11 flex-1 rounded-xl border border-line bg-card px-3 font-semibold tracking-wider outline-none focus:border-ink" />
-                <button disabled={!couponInput} className="h-11 rounded-xl bg-ink px-4 text-sm font-semibold text-white disabled:opacity-40">Apply</button>
+                  className="h-11 min-w-0 flex-1 rounded-[10px] bg-card px-3 font-semibold tracking-wider outline-none ring-2 ring-transparent focus:ring-nib" />
+                <button disabled={!couponInput} className="press h-11 rounded-[10px] bg-sign px-4 text-sm font-bold text-on-sign disabled:opacity-40">Apply</button>
               </form>
               {couponError && (
-                <p className="mt-2 flex items-center justify-between gap-2 rounded-xl bg-margin/10 px-3 py-2 text-sm text-margin" role="alert">
+                <p className="mt-2 flex items-center justify-between gap-2 rounded-[10px] bg-margin/10 px-3 py-2 text-sm text-margin" role="alert">
                   {couponError}
                   <button type="button" onClick={removeCoupon} className="font-semibold underline">Remove</button>
                 </p>
@@ -334,8 +337,8 @@ export function CheckoutView({ addresses: initialAddresses, slots, coupons, radi
                 <div className="no-scrollbar -mx-4 mt-3 flex gap-2 overflow-x-auto px-4">
                   {coupons.map((c) => (
                     <button key={c.code} type="button" onClick={() => applyCoupon(c.code)}
-                      className="w-56 shrink-0 rounded-2xl border border-dashed border-nib bg-nib-soft p-3 text-left">
-                      <span className="block font-display font-bold tracking-wider text-ink-deep">{c.code}</span>
+                      className="press w-56 shrink-0 rounded-[12px] border-[1.5px] border-dashed border-nib-deep/60 bg-nib-soft p-3 text-left">
+                      <span className="sign-type block text-[19px] text-graphite">{c.code}</span>
                       <span className="block text-sm font-semibold">{c.title}</span>
                       {c.description && <span className="block text-xs text-muted">{c.description}</span>}
                     </button>
@@ -349,7 +352,7 @@ export function CheckoutView({ addresses: initialAddresses, slots, coupons, radi
         {/* 6. Coins */}
         {quote && quote.coins.available > 0 && (
           <Section title="SuperCoins">
-            <label className={clsx("flex items-center gap-3 rounded-2xl border border-line bg-card p-3", quote.coins.max === 0 && "opacity-60")}>
+            <label className={clsx("flex items-center gap-3 rounded-[12px] bg-card p-3", quote.coins.max === 0 && "opacity-60")}>
               <Coins className="size-5 text-nib" />
               <span className="flex-1 text-sm">
                 <span className="block font-semibold">Use {quote.coins.max} of your {quote.coins.available} coins</span>
@@ -371,12 +374,12 @@ export function CheckoutView({ addresses: initialAddresses, slots, coupons, radi
               { key: "counter", title: "Pay at the counter", sub: "Pay when you collect", icon: Store, hide: kind !== "pickup", off: null },
             ] as const).filter((m) => !m.hide).map(({ key, title, sub, icon: Icon, off }) => (
               <button key={key} type="button" role="radio" aria-checked={method === key} disabled={!!off} onClick={() => setMethod(key)}
-                className={clsx("flex items-center gap-3 rounded-2xl border-[1.5px] p-3 text-left disabled:opacity-50",
-                  method === key ? "border-ink bg-ink-soft" : "border-line bg-card")}>
+                className={clsx("press flex items-center gap-3 rounded-[12px] bg-card p-3 text-left ring-2 transition-[box-shadow,background-color] duration-200 disabled:opacity-50",
+                  method === key ? "ring-ink" : "ring-transparent hover:bg-sunk")}>
                 <Icon className="size-5 text-ink" />
                 <span className="flex-1"><span className="block text-sm font-bold">{title}</span><span className="block text-xs text-muted">{off ?? sub}</span></span>
-                <span className={clsx("grid size-5 place-items-center rounded-full border-2", method === key ? "border-ink bg-ink" : "border-line")}>
-                  {method === key && <Check className="size-3 text-white" strokeWidth={3} />}
+                <span className={clsx("grid size-5 place-items-center rounded-full border-2 transition-colors", method === key ? "border-ink bg-ink" : "border-rule")}>
+                  <AnimatePresence>{method === key && <motion.span initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.5, opacity: 0 }} transition={{ type: "spring", duration: 0.3, bounce: 0.4 }}><Check className="size-3 text-on-ink" strokeWidth={3.5} /></motion.span>}</AnimatePresence>
                 </span>
               </button>
             ))}
@@ -385,14 +388,14 @@ export function CheckoutView({ addresses: initialAddresses, slots, coupons, radi
 
         <Section title="Note for the store (optional)">
           <textarea value={note} onChange={(e) => setNote(e.target.value.slice(0, 300))} rows={2} placeholder="e.g. Call when you reach the gate"
-            className="w-full rounded-2xl border border-line bg-card p-3 text-sm outline-none focus:border-ink" />
+            className="w-full rounded-[12px] bg-card p-3 text-sm outline-none ring-2 ring-transparent focus:ring-nib" />
         </Section>
       </div>
 
       {/* Bill */}
       <aside className="lg:sticky lg:top-28 lg:self-start" aria-label="Bill" aria-busy={quoting}>
-        <div className="rounded-2xl border border-line bg-card p-4">
-          <h2 className="font-bold">Bill details</h2>
+        <div className="rounded-[12px] bg-card p-4">
+          <h2 className="text-[24px] uppercase">Bill details</h2>
           {!quote ? (
             <div className="mt-3 space-y-2">{Array.from({ length: 4 }, (_, i) => <div key={i} className="skeleton h-4" />)}</div>
           ) : (
@@ -406,9 +409,9 @@ export function CheckoutView({ addresses: initialAddresses, slots, coupons, radi
                 <p className="text-xs text-muted">Free delivery on {rupees(quote.free_delivery_min_paise)}+. Add {rupees(quote.free_delivery_min_paise - quote.after_coupon_paise)} more.</p>
               )}
               {quote.fine_paise > 0 && <Row label="Cancellation fine (earlier order)" value={rupees(quote.fine_paise)} />}
-              <div className="flex justify-between border-t border-dashed border-line pt-2 text-base font-extrabold"><dt>To pay</dt><dd>{rupees(quote.payable_paise)}</dd></div>
+              <div className="flex items-baseline justify-between border-t border-line pt-2.5"><dt className="font-bold">To pay</dt><dd><Price paise={quote.payable_paise} className="sign-type text-[30px]" /></dd></div>
               {quote.coins_to_earn > 0 && (
-                <p className="flex items-center gap-1.5 rounded-lg bg-nib-soft px-2.5 py-1.5 text-xs">
+                <p className="flex items-center gap-1.5 rounded-[8px] bg-nib-soft px-2.5 py-1.5 text-xs">
                   <Coins className="size-3.5 text-nib" /> You&apos;ll earn {quote.coins_to_earn} SuperCoins 3 days after delivery
                 </p>
               )}
@@ -419,10 +422,9 @@ export function CheckoutView({ addresses: initialAddresses, slots, coupons, radi
               {errors.map((e) => <li key={e} className="flex gap-2 text-sm text-margin"><AlertCircle className="mt-0.5 size-4 shrink-0" />{e}</li>)}
             </ul>
           )}
-          <button onClick={place} disabled={blocking || placing}
-            className="mt-4 hidden h-12 w-full items-center justify-center rounded-xl bg-ink font-bold text-white disabled:bg-muted/50 lg:flex">
-            {placing ? "Placing order…" : quote ? `Place order, ${rupees(quote.payable_paise)}` : "Place order"}
-          </button>
+          <SlideToConfirm className="mt-4 hidden lg:block" label="Slide to place order" onConfirm={place}
+            disabled={blocking && !placing} busy={placing} disabledLabel={quoting ? "Updating your bill" : errors[0] ?? (couponError ? "Remove the coupon" : !pickupOk ? "Add who will collect it" : "Choose how to pay")}
+            sub={quote ? <>Pay <Price paise={quote.payable_paise} /></> : undefined} />
           <p className="mt-2 text-center text-xs text-muted">
             By placing the order you agree to our <Link href="/policies/terms" className="underline">terms</Link> and <Link href="/policies/cancellation" className="underline">cancellation policy</Link>.
           </p>
@@ -430,12 +432,10 @@ export function CheckoutView({ addresses: initialAddresses, slots, coupons, radi
       </aside>
 
       {/* Mobile sticky bar */}
-      <div className="fixed inset-x-0 bottom-[calc(56px+env(safe-area-inset-bottom))] z-30 border-t border-line bg-card/95 p-3 backdrop-blur lg:hidden">
-        <button onClick={place} disabled={blocking || placing}
-          className="flex h-12 w-full items-center justify-between rounded-xl bg-ink px-4 font-bold text-white disabled:bg-muted/50">
-          <span>{quote ? rupees(quote.payable_paise) : "…"}</span>
-          <span>{placing ? "Placing order…" : errors[0] && !quoting ? "Fix the above to continue" : "Place order"}</span>
-        </button>
+      <div className="fixed inset-x-0 bottom-[calc(57px+env(safe-area-inset-bottom))] z-30 border-t border-line bg-card px-3 py-2.5 lg:hidden">
+        <SlideToConfirm label="Slide to place order" onConfirm={place}
+          disabled={blocking && !placing} busy={placing} disabledLabel={quoting ? "Updating your bill" : errors[0] ?? (couponError ? "Remove the coupon" : !pickupOk ? "Add who will collect it" : "Choose how to pay")}
+          sub={quote ? <>Pay <Price paise={quote.payable_paise} /></> : undefined} />
       </div>
 
       <AddressForm open={formOpen} onClose={() => setFormOpen(false)} onSaved={(a, info) => {
@@ -451,7 +451,7 @@ export function CheckoutView({ addresses: initialAddresses, slots, coupons, radi
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section aria-label={title}>
-      <h2 className="mb-2 text-base font-bold">{title}</h2>
+      <h2 className="mb-2 text-[22px] uppercase">{title}</h2>
       {children}
     </section>
   );
@@ -459,6 +459,6 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 function Row({ label, value, good }: { label: string; value: string; good?: boolean }) {
   return (
-    <div className="flex justify-between gap-3"><dt className="text-muted">{label}</dt><dd className={clsx("font-semibold", good && "text-ok")}>{value}</dd></div>
+    <div className="flex justify-between gap-3"><dt className="text-muted">{label}</dt><dd className={clsx("num font-semibold", good && "text-ok")}>{value}</dd></div>
   );
 }

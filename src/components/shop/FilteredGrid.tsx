@@ -2,10 +2,11 @@
 import { Suspense, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { SlidersHorizontal, X, Check } from "lucide-react";
+import { SlidersHorizontal, X, Check, Star } from "lucide-react";
 import clsx from "clsx";
 import type { GroupCard } from "@/lib/types";
 import { Grid } from "./Rail";
+import { Num } from "@/components/ui/Num";
 
 type Sort = "relevance" | "price_asc" | "price_desc" | "rating" | "discount" | "newest";
 const SORTS: { key: Sort; label: string }[] = [
@@ -89,52 +90,52 @@ export function FilteredGrid({ cards, highlightId, showCategoryFilter = false }:
   const toggle = (key: "brands" | "colours" | "price" | "categories", v: string) =>
     setF((s) => ({ ...s, [key]: s[key].includes(v) ? s[key].filter((x) => x !== v) : [...s[key], v] }));
 
-  const chip = (on: boolean, label: string, onClick: () => void, key: string) => (
+  const chip = (on: boolean, label: React.ReactNode, onClick: () => void, key: string) => (
     <button key={key} type="button" onClick={onClick} aria-pressed={on}
-      className={clsx("inline-flex h-9 shrink-0 items-center gap-1 rounded-full border px-3.5 text-sm font-semibold transition-colors",
-        on ? "border-ink bg-ink text-white" : "border-line bg-card text-graphite hover:border-ink/40")}>
-      {on && <Check className="size-3.5" />}{label}
+      className={clsx("press inline-flex h-9 shrink-0 items-center gap-1 rounded-[9px] px-3.5 text-sm font-semibold transition-colors duration-200",
+        on ? "bg-sign text-on-sign" : "bg-card text-graphite ring-1 ring-inset ring-line hover:bg-sunk")}>
+      <AnimatePresence initial={false}>{on && <motion.span initial={{ width: 0, opacity: 0 }} animate={{ width: 14, opacity: 1 }} exit={{ width: 0, opacity: 0 }} transition={{ duration: 0.18 }} className="overflow-hidden"><Check className="size-3.5 text-nib" /></motion.span>}</AnimatePresence>{label}
     </button>
   );
 
   return (
     <div>
       <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 pb-3">
-        <button type="button" onClick={() => setOpen(true)} className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-line bg-card px-3.5 text-sm font-semibold">
-          <SlidersHorizontal className="size-4" /> Filters{active > 0 && <span className="grid size-5 place-items-center rounded-full bg-nib text-[11px] text-ink-deep">{active}</span>}
+        <button type="button" onClick={() => setOpen(true)} className="press inline-flex h-9 shrink-0 items-center gap-1.5 rounded-[9px] bg-card px-3.5 text-sm font-semibold hover:bg-sunk">
+          <SlidersHorizontal className="size-4" /> Filters{active > 0 && <span className="num grid size-5 place-items-center rounded-full bg-nib text-[11px] font-bold text-on-nib">{active}</span>}
         </button>
-        <label className="relative inline-flex h-9 shrink-0 items-center rounded-full border border-line bg-card pl-3.5 pr-2 text-sm font-semibold">
+        <label className="relative inline-flex h-9 shrink-0 items-center rounded-[9px] bg-card pl-3.5 pr-2 text-sm font-semibold">
           <span className="sr-only">Sort by</span>
           <select value={sort} onChange={(e) => setSort(e.target.value as Sort)} className="bg-transparent pr-1 outline-none">
             {SORTS.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
           </select>
         </label>
         {chip(f.inStock, "In stock", () => setF((s) => ({ ...s, inStock: !s.inStock })), "stock")}
-        {chip(f.rating4, "4★ and above", () => setF((s) => ({ ...s, rating4: !s.rating4 })), "r4")}
+        {chip(f.rating4, <span className="inline-flex items-center gap-0.5">4<Star className="size-3.5 fill-nib text-nib" aria-label="stars" /> and above</span>, () => setF((s) => ({ ...s, rating4: !s.rating4 })), "r4")}
         {chip(f.discount, "10% off or more", () => setF((s) => ({ ...s, discount: !s.discount })), "disc")}
         {PRICE_BANDS.slice(0, 2).map((b) => chip(f.price.includes(b.key), b.label, () => toggle("price", b.key), b.key))}
       </div>
 
-      <p className="mb-3 text-sm text-muted">{result.length} {result.length === 1 ? "product" : "products"}</p>
+      <p className="mb-3 text-sm text-muted"><Num value={result.length} /> {result.length === 1 ? "product" : "products"}</p>
 
       {result.length ? (
         <Grid cards={result} highlightId={highlightId} />
       ) : (
-        <div className="ruled rounded-3xl p-8 pl-14">
-          <h3 className="text-lg font-bold">Nothing matches these filters</h3>
+        <div className="rounded-[16px] bg-card p-8">
+          <h3 className="text-[26px] uppercase">Nothing matches these filters</h3>
           <p className="mt-1 text-muted">Remove a filter or two to see more products.</p>
-          <button onClick={() => setF(EMPTY)} className="mt-4 rounded-xl bg-ink px-4 py-2.5 text-sm font-semibold text-white">Clear all filters</button>
+          <button onClick={() => setF(EMPTY)} className="press mt-4 rounded-[10px] bg-nib px-4 py-2.5 text-sm font-bold text-on-nib">Clear all filters</button>
         </div>
       )}
 
       <AnimatePresence>
         {open && (
-          <motion.div className="fixed inset-0 z-50 flex items-end justify-center bg-ink-deep/40 sm:items-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setOpen(false)}>
+          <motion.div className="fixed inset-0 z-50 flex items-end justify-center bg-scrim sm:items-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setOpen(false)}>
             <motion.div role="dialog" aria-modal="true" aria-labelledby="filters-title" onClick={(e) => e.stopPropagation()}
-              initial={{ y: 60 }} animate={{ y: 0 }} exit={{ y: 60 }} transition={{ type: "spring", stiffness: 380, damping: 34 }}
-              className="flex max-h-[85dvh] w-full max-w-md flex-col rounded-t-3xl bg-card sm:rounded-3xl">
+              initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%", transition: { duration: 0.22, ease: [0.32, 0.72, 0, 1] } }} transition={{ duration: 0.42, ease: [0.32, 0.72, 0, 1] }}
+              className="flex max-h-[85dvh] w-full max-w-md flex-col rounded-t-[20px] bg-card sm:rounded-[16px]">
               <div className="flex items-center justify-between border-b border-line px-5 py-4">
-                <h2 id="filters-title" className="text-lg font-bold">Filters</h2>
+                <h2 id="filters-title" className="text-[26px] uppercase">Filters</h2>
                 <button onClick={() => setOpen(false)} className="grid size-9 place-items-center rounded-full hover:bg-paper" aria-label="Close filters"><X className="size-5" /></button>
               </div>
               <div className="flex-1 space-y-6 overflow-y-auto px-5 py-5">
@@ -159,14 +160,14 @@ export function FilteredGrid({ cards, highlightId, showCategoryFilter = false }:
                 <fieldset><legend className="mb-2 text-sm font-bold">More</legend>
                   <div className="flex flex-wrap gap-2">
                     {chip(f.inStock, "In stock", () => setF((s) => ({ ...s, inStock: !s.inStock })), "s")}
-                    {chip(f.rating4, "4★ and above", () => setF((s) => ({ ...s, rating4: !s.rating4 })), "r")}
+                    {chip(f.rating4, <span className="inline-flex items-center gap-0.5">4<Star className="size-3.5 fill-nib text-nib" aria-label="stars" /> and above</span>, () => setF((s) => ({ ...s, rating4: !s.rating4 })), "r")}
                     {chip(f.discount, "10% off or more", () => setF((s) => ({ ...s, discount: !s.discount })), "d")}
                   </div>
                 </fieldset>
               </div>
               <div className="flex gap-3 border-t border-line p-4">
-                <button onClick={() => setF(EMPTY)} className="h-12 flex-1 rounded-xl border border-line font-semibold">Clear all</button>
-                <button onClick={() => setOpen(false)} className="h-12 flex-[2] rounded-xl bg-ink font-semibold text-white">Show {result.length} products</button>
+                <button onClick={() => setF(EMPTY)} className="press h-12 flex-1 rounded-[10px] bg-sunk font-semibold">Clear all</button>
+                <button onClick={() => setOpen(false)} className="sign-type press h-12 flex-[2] rounded-[10px] bg-nib text-[19px] text-on-nib">Show <Num value={result.length} /> products</button>
               </div>
             </motion.div>
           </motion.div>

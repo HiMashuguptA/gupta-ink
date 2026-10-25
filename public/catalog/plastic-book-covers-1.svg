@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" role="img">
-  <rect width="600" height="600" rx="48" fill="rgb(225,244,247)"/>
+  
   <ellipse cx="300" cy="520" rx="180" ry="22" fill="rgb(11,85,96)" opacity=".10"/>
   
     <rect x="175" y="120" width="250" height="360" rx="14" fill="rgb(161,221,229)" stroke="#15aabf" stroke-width="7"/>

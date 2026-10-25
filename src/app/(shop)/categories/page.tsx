@@ -8,7 +8,7 @@ export default async function CategoriesPage() {
   const categories = await getCategories();
   return (
     <div className="pt-2">
-      <CategoryGrid categories={categories} title="All categories" />
+      <CategoryGrid categories={categories} title="All aisles" showAll={false} />
     </div>
   );
 }

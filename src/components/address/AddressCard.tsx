@@ -5,7 +5,7 @@ import type { SavedAddress } from "@/app/actions/addresses";
 export function AddressCard({ a, radiusKm, selected, children }: { a: SavedAddress; radiusKm: number; selected?: boolean; children?: React.ReactNode }) {
   const out = a.road_km != null && a.road_km > radiusKm;
   return (
-    <div className={clsx("flex gap-3 rounded-2xl border p-3.5", selected ? "border-ink bg-ink-soft/60 ring-1 ring-ink" : "border-line bg-card")}>
+    <div className={clsx("flex gap-3 rounded-[12px] border p-3.5", selected ? "border-ink bg-ink-soft/60 ring-1 ring-ink" : "border-line bg-card")}>
       <MapPin className={clsx("mt-0.5 size-5 shrink-0", out ? "text-margin" : "text-ink")} />
       <div className="min-w-0 flex-1">
         <p className="flex flex-wrap items-center gap-2 font-semibold">

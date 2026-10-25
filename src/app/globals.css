@@ -1,40 +1,95 @@
 @import "tailwindcss";
 
+
+/*
+ * Khedi Market signboard: enamel sign colours on a limewash ground.
+ * ink      = signboard green (shell, selection, links)    on-ink = text on a green fill
+ * nib      = chrome yellow, the one action colour           on-nib = text on yellow
+ * margin   = post-box red, offers and alerts only
+ */
 :root {
-  --ink: #1f2a6e;
-  --ink-deep: #141c4d;
-  --ink-soft: #e8ebf8;
-  --nib: #e9a23b;
-  --nib-soft: #fdf1dc;
-  --paper: #f6f7fb;
+  --ink: #0b5a45;
+  --ink-deep: #083f31;
+  --ink-soft: #dfeee7;
+  --on-ink: #ffffff;
+  --sign: #0a4d3b;          /* header / shell board */
+  --on-sign: #f4faf6;
+  --on-sign-muted: #a9cfc0;
+  --nib: #f5b800;
+  --nib-deep: #d99e00;
+  --nib-soft: #fff1c2;
+  --on-nib: #1d1600;
+  --paper: #eef2ee;
   --card: #ffffff;
-  --graphite: #1c2030;
-  --muted: #5d6478;
-  --rule: #cfd9f2;
-  --margin: #d9534a;
-  --ok: #1f8a5b;
-  --line: #e3e6ef;
-  --chart-1: #2a78d6; /* single-series chart colour, checked for contrast */
-  --chart-grid: #e9ebf2;
+  --sunk: #e5ebe6;          /* one tone step below paper */
+  --graphite: #13201a;
+  --muted: #536259;
+  --rule: #cfdbd3;
+  --margin: #cf1f2b;
+  --margin-soft: #fde4e4;
+  --ok: #1d8a4b;
+  --line: #dbe3dd;
+  --chart-1: #0b7a5c;
+  --chart-grid: #e3e9e5;
+  --shadow-float: 0 12px 32px -12px rgb(8 40 30 / 0.35), 0 2px 6px rgb(8 40 30 / 0.08);
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --ink: #5cd3a5;
+  --ink-deep: #a6ecd0;
+  --ink-soft: #12382b;
+  --on-ink: #04201a;
+  --sign: #0a3329;
+  --on-sign: #eaf6f0;
+  --on-sign-muted: #8fbcab;
+  --nib: #f7c22e;
+  --nib-deep: #ffd451;
+  --nib-soft: #3a2f0c;
+  --on-nib: #1d1600;
+  --paper: #0a120f;
+  --card: #111c17;
+  --sunk: #0e1813;
+  --graphite: #e7f0ea;
+  --muted: #9bb0a5;
+  --rule: #23352c;
+  --margin: #ff5a63;
+  --margin-soft: #3a1416;
+  --ok: #4cc98a;
+  --line: #1e2d26;
+  --chart-1: #3fbf91;
+  --chart-grid: #1c2a23;
+  --shadow-float: 0 16px 40px -12px rgb(0 0 0 / 0.7), 0 2px 8px rgb(0 0 0 / 0.4);
+  color-scheme: dark;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --ink: #9fb0ff;
-    --ink-deep: #c9d2ff;
-    --ink-soft: #1e2547;
-    --nib: #f0b55a;
-    --nib-soft: #3a2c14;
-    --paper: #0f1220;
-    --card: #181c2e;
-    --graphite: #eef0f7;
-    --muted: #a3a9bd;
-    --rule: #26304f;
-    --margin: #f07a70;
-    --ok: #4cc58d;
-    --line: #272c42;
-    --chart-1: #3987e5;
-    --chart-grid: #232839;
+  :root:not([data-theme="light"]) {
+    --ink: #5cd3a5;
+    --ink-deep: #a6ecd0;
+    --ink-soft: #12382b;
+    --on-ink: #04201a;
+    --sign: #0a3329;
+    --on-sign: #eaf6f0;
+    --on-sign-muted: #8fbcab;
+    --nib: #f7c22e;
+    --nib-deep: #ffd451;
+    --nib-soft: #3a2f0c;
+    --on-nib: #1d1600;
+    --paper: #0a120f;
+    --card: #111c17;
+    --sunk: #0e1813;
+    --graphite: #e7f0ea;
+    --muted: #9bb0a5;
+    --rule: #23352c;
+    --margin: #ff5a63;
+    --margin-soft: #3a1416;
+    --ok: #4cc98a;
+    --line: #1e2d26;
+    --chart-1: #3fbf91;
+    --chart-grid: #1c2a23;
+    --shadow-float: 0 16px 40px -12px rgb(0 0 0 / 0.7), 0 2px 8px rgb(0 0 0 / 0.4);
+    color-scheme: dark;
   }
 }
 
@@ -42,72 +97,115 @@
   --color-ink: var(--ink);
   --color-ink-deep: var(--ink-deep);
   --color-ink-soft: var(--ink-soft);
+  --color-on-ink: var(--on-ink);
+  --color-sign: var(--sign);
+  --color-on-sign: var(--on-sign);
+  --color-on-sign-muted: var(--on-sign-muted);
   --color-nib: var(--nib);
+  --color-nib-deep: var(--nib-deep);
   --color-nib-soft: var(--nib-soft);
+  --color-on-nib: var(--on-nib);
   --color-paper: var(--paper);
   --color-card: var(--card);
+  --color-sunk: var(--sunk);
   --color-graphite: var(--graphite);
   --color-muted: var(--muted);
   --color-rule: var(--rule);
   --color-margin: var(--margin);
+  --color-margin-soft: var(--margin-soft);
   --color-ok: var(--ok);
   --color-line: var(--line);
   --color-chart-1: var(--chart-1);
   --color-chart-grid: var(--chart-grid);
-  --font-display: "Bricolage Grotesque Variable", ui-sans-serif, system-ui, sans-serif;
-  --font-sans: "Figtree Variable", ui-sans-serif, system-ui, sans-serif;
-  --font-hand: "Caveat", cursive;
+  --color-scrim: rgb(3 18 13 / 0.55);
+  --font-display: "Big Shoulders Display Variable", "Arial Narrow", ui-sans-serif, sans-serif;
+  --font-sans: "Schibsted Grotesk Variable", ui-sans-serif, system-ui, sans-serif;
+  --shadow-float: var(--shadow-float);
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --radius-board: 10px;
 }
 
 html { -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 /* Phones: never let one wide element drag the whole page sideways (clip keeps sticky headers working) */
 html, body { overflow-x: clip; }
+html, body { overscroll-behavior-y: none; }
+
 @layer base {
   /* Grid and flex children may shrink below their content width instead of overflowing */
   .grid > * { min-width: 0; }
   img, svg, video { max-width: 100%; }
   /* 16px inputs stop iOS Safari zooming the page when a field is tapped */
   @media (max-width: 640px) { input:not([type=checkbox]):not([type=radio]), select, textarea { font-size: 16px; } }
+  button, [role="button"], a { touch-action: manipulation; }
+  button, [role="button"], [role="tab"], [role="switch"] { user-select: none; -webkit-user-select: none; }
 }
+
 body {
   background: var(--paper);
   color: var(--graphite);
   font-family: var(--font-sans);
   font-size: 15px;
   line-height: 1.5;
+  font-feature-settings: "ss01" on;
 }
 
-h1, h2, h3, .font-display { font-family: var(--font-display); letter-spacing: -0.01em; }
+/* Sign lettering: condensed caps for headings, prices and labels painted on boards */
+h1, h2, h3, .font-display { font-family: var(--font-display); letter-spacing: 0.005em; font-weight: 800; }
+h1, h2, h3 { text-wrap: balance; line-height: 1.02; }
+.sign-type { font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.02em; font-weight: 800; line-height: 1; }
+.num { font-variant-numeric: tabular-nums; }
 
-:focus-visible { outline: 2px solid var(--nib); outline-offset: 2px; border-radius: 6px; }
-
-/* Notebook ruled paper, used sparingly (hero, login, empty states) */
-.ruled {
-  background-color: var(--card);
-  background-image:
-    linear-gradient(90deg, transparent 27px, var(--margin) 27px, var(--margin) 28.5px, transparent 28.5px),
-    repeating-linear-gradient(180deg, transparent 0 27px, var(--rule) 27px 28px);
-}
+/* Browser surfaces carry the design too */
+::selection { background: var(--nib); color: var(--on-nib); }
+input, textarea { caret-color: var(--ink); }
+:focus-visible { outline: 2.5px solid var(--nib); outline-offset: 2px; border-radius: 8px; }
+a { text-underline-offset: 3px; text-decoration-thickness: 1.5px; }
+* { scrollbar-width: thin; scrollbar-color: var(--rule) transparent; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: var(--rule); border-radius: 10px; border: 3px solid transparent; background-clip: content-box; }
 
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { scrollbar-width: none; }
 
-/* Skeleton shimmer */
-.skeleton {
-  background: linear-gradient(90deg, var(--line) 0%, color-mix(in srgb, var(--line) 40%, var(--card)) 50%, var(--line) 100%);
-  background-size: 200% 100%;
-  animation: shimmer 1.3s linear infinite;
-  border-radius: 10px;
-}
-@keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+/* Press feedback: things you tap give a little under your thumb */
+.press { transition: transform 140ms var(--ease-out), background-color 160ms ease, color 160ms ease, border-color 160ms ease; }
+.press:active { transform: scale(0.97); }
+
+/* Loading placeholders breathe (no shimmer gradient) */
+.skeleton { background: var(--sunk); border-radius: 10px; animation: breathe 1.4s ease-in-out infinite; }
+@keyframes breathe { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
+
+/* Legacy class from the notebook look; now a plain board */
+.ruled { background-color: var(--card); }
+
+/* Red facts ticker (Aceternity "infinite moving cards", done in CSS so it costs nothing) */
+.ticker-track { display: flex; width: max-content; animation: ticker 38s linear infinite; }
+.ticker:hover .ticker-track { animation-play-state: paused; }
+@keyframes ticker { to { transform: translateX(-50%); } }
 
 /* Logo stroke draw */
-.ink-draw { stroke-dasharray: 1; stroke-dashoffset: 1; animation: draw 1.4s cubic-bezier(.65,0,.35,1) forwards; }
+.ink-draw { stroke-dasharray: 1; stroke-dashoffset: 1; animation: draw 1.1s var(--ease-in-out) forwards; }
 @keyframes draw { to { stroke-dashoffset: 0; } }
 
+/* Page and product transitions (View Transitions API; browsers without it just navigate) */
+::view-transition-old(root) { animation: vt-out 160ms var(--ease-out) both; }
+::view-transition-new(root) { animation: vt-in 260ms var(--ease-out) both; }
+@keyframes vt-out { to { opacity: 0; transform: translateY(-6px); } }
+@keyframes vt-in { from { opacity: 0; transform: translateY(10px); } }
+::view-transition-group(*) { animation-duration: 380ms; animation-timing-function: var(--ease-out); }
+::view-transition-group(site-header), ::view-transition-group(bottom-nav), ::view-transition-group(order-island) { animation: none; }
+::view-transition-old(site-header), ::view-transition-new(site-header),
+::view-transition-old(bottom-nav), ::view-transition-new(bottom-nav),
+::view-transition-old(order-island), ::view-transition-new(order-island) { animation: none; }
+
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
+  *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; }
   .ink-draw { stroke-dashoffset: 0; }
+  .ticker-track { animation: none; }
+  .skeleton { animation: none; }
+  ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
 }
 
 /* We draw our own clear button in the search box */
@@ -120,3 +218,21 @@ input[type="search"]::-webkit-search-decoration { -webkit-appearance: none; appe
   html, body { background: #fff !important; color: #1b1d2a; }
   .bill { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
+
+/* Scroll reveals: visible by default, hidden only when the observer is running (html.js) */
+html.js .reveal:not(.is-in) { opacity: 0; transform: translateY(18px); }
+html.js .reveal { transition: opacity 480ms var(--ease-out), transform 620ms var(--ease-out); transition-delay: calc(var(--i, 0) * 55ms); }
+html.js .reveal-clip:not(.is-in) { clip-path: inset(0 0 100% 0 round 12px); }
+html.js .reveal-clip { transition: clip-path 700ms var(--ease-out); transition-delay: calc(var(--i, 0) * 60ms); }
+@media (prefers-reduced-motion: reduce) {
+  html.js .reveal:not(.is-in) { transform: none; }
+  html.js .reveal-clip:not(.is-in) { clip-path: none; }
+}
+
+/* Theme switch: the new look spreads in a circle (the old one stays put underneath) */
+.theme-vt::view-transition-old(root), .theme-vt::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+
+/* Signwriter details: a flat shade under big lettering, and a painted keyline inside boards */
+.sign-shade { text-shadow: 0.055em 0.055em 0 var(--shade, rgb(0 0 0 / 0.25)); }
+/* .keyline needs a positioned parent box: use with relative or absolute */
+.keyline::after { content: ""; position: absolute; inset: 6px; border: 2px solid var(--keyline, rgb(255 255 255 / 0.22)); border-radius: calc(var(--radius, 14px) - 5px); pointer-events: none; }
