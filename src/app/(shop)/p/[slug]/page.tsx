@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-import { Suspense } from "react";
 import { Star } from "lucide-react";
 import { getProduct, getCollection } from "@/lib/catalog";
 
@@ -32,9 +31,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
       <LiveRefresh id={`product-${p.card.group_id}`} waitMs={1500}
         watch={[{ table: "reviews", filter: `group_id=eq.${p.card.group_id}` }, { table: "products", filter: `group_id=eq.${p.card.group_id}` }]} />
       <div className="px-4">
-        <Suspense>
-          <ProductDetail card={p.card} description={p.description} returnable={p.card.returnable} />
-        </Suspense>
+        <ProductDetail card={p.card} description={p.description} returnable={p.card.returnable} />
       </div>
 
       <section id="reviews" className="mt-10 px-4">

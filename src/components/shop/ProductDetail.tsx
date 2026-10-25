@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Star, RotateCcw, Truck, Store, ReceiptText, Zap } from "lucide-react";
 import { useCart, capFor } from "@/components/providers/CartProvider";
@@ -15,10 +15,13 @@ import { WishlistHeart } from "./WishlistHeart";
 import { ProductGallery } from "./ProductGallery";
 
 export function ProductDetail({ card, description, returnable }: { card: GroupCard; description: string | null; returnable: boolean }) {
-  const params = useSearchParams();
   const router = useRouter();
-  const initial = card.variants.find((v) => v.id === params.get("v")) ?? card.variants[0];
-  const [vid, setVid] = useState(initial.id);
+  // The page is cached for everyone, so a ?v= variant link is applied right after load
+  const [vid, setVid] = useState(card.variants[0].id);
+  useEffect(() => {
+    const want = new URLSearchParams(window.location.search).get("v");
+    if (want && card.variants.some((x) => x.id === want)) setVid(want);
+  }, [card.variants]);
   const v = card.variants.find((x) => x.id === vid) ?? card.variants[0];
 
   const { user } = useSession();

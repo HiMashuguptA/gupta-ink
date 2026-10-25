@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { Search, X, LayoutGrid, CornerDownLeft } from "lucide-react";
 import clsx from "clsx";
@@ -13,8 +13,10 @@ const HINTS = ["gel pen", "geometry box", "A4 paper", "notebook", "highlighter",
 
 export function SearchBox({ autoFocus = false, id = "search" }: { autoFocus?: boolean; id?: string }) {
   const router = useRouter();
-  const params = useSearchParams();
-  const [q, setQ] = useState(params.get("q") ?? "");
+  // Read ?q= after load (not useSearchParams) so cached shop pages include the search box in their HTML
+  const path = usePathname();
+  const [q, setQ] = useState("");
+  useEffect(() => { setQ(new URLSearchParams(window.location.search).get("q") ?? ""); }, [path]);
   const [items, setItems] = useState<Suggestion[]>([]);
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(-1);
