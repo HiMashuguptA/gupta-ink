@@ -51,7 +51,7 @@ export function linkFor(type: string, value: string | null) {
 
 /** Public URL for a file in a public storage bucket (full URLs pass through). */
 export const storageUrl = (bucket: string, path: string) =>
-  path.startsWith("http") ? path : `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${bucket}/${path}`;
+  path.startsWith("http") || path.startsWith("/") ? path : `/media/${bucket}/${path}`;
 
 /** Short rupee label for chart axes: ₹850, ₹1.2k, ₹3.4L. Input in paise. */
 export function rupeesShort(paise: number) {

@@ -1,5 +1,6 @@
 "use client";
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { useAuth, useClerk } from "@clerk/nextjs";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import type { Profile } from "@/lib/types";
 
@@ -8,51 +9,47 @@ export type SessionUser = { id: string; email: string | null };
 type Ctx = { user: SessionUser | null; profile: Profile | null; ready: boolean; refresh: () => Promise<void>; signOut: () => Promise<void> };
 const SessionCtx = createContext<Ctx>({ user: null, profile: null, ready: false, refresh: async () => {}, signOut: async () => {} });
 
+/**
+ * Who is signed in, for the browser. Clerk knows whether someone is signed in; the profile
+ * (role, coins, buddy...) comes from the database, which creates it on the first visit.
+ * Shop pages are cached for everyone, so this fills sign-in info in right after load.
+ */
 export function SessionProvider({ initialUser, initialProfile, children }: { initialUser: SessionUser | null; initialProfile: Profile | null; children: React.ReactNode }) {
+  const { isLoaded, isSignedIn, userId } = useAuth();
+  const clerk = useClerk();
   const [user, setUser] = useState(initialUser);
   const [profile, setProfile] = useState(initialProfile);
-  // Shop pages are cached and shared by everyone, so they arrive without sign-in info;
-  // this provider fills it in from the browser's saved session right after load.
   const [ready, setReady] = useState(!!initialUser);
   const sb = supabaseBrowser();
+  const last = useRef<string | null | undefined>(undefined);
 
-  // Reads the session saved in this browser (no network call); the server and the
-  // database still verify the sign-in on every request that matters.
   const refresh = useCallback(async () => {
-    const { data: { session } } = await sb.auth.getSession();
-    const u = session?.user;
-    const user = u ? { id: u.id, email: u.email ?? null } : null;
-    setUser(user);
-    if (!user) { setProfile(null); setReady(true); return; }
-    const { data } = await sb
-      .from("profiles")
-      .select("id, email, name, phone, avatar_url, role, referral_code, referral_prompt_done, welcome_seen, created_at, pet, pet_name, pet_hidden, wa_opt_in, email_offers")
-      .eq("id", user.id)
-      .single();
-    setProfile(data as Profile | null);
+    if (!isSignedIn) { setUser(null); setProfile(null); setReady(true); return; }
+    const { data } = await sb.rpc("ensure_profile");
+    const p = (data as unknown as Profile | null) ?? null;
+    setProfile(p);
+    setUser(p ? { id: p.id, email: p.email ?? null } : null);
     setReady(true);
     // Blocked accounts can't use the shop (the database refuses their actions too)
-    if ((data as Profile | null)?.role === "blocked" && !window.location.pathname.startsWith("/blocked")) window.location.replace("/blocked");
-  }, [sb]);
+    if (p?.role === "blocked" && !window.location.pathname.startsWith("/blocked")) window.location.replace("/blocked");
+  }, [sb, isSignedIn]);
 
-  useEffect(() => { if (!initialUser) void refresh(); }, [initialUser, refresh]);
-
+  // Load once Clerk has loaded, and again whenever the signed-in person changes
   useEffect(() => {
-    // The library re-announces SIGNED_IN whenever the tab regains focus; only act on real changes.
-    let current = initialUser?.id ?? null;
-    const { data: sub } = sb.auth.onAuthStateChange((event, session) => {
-      const id = session?.user?.id ?? null;
-      if (event === "USER_UPDATED" || id !== current) { current = id; void refresh(); }
-    });
-    return () => sub.subscription.unsubscribe();
-  }, [sb, refresh, initialUser?.id]);
+    if (!isLoaded) return;
+    if (last.current === userId) return;
+    const first = last.current === undefined;
+    last.current = userId ?? null;
+    if (first && initialUser && isSignedIn) return; // the server already sent the profile
+    void refresh();
+  }, [isLoaded, userId, isSignedIn, initialUser, refresh]);
 
   const signOut = useCallback(async () => {
-    await sb.auth.signOut();
+    await clerk.signOut();
     setUser(null);
     setProfile(null);
     window.location.href = "/";
-  }, [sb]);
+  }, [clerk]);
 
   return <SessionCtx.Provider value={{ user, profile, ready, refresh, signOut }}>{children}</SessionCtx.Provider>;
 }

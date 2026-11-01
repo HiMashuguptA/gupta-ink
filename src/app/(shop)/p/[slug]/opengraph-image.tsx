@@ -15,6 +15,7 @@ export async function generateStaticParams() {
 
 /** Link preview for a product: its picture on a white board, name and price painted on the sign. */
 export default async function Image({ params }: { params: Promise<{ slug: string }> }) {
+  const mark = await markUri();
   const { slug } = await params;
   const p = await getProduct(slug);
   const card = p?.card;
@@ -29,7 +30,7 @@ export default async function Image({ params }: { params: Promise<{ slug: string
         </div>
         <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "space-between", padding: "8px 4px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            <img src={markUri} width={64} height={64} alt="" />
+            <img src={mark} width={64} height={64} alt="" />
             <div style={{ fontFamily: "Sign", fontSize: 40, color: "#f4faf6", textTransform: "uppercase" }}>Gupta Enterprises</div>
           </div>
           <div style={{ display: "flex", flexDirection: "column" }}>

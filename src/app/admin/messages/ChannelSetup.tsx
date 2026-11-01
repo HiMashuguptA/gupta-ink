@@ -7,7 +7,7 @@ import { supabaseBrowser } from "@/lib/supabase/client";
 
 type Tally = { queued: number; sent_today: number; failed_today: number };
 export type MsgStatus = {
-  brevo_key: boolean; openwa_key: boolean; sender: string;
+  email_key: boolean; openwa_key: boolean; sender: string;
   settings: { wa_enabled: boolean; wa_base_url: string | null; wa_session: string; wa_per_minute: number; wa_daily_cap: number; email_per_minute: number; email_daily_cap: number; order_updates_wa: boolean };
   email: Tally; whatsapp: Tally; last_error: { channel: string; error: string; at: string } | null;
 };
@@ -34,7 +34,7 @@ export function ChannelSetup({ initial, error }: { initial: MsgStatus | null; er
   const router = useRouter();
   const sb = supabaseBrowser();
   const [st, setSt] = useState(initial?.settings);
-  const [brevo, setBrevo] = useState("");
+  const [resend, setResend] = useState("");
   const [owa, setOwa] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ ok: boolean; text: string; where: "email" | "wa" } | null>(null);
@@ -44,12 +44,12 @@ export function ChannelSetup({ initial, error }: { initial: MsgStatus | null; er
 
   const field = "mt-1 h-10 w-full rounded-[8px] border border-line bg-paper px-3 text-sm text-graphite caret-ink outline-none focus:border-ink";
 
-  const saveKey = async (name: "brevo_api_key" | "openwa_api_key", value: string, where: "email" | "wa") => {
+  const saveKey = async (name: "resend_api_key" | "openwa_api_key", value: string, where: "email" | "wa") => {
     setBusy(name); setMsg(null);
     const { error } = await sb.rpc("admin_set_secret", { p_name: name, p_value: value });
     setBusy(null);
     if (error) return setMsg({ ok: false, text: error.message, where });
-    if (name === "brevo_api_key") setBrevo(""); else setOwa("");
+    if (name === "resend_api_key") setResend(""); else setOwa("");
     setMsg({ ok: true, text: "Key saved. It's stored encrypted and can't be read back from here.", where });
     router.refresh();
   };
@@ -89,17 +89,17 @@ export function ChannelSetup({ initial, error }: { initial: MsgStatus | null; er
       <section className="rounded-[14px] bg-card p-4">
         <div className="flex items-center gap-2">
           <Mail className="size-5 text-ink" /><h2 className="t-h5 uppercase">Email</h2>
-          <span className="ml-auto"><Pill ok={initial.brevo_key} yes="Ready" no="Key needed" /></span>
+          <span className="ml-auto"><Pill ok={initial.email_key} yes="Ready" no="Key needed" /></span>
         </div>
-        <p className="mt-1 text-muted">Sent with Brevo (free: 300 a day). Delivery codes, offers and tests use this.</p>
-        <p className="mt-2 text-xs">From <b className="font-mono">{initial.sender}</b>. This address must be a verified sender in Brevo (Senders, domains and IPs).</p>
-        <form className="mt-3 flex gap-2" onSubmit={(e) => { e.preventDefault(); if (brevo.trim()) void saveKey("brevo_api_key", brevo, "email"); }}>
-          <label className="min-w-0 flex-1 font-semibold"><span className="sr-only">Brevo API key</span>
-            <input type="password" value={brevo} onChange={(e) => setBrevo(e.target.value)} autoComplete="off" spellCheck={false} placeholder={initial.brevo_key ? "Replace the saved key" : "Paste your Brevo API key (xkeysib-…)"} className={`${field} mt-0 font-mono`} />
+        <p className="mt-1 text-muted">Sent with Resend (free: 100 a day, 3,000 a month). Delivery codes, offers and tests use this.</p>
+        <p className="mt-2 text-xs">From <b className="font-mono">{initial.sender}</b>. This address must be on a domain verified in Resend (Domains).</p>
+        <form className="mt-3 flex gap-2" onSubmit={(e) => { e.preventDefault(); if (resend.trim()) void saveKey("resend_api_key", resend, "email"); }}>
+          <label className="min-w-0 flex-1 font-semibold"><span className="sr-only">Resend API key</span>
+            <input type="password" value={resend} onChange={(e) => setResend(e.target.value)} autoComplete="off" spellCheck={false} placeholder={initial.email_key ? "Replace the saved key" : "Paste your Resend API key (xkeysib-…)"} className={`${field} mt-0 font-mono`} />
           </label>
-          <button disabled={!brevo.trim() || busy === "brevo_api_key"} className="press inline-flex h-10 items-center gap-1.5 rounded-[8px] bg-ink px-3 font-semibold text-on-ink disabled:opacity-40"><KeyRound className="size-4" /> Save</button>
+          <button disabled={!resend.trim() || busy === "resend_api_key"} className="press inline-flex h-10 items-center gap-1.5 rounded-[8px] bg-ink px-3 font-semibold text-on-ink disabled:opacity-40"><KeyRound className="size-4" /> Save</button>
         </form>
-        <button type="button" onClick={() => void test("email")} disabled={!initial.brevo_key || !!busy} className="press mt-2 inline-flex h-9 items-center gap-1.5 rounded-[8px] bg-sunk px-3 text-xs font-semibold hover:bg-ink-soft disabled:opacity-40"><Send className="size-3.5" /> Send me a test email</button>
+        <button type="button" onClick={() => void test("email")} disabled={!initial.email_key || !!busy} className="press mt-2 inline-flex h-9 items-center gap-1.5 rounded-[8px] bg-sunk px-3 text-xs font-semibold hover:bg-ink-soft disabled:opacity-40"><Send className="size-3.5" /> Send me a test email</button>
         {note("email")}
         <Stats t={initial.email} cap={st.email_daily_cap} />
       </section>

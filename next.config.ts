@@ -9,7 +9,7 @@ const nextConfig: NextConfig = {
   },
   poweredByHeader: false,
   // Share images read their fonts and product pictures from disk
-  outputFileTracingIncludes: { "/**/opengraph-image*": ["./src/lib/og/**", "./public/catalog/**", "./public/brand/**"] },
+  outputFileTracingIncludes: { "/**/opengraph-image*": ["./public/catalog/**", "./public/brand/**", "./public/og/**"] },
   async headers() {
     return [{
       source: "/:path*",

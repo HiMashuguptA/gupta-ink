@@ -2228,6 +2228,11 @@ export type Database = {
         Args: { p_order: string; p_utr: string }
         Returns: undefined
       }
+      ensure_profile: {
+        Args: never
+        Returns: Database["public"]["Tables"]["profiles"]["Row"]
+      }
+      live_stamp: { Args: { p_keys: string[] }; Returns: Json }
       track_view: { Args: { p_group: string }; Returns: undefined }
     }
     Enums: {

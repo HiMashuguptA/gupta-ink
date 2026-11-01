@@ -1,64 +1,55 @@
 import "server-only";
 import { cache } from "react";
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
-import type { Database } from "../database.types";
+import { auth } from "@clerk/nextjs/server";
+import { makeRest, type Rest } from "@/lib/db/rest";
+import { signMedia } from "@/lib/media";
 import type { Profile } from "../types";
 
-export async function supabaseServer() {
-  const store = await cookies();
-  return createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll: () => store.getAll(),
-        setAll: (list) => {
-          try {
-            list.forEach(({ name, value, options }) => store.set(name, value, options));
-          } catch {
-            // Called from a Server Component: the middleware refreshes cookies instead.
-          }
-        },
-      },
+/**
+ * Server-side database client for the signed-in person (Clerk session token on every request),
+ * under its old name so pages keep working. Storage gives signed links for private files.
+ */
+export type ServerDb = Rest & {
+  storage: {
+    from: (bucket: string) => {
+      createSignedUrl: (path: string, seconds: number) => Promise<{ data: { signedUrl: string } | null; error: null }>;
+      createSignedUrls: (paths: string[], seconds: number) => Promise<{ data: { path: string; signedUrl: string }[]; error: null }>;
+    };
+  };
+};
+
+function withStorage(rest: Rest): ServerDb {
+  return Object.assign(rest, {
+    storage: {
+      from: (bucket: string) => ({
+        createSignedUrl: async (path: string, seconds: number) => ({ data: { signedUrl: await signMedia(bucket, path, seconds) }, error: null }),
+        createSignedUrls: async (paths: string[], seconds: number) => ({
+          data: await Promise.all(paths.map(async (p) => ({ path: p, signedUrl: await signMedia(bucket, p, seconds) }))), error: null,
+        }),
+      }),
     },
-  );
+  }) as ServerDb;
+}
+
+export async function supabaseServer(): Promise<ServerDb> {
+  const { getToken } = await auth();
+  return withStorage(makeRest(() => getToken()));
 }
 
 export type SessionUser = { id: string; email: string | null };
 
-/** Reads the claims of a sign-in token without checking it (the database checks it, see below). */
-function peekClaims(token: string): { sub?: string; email?: string; exp?: number } | null {
-  try {
-    const part = token.split(".")[1];
-    return JSON.parse(Buffer.from(part.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8"));
-  } catch {
-    return null;
-  }
-}
-
 /**
- * The signed-in user and their profile, resolved once per request (React cache),
- * so layout and page share one lookup.
- *
- * Speed: this makes one database call and no call to the sign-in server. The token is
- * read from the cookie, then the profile is fetched *with that token*; the database
- * checks the token's signature and row security only returns the row whose id matches
- * the token. So a forged or expired token gets no profile and counts as signed out.
+ * The signed-in person and their profile, once per request (React cache), so layout and page
+ * share one lookup. ensure_profile() creates the profile and wallet on the first visit after
+ * Google sign-in, and returns it afterwards; the database checks the Clerk token itself.
  */
 export const getSessionProfile = cache(async () => {
   const supabase = await supabaseServer();
   const signedOut = { supabase, user: null as SessionUser | null, profile: null as Profile | null };
-  const { data } = await supabase.auth.getSession();
-  const token = data.session?.access_token;
-  const claims = token ? peekClaims(token) : null;
-  if (!claims?.sub || (claims.exp && claims.exp * 1000 < Date.now())) return signedOut;
-  const { data: profile, error } = await supabase
-    .from("profiles")
-    .select("id, email, name, phone, avatar_url, role, referral_code, referral_prompt_done, welcome_seen, created_at")
-    .eq("id", claims.sub)
-    .maybeSingle();
-  if (error || !profile || profile.id !== claims.sub) return signedOut;
-  const user: SessionUser = { id: claims.sub, email: claims.email ?? profile.email ?? null };
-  return { supabase, user, profile: profile as Profile };
+  const { userId } = await auth();
+  if (!userId) return signedOut;
+  const { data: profile, error } = await supabase.rpc("ensure_profile");
+  if (error || !profile) return signedOut;
+  const p = profile as unknown as Profile;
+  return { supabase, user: { id: p.id, email: p.email ?? null } as SessionUser, profile: p };
 });

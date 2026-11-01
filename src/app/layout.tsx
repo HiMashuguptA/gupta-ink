@@ -4,6 +4,7 @@ import "@fontsource-variable/schibsted-grotesk";
 import "./globals.css";
 import { Suspense } from "react";
 import { ViewTransitions } from "next-view-transitions";
+import { ClerkProvider } from "@clerk/nextjs";
 import { NavProgress } from "@/components/layout/NavProgress";
 import { Splash } from "@/components/layout/Splash";
 
@@ -31,6 +32,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
+    <ClerkProvider signInUrl="/login" signUpUrl="/login" afterSignOutUrl="/">
     <ViewTransitions>
       <html lang="en-IN" suppressHydrationWarning>
         <head>
@@ -49,5 +51,6 @@ new MutationObserver(function(ms){ms.forEach(function(m){m.addedNodes.forEach(se
         </body>
       </html>
     </ViewTransitions>
+    </ClerkProvider>
   );
 }

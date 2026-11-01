@@ -44,3 +44,7 @@ next-env.d.ts
 # Design tool working files (screenshots, question pages)
 .impeccable/review/
 .impeccable/questions/
+
+.open-next
+.wrangler
+.dev.vars

@@ -1,0 +1,24 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	// worker.ts wraps the OpenNext worker and adds the every-minute cron job
+	"main": "worker.ts",
+	"name": "gupta-enterprises",
+	"compatibility_date": "2026-10-01",
+	"compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+	"assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
+	"services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "gupta-enterprises" }],
+	"r2_buckets": [
+		// Next.js page cache
+		{ "binding": "NEXT_INC_CACHE_R2_BUCKET", "bucket_name": "ge-next-cache" },
+		// Product photos, banners, review and return photos, refund proofs
+		{ "binding": "MEDIA", "bucket_name": "ge-media" }
+	],
+	"triggers": { "crons": ["* * * * *"] },
+	"observability": { "enabled": true },
+	// Public settings (secrets are added in the dashboard: CLERK_SECRET_KEY, DATABASE_URL, CRON_SECRET,
+	// MEDIA_SIGNING_KEY, DISTANCE_SIGNING_KEY, RESEND_API_KEY, GOOGLE_ROUTES_KEY, CASHFREE_SECRET_KEY)
+	"vars": {
+		"NEXT_PUBLIC_SITE_URL": "https://guptaenterpriseskohima.com",
+		"EMAIL_FROM": "orders@guptaenterpriseskohima.com"
+	}
+}

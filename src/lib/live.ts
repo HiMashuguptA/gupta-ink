@@ -30,18 +30,8 @@ export function useLive(key: string, specs: LiveSpec[], onChange: () => void, { 
     for (const s of JSON.parse(specKey) as LiveSpec[]) {
       ch = ch.on("postgres_changes", { event: s.event ?? "*", schema: "public", table: s.table, ...(s.filter ? { filter: s.filter } : {}) }, fire);
     }
-    // Make sure the live connection carries this person's sign-in, so row security lets their rows through
-    void sb.auth.getSession().then(({ data }) => {
-      if (data.session?.access_token) void sb.realtime.setAuth(data.session.access_token);
-      ch.subscribe((status) => {
-        if (status === "SUBSCRIBED") {
-          if (joinedOnce) fire(); // reconnected: catch up on anything missed
-          joinedOnce = true;
-          healthy = true;
-        } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
-          healthy = false;
-        }
-      });
+    ch.subscribe((status) => {
+      if (status === "SUBSCRIBED") { if (joinedOnce) fire(); joinedOnce = true; healthy = true; }
     });
 
     const onVisible = () => {

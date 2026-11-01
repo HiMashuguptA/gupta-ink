@@ -3,10 +3,12 @@ import { createHmac } from "node:crypto";
 import { haversineKm } from "./format";
 
 /**
- * Road distance from the store, via OSRM. Falls back to a conservative estimate
- * (straight line × 1.4, typical for Kohima's winding roads) if the router is down.
+ * Road distance from the store: Google Routes API (GOOGLE_ROUTES_KEY), else OSRM, else a
+ * conservative estimate (straight line × 1.4, typical for Kohima's winding roads).
  */
 export async function roadDistanceKm(from: { lat: number; lng: number }, to: { lat: number; lng: number }) {
+  const g = await googleDistanceKm(from, to);
+  if (g != null) return { km: round2(g), approx: false };
   const base = (process.env.OSRM_URL ?? "https://router.project-osrm.org").replace(/\/$/, "");
   const url = `${base}/route/v1/driving/${from.lng},${from.lat};${to.lng},${to.lat}?overview=false&alternatives=false`;
   try {
@@ -22,6 +24,31 @@ export async function roadDistanceKm(from: { lat: number; lng: number }, to: { l
     // fall through to the estimate
   }
   return { km: round2(haversineKm(from, to) * 1.4), approx: true };
+}
+
+async function googleDistanceKm(from: { lat: number; lng: number }, to: { lat: number; lng: number }) {
+  const key = process.env.GOOGLE_ROUTES_KEY;
+  if (!key) return null;
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 6000);
+    const res = await fetch("https://routes.googleapis.com/directions/v2:computeRoutes", {
+      method: "POST", signal: ctrl.signal, cache: "no-store",
+      headers: { "content-type": "application/json", "X-Goog-Api-Key": key, "X-Goog-FieldMask": "routes.distanceMeters" },
+      body: JSON.stringify({
+        origin: { location: { latLng: { latitude: from.lat, longitude: from.lng } } },
+        destination: { location: { latLng: { latitude: to.lat, longitude: to.lng } } },
+        travelMode: "DRIVE",
+      }),
+    });
+    clearTimeout(t);
+    if (!res.ok) return null;
+    const j = (await res.json()) as { routes?: { distanceMeters?: number }[] };
+    const m = j.routes?.[0]?.distanceMeters;
+    return typeof m === "number" ? m / 1000 : null;
+  } catch {
+    return null;
+  }
 }
 
 export const round6 = (n: number) => Math.round(n * 1e6) / 1e6;

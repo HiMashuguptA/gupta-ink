@@ -7,12 +7,13 @@ export const contentType = "image/png";
 
 /** Link preview for the shop: the signboard itself. */
 export default async function Image() {
+  const mark = await markUri();
   return new ImageResponse(
     (
       <div style={{ width: "100%", height: "100%", display: "flex", background: "#0a4d3b", padding: 36 }}>
         <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "space-between", border: "4px solid rgba(245,184,0,.55)", borderRadius: 26, padding: "48px 56px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 22 }}>
-            <img src={markUri} width={108} height={108} alt="" />
+            <img src={mark} width={108} height={108} alt="" />
             <div style={{ display: "flex", flexDirection: "column" }}>
               <div style={{ fontFamily: "Sign", fontSize: 76, color: "#f4faf6", textTransform: "uppercase", lineHeight: 1 }}>Gupta Enterprises</div>
               <div style={{ fontFamily: "Body", fontWeight: 500, fontSize: 30, color: "#a9cfc0", marginTop: 8 }}>Khedi Market, Kohima</div>

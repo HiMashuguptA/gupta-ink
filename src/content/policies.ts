@@ -38,7 +38,7 @@ export const POLICIES: Policy[] = [
       { heading: "Who we share it with", body: [
         "We never sell or rent your personal data, and we do not use advertising trackers.",
         "Store staff see the order details they need to pack and dispatch it. The delivery agent assigned to your order sees your name, phone, address and pin, from when they accept the order until it is delivered.",
-        "Service providers who process data for us under contract: Supabase (database and file storage; our data is currently stored in Supabase's Sydney, Australia region), Brevo (sending order and OTP emails), Cloudflare (website hosting and security), Google (sign-in) and OpenStreetMap services (maps and address lookup).",
+        "Service providers who process data for us under contract: Neon (database), Cloudflare (website hosting, file storage and security), Clerk (sign-in with Google), Resend (sending order emails), Google (sign-in and maps) and OpenStreetMap services (maps and address lookup).",
         "Government or courts, only when the law requires it.",
       ] },
       { heading: "How long we keep it", body: [

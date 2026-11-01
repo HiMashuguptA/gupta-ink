@@ -89,7 +89,7 @@ export function Composer({ coupons, initialCoupon, status }: { coupons: CouponLi
   const preview = body.replaceAll("{name}", first);
   const ok = title.trim().length >= 3 && body.trim().length >= 3 && channels.length > 0 && /^\/\S*$/.test(link) && (reach.inapp + reach.email + reach.whatsapp) > 0;
   const waOff = !status?.settings?.wa_enabled;
-  const mailOff = !status?.brevo_key;
+  const mailOff = !status?.email_key;
 
   const send = async () => {
     setBusy(true); setMsg(null);

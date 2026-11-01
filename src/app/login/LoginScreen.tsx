@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { LogoMark } from "@/components/brand/Logo";
-import { supabaseBrowser } from "@/lib/supabase/client";
+import { useClerk } from "@clerk/nextjs";
 
 const LINES = [
   "Every great idea starts on paper.",
@@ -36,17 +36,20 @@ export function LoginScreen({ next, error }: { next: string; error?: string }) {
     return () => clearInterval(t);
   }, []);
 
+  const clerk = useClerk();
   const signIn = async () => {
+    const attempt = clerk.client?.signIn;
+    if (!clerk.loaded || !attempt) { setErr("Sign-in is still loading. Try again in a second."); return; }
     setBusy(true);
     setErr(null);
-    const { error } = await supabaseBrowser().auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
-        queryParams: { prompt: "select_account" },
-      },
-    });
-    if (error) {
+    try {
+      // Google only. Clerk sends people back to /sso-callback, which finishes sign-in and opens `next`
+      await attempt.authenticateWithRedirect({
+        strategy: "oauth_google",
+        redirectUrl: "/sso-callback",
+        redirectUrlComplete: `${next}${next.includes("?") ? "&" : "?"}signedin=1`,
+      });
+    } catch {
       setBusy(false);
       setErr("Google sign-in isn't available right now. Please try again in a moment.");
     }
