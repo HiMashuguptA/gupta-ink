@@ -20,15 +20,9 @@ const LocCtx = createContext<Ctx | null>(null);
 const KEY = "gi-location-v1";
 
 async function reverseGeocode(lat: number, lng: number): Promise<string> {
-  // Nominatim usage policy: max 1 request/second, identify the app. We call it once per locate.
   try {
-    const r = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=16&lat=${lat}&lon=${lng}`,
-      { headers: { "Accept-Language": "en" } },
-    );
-    const j = await r.json();
-    const a = j.address ?? {};
-    return [a.road || a.neighbourhood || a.suburb, a.city || a.town || a.village || a.county].filter(Boolean).join(", ") || "Current location";
+    const r = await fetch(`/api/geo/reverse?lat=${lat}&lng=${lng}`);
+    return ((await r.json()) as { name?: string }).name || "Current location";
   } catch {
     return "Current location";
   }

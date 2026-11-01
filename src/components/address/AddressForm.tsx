@@ -18,10 +18,8 @@ type Hit = { name: string; lat: number; lng: number };
 /** Place search, kept to the Kohima area so results are relevant. */
 async function searchPlaces(q: string, near: { lat: number; lng: number }): Promise<Hit[]> {
   try {
-    const box = [near.lng - 0.25, near.lat + 0.25, near.lng + 0.25, near.lat - 0.25].join(",");
-    const r = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&countrycodes=in&viewbox=${box}&bounded=1&q=${encodeURIComponent(q)}`, { headers: { "Accept-Language": "en" } });
-    const list = (await r.json()) as { display_name: string; lat: string; lon: string }[];
-    return list.map((x) => ({ name: x.display_name.split(", ").slice(0, 3).join(", "), lat: Number(x.lat), lng: Number(x.lon) }));
+    const r = await fetch(`/api/geo/search?q=${encodeURIComponent(q)}&lat=${near.lat}&lng=${near.lng}`);
+    return (await r.json()) as Hit[];
   } catch {
     return [];
   }
@@ -29,9 +27,8 @@ async function searchPlaces(q: string, near: { lat: number; lng: number }): Prom
 
 async function reverse(lat: number, lng: number) {
   try {
-    const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=17&lat=${lat}&lon=${lng}`, { headers: { "Accept-Language": "en" } });
-    const a = (await r.json()).address ?? {};
-    return [a.road, a.neighbourhood || a.suburb || a.quarter, a.city || a.town || a.village].filter(Boolean).join(", ");
+    const r = await fetch(`/api/geo/reverse?lat=${lat}&lng=${lng}`);
+    return ((await r.json()) as { name?: string }).name ?? "";
   } catch {
     return "";
   }

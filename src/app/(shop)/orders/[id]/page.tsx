@@ -5,6 +5,7 @@ import { LiveRefresh } from "@/components/live/LiveRefresh";
 import { OrderLive } from "@/components/orders/OrderLive";
 import type { OrderEvent, OrderItem, OrderRow } from "@/lib/orders";
 import type { ReturnRow } from "@/lib/returns";
+import { cashfreeReady } from "@/lib/cashfree";
 
 export const metadata = { title: "Order" };
 
@@ -43,7 +44,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
       items={(items.data ?? []) as OrderItem[]}
       initialEvents={(events.data ?? []) as OrderEvent[]}
       initialUtr={payment.data?.utr ?? null}
-      upi={{ vpa: settings?.store_upi_id ?? "", name: settings?.store_name ?? "Gupta Enterprises" }}
+      upi={{ vpa: settings?.store_upi_id ?? "", name: settings?.store_name ?? "Gupta Enterprises", collect: cashfreeReady() }}
       storePhone={settings?.store_phone ?? "7905529544"}
       returns={returns}
       reviews={(revs.data ?? []).filter((r) => itemIds.has(r.order_item_id))}

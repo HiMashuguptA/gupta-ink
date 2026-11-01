@@ -19,7 +19,7 @@ import type { MyReview } from "./ReviewDialog";
 
 export function OrderLive({ initialOrder, items, initialEvents, initialUtr, upi, storePhone, shop, returns, reviews, cancelProofUrl, links }: {
   initialOrder: OrderRow; items: OrderItem[]; initialEvents: OrderEvent[]; initialUtr: string | null;
-  upi: { vpa: string; name: string }; storePhone: string; shop: { lat: number; lng: number };
+  upi: { vpa: string; name: string; collect?: boolean }; storePhone: string; shop: { lat: number; lng: number };
   returns: ReturnWithProof[]; reviews: MyReview[]; cancelProofUrl: string | null; links: Record<string, string>;
 }) {
   const [order, setOrder] = useSynced(initialOrder);

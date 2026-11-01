@@ -30,7 +30,7 @@ language sql stable set search_path = '' as $$ select coalesce(auth.session(), '
 -- PostgreSQL database dump
 --
 
-\restrict FIYETuuXXppt4uc7xlCmWCvve03ndoQjFEv72sFgg2EDIGZJ3zh9q8gVM93jxQp
+\restrict df2FJvEOEJPgIQvWeTWnMBKe3aEXR6lOiaLROHyS2d0yf6d2lqWVL5NAM5yH4Hy
 
 -- Dumped from database version 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
 -- Dumped by pg_dump version 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
@@ -5810,7 +5810,7 @@ GRANT ALL ON TABLE public.wishlist TO authenticated;
 -- PostgreSQL database dump complete
 --
 
-\unrestrict FIYETuuXXppt4uc7xlCmWCvve03ndoQjFEv72sFgg2EDIGZJ3zh9q8gVM93jxQp
+\unrestrict df2FJvEOEJPgIQvWeTWnMBKe3aEXR6lOiaLROHyS2d0yf6d2lqWVL5NAM5yH4Hy
 
 -- ---------------------------------------------------------------------------------------------
 -- Neon-only pieces: sign-up through Clerk, email and WhatsApp sent by the Cloudflare worker,
@@ -5961,3 +5961,38 @@ begin
   return r;
 end $$;
 grant execute on function public.live_stamp(text[]) to anonymous, authenticated;
+
+-- Cashfree: the worker records the gateway order, and marks it paid when the signed webhook arrives.
+create or replace function public._gateway_started(p_order uuid, p_ref text, p_upi text) returns void
+language sql security definer set search_path = '' as $$
+  update public.payments set gateway_ref = p_ref, raw = coalesce(raw, '{}'::jsonb) || jsonb_build_object('collect_upi', p_upi, 'collect_at', now()), updated_at = now()
+   where order_id = p_order and status = 'pending';
+$$;
+
+create or replace function public._gateway_paid(p_order uuid, p_utr text, p_amount_paise int, p_raw jsonb) returns boolean
+language plpgsql security definer set search_path = '' as $$
+declare o public.orders; msg text[];
+begin
+  select * into o from public.orders where id = p_order for update;
+  if not found then return false; end if;
+  if o.payment_status = 'paid' then return true; end if;
+  if p_amount_paise < o.payable_paise then
+    update public.payments set raw = coalesce(raw, '{}'::jsonb) || jsonb_build_object('short_payment', p_raw) where order_id = o.id;
+    perform public.notify_admins('payment', 'Short UPI payment on ' || o.order_no, 'Paid ' || public._inr(p_amount_paise) || ' of ' || public._inr(o.payable_paise) || '. Check it in Cashfree.', '/admin/orders/' || o.id);
+    return false;
+  end if;
+  update public.payments set status = 'success', utr = coalesce(nullif(trim(p_utr), ''), utr), raw = coalesce(raw, '{}'::jsonb) || jsonb_build_object('gateway', p_raw), updated_at = now()
+   where order_id = o.id;
+  update public.orders set payment_status = 'paid', paid_at = now(),
+    status = case when status = 'placed' then 'confirmed' else status end,
+    confirmed_at = case when status = 'placed' then now() else confirmed_at end
+   where id = o.id returning * into o;
+  insert into public.order_events (order_id, status, actor_id, note) values (o.id, 'payment_verified', null, 'Confirmed by Cashfree');
+  if o.status = 'confirmed' then
+    insert into public.order_events (order_id, status, actor_id, note) values (o.id, 'confirmed', null, null);
+  end if;
+  msg := public._status_message('confirmed', o);
+  perform public.notify(o.user_id, 'order', 'Payment received for ' || o.order_no, msg[2], '/orders/' || o.id);
+  return true;
+end $$;
+revoke all on function public._gateway_started(uuid, text, text), public._gateway_paid(uuid, text, int, jsonb) from public, anonymous, authenticated;
