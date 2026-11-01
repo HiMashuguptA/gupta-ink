@@ -29,7 +29,7 @@ export default async function AdminMessages({ searchParams }: { searchParams: Pr
 
   return (
     <div className="max-w-5xl">
-      <h1 className="text-[34px] uppercase">Messages</h1>
+      <h1 className="t-h2 uppercase">Messages</h1>
       <p className="mt-1 text-sm text-muted">Send offers and news to customers in the app, by email and on WhatsApp. Messages go out a few at a time so nothing hits a daily limit.</p>
       <div className="mt-5 grid gap-5 lg:grid-cols-[1.25fr_1fr]">
         <Composer coupons={(coupons.data ?? []) as CouponLite[]} initialCoupon={coupon ?? null} status={(status.data ?? null) as MsgStatus | null} />

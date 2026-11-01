@@ -1,4 +1,5 @@
 "use client";
+import { DropZone } from "@/components/ui/DropZone";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import clsx from "clsx";
@@ -176,7 +177,7 @@ export function ProductEditor({ initial, categories: initialCats, allTags }: { i
       </section>
 
       <div className="flex items-center gap-2">
-        <h2 className="text-[24px] uppercase">Variants</h2>
+        <h2 className="t-h4 uppercase">Variants</h2>
         <span className="text-sm text-muted">Colours, sizes or pack sizes. Each has its own price, stock and photos.</span>
       </div>
       {variants.map((v, i) => (
@@ -207,10 +208,20 @@ export function ProductEditor({ initial, categories: initialCats, allTags }: { i
             </label>
           </div>
 
-          <p className="mt-4 font-semibold">Photos <span className="font-normal text-muted">(first one is the main photo)</span></p>
-          <div className="mt-2 flex flex-wrap gap-2">
+          <p className="mt-4 font-semibold">Photos <span className="font-normal text-muted">(first one is the main photo; drag photos in from your computer, or drag a photo onto another to reorder)</span></p>
+          <DropZone onFiles={(files) => void addImages(v, files.slice(0, 6 - v.images.length))} disabled={v.images.length >= 6 || uploading === v.key} className="mt-2 p-1">
+          <div className="flex flex-wrap gap-2">
             {v.images.map((src, k) => (
-              <div key={src + k} className="group relative">
+              <div key={src + k} className="group relative cursor-grab active:cursor-grabbing" draggable
+                onDragStart={(e) => { e.dataTransfer.setData("text/x-photo-index", String(k)); e.dataTransfer.effectAllowed = "move"; }}
+                onDragOver={(e) => { if (e.dataTransfer.types.includes("text/x-photo-index")) { e.preventDefault(); e.dataTransfer.dropEffect = "move"; } }}
+                onDrop={(e) => {
+                  const from = Number(e.dataTransfer.getData("text/x-photo-index"));
+                  if (Number.isNaN(from) || from === k || !e.dataTransfer.types.includes("text/x-photo-index")) return;
+                  e.preventDefault(); e.stopPropagation();
+                  const imgs = [...v.images]; const [moved] = imgs.splice(from, 1); imgs.splice(k, 0, moved);
+                  setV(v.key, { images: imgs });
+                }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={src} alt={`Photo ${k + 1}`} className={clsx("size-24 rounded-[10px] border object-cover", k === 0 ? "border-ink" : "border-line")} />
                 <div className="absolute inset-x-1 bottom-1 flex justify-between">
@@ -227,6 +238,7 @@ export function ProductEditor({ initial, categories: initialCats, allTags }: { i
               </label>
             )}
           </div>
+          </DropZone>
 
           <div className="mt-4 flex flex-wrap gap-4">
             <label className="flex items-center gap-2"><input type="checkbox" checked={v.active} onChange={(e) => setV(v.key, { active: e.target.checked })} className="size-4 accent-[var(--ink)]" /> On sale</label>

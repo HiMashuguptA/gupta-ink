@@ -31,12 +31,12 @@ export default async function PolicyPage({ params }: { params: Promise<{ slug: s
         </ul>
       </nav>
       <article className="max-w-[68ch]">
-        <h1 className="text-[44px] uppercase">{p.title}</h1>
+        <h1 className="t-hero uppercase">{p.title}</h1>
         <p className="mt-2 text-muted">{p.summary}</p>
         <p className="mt-1 text-xs text-muted">Last updated {POLICY_UPDATED}</p>
         {p.sections.map((s) => (
           <section key={s.heading} className="mt-7">
-            <h2 className="text-[24px] uppercase">{s.heading}</h2>
+            <h2 className="t-h4 uppercase">{s.heading}</h2>
             {s.body.map((para, i) => <p key={i} className="mt-2 leading-relaxed">{para}</p>)}
           </section>
         ))}

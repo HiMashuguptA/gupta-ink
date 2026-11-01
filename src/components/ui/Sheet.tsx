@@ -33,7 +33,7 @@ export function Sheet({ open, onClose, title, children, wide }: { open: boolean;
               <span className="h-1.5 w-10 rounded-full bg-rule" />
             </div>
             <div className="mb-3 flex items-center gap-2">
-              <h2 className="text-[24px] uppercase">{title}</h2>
+              <h2 className="t-h4 uppercase">{title}</h2>
               <button onClick={onClose} className="press ml-auto grid size-9 place-items-center rounded-full bg-sunk hover:bg-ink-soft" aria-label="Close"><X className="size-5" /></button>
             </div>
             {children}

@@ -8,7 +8,7 @@ export default function BlockedPage() {
     <main className="flex min-h-dvh items-center justify-center bg-paper px-6">
       <div className="max-w-sm">
         <LogoMark size={56} />
-        <h1 className="mt-4 text-[34px] uppercase">Your account is suspended</h1>
+        <h1 className="mt-4 t-h2 uppercase">Your account is suspended</h1>
         <p className="mt-2 text-muted">
           You can&apos;t place orders right now. If you think this is a mistake, call the store on{" "}
           <a href="tel:+917905529544" className="font-semibold text-ink">7905529544</a> or email{" "}

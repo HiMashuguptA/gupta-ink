@@ -65,7 +65,7 @@ export function Header({ hours }: { hours: StoreHours | null }) {
           <span className={clsx("flex items-center gap-1 text-[13px] font-bold leading-tight", outOfRange ? "text-nib" : "text-on-sign")}>
             {outOfRange ? <Store className="size-3.5 shrink-0" /> : <MapPin className="size-3.5 shrink-0" />}
             <span className="truncate">{title}</span>
-            <ChevronDown className="size-3.5 shrink-0 transition-transform duration-200 group-hover:translate-y-0.5" />
+            <ChevronDown className="size-3.5 shrink-0 transition-transform duration-200 group-hover:translate-y-0.5 group-active:translate-y-0.5" />
           </span>
           <span className="block truncate text-[12px] text-on-sign-muted">{sub}</span>
         </button>

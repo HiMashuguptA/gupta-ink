@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import clsx from "clsx";
-import { Plus, Trash2, PauseCircle, PlayCircle } from "lucide-react";
+import { Plus, Trash2, PauseCircle, PlayCircle, CalendarClock } from "lucide-react";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { refreshCatalog } from "@/app/actions/admin";
 
@@ -12,7 +12,7 @@ export type Settings = {
   store_open: string; store_close: string; delivery_start: string; delivery_end: string; quick_last_order: string;
   slot_windows: { start: string; end: string }[]; slot_capacity: number; slot_days_ahead: number;
   coin_rate_bp: number; coin_expiry_days: number; referral_reward_coins: number; free_cancels_per_week: number; cancel_fine_paise: number;
-  return_window_days: number; pickup_hold_hours: number; upi_daily_cap: number; cod_limit_paise: number; orders_paused: boolean; holidays: string[];
+  return_window_days: number; pickup_hold_hours: number; upi_daily_cap: number; cod_limit_paise: number; orders_paused: boolean; scheduled_enabled: boolean; holidays: string[];
 };
 
 type Num = { key: keyof Settings; label: string; unit: "rupees" | "number" | "percent"; min?: number; max?: number; hint?: string };
@@ -96,6 +96,16 @@ export function SettingsForm({ initial }: { initial: Settings }) {
         <div className="flex-1"><p className="font-bold">{s.orders_paused ? "Orders are paused" : "Taking orders"}</p><p className="text-muted">Pause for stock-taking or emergencies. Customers can still browse.</p></div>
         <button disabled={busy} onClick={() => save({ orders_paused: !s.orders_paused })}
           className={clsx("h-10 rounded-[10px] px-4 font-semibold text-white disabled:opacity-50", s.orders_paused ? "bg-ok" : "bg-margin")}>{s.orders_paused ? "Resume orders" : "Pause orders"}</button>
+      </section>
+
+      <section className="flex items-center gap-3 rounded-[12px] border-[1.5px] border-line bg-card p-4">
+        <CalendarClock className={clsx("size-7", s.scheduled_enabled ? "text-ok" : "text-muted")} />
+        <div className="flex-1"><p className="font-bold">Scheduled delivery {s.scheduled_enabled ? "is on" : "is off"}</p><p className="text-muted">Lets customers book a delivery slot for later. Quick delivery and store pickup are not affected.</p></div>
+        <button type="button" role="switch" aria-checked={s.scheduled_enabled} aria-label="Scheduled delivery" disabled={busy}
+          onClick={() => save({ scheduled_enabled: !s.scheduled_enabled })}
+          className={clsx("relative h-7 w-12 shrink-0 rounded-full transition-colors duration-200 disabled:opacity-50", s.scheduled_enabled ? "bg-ok" : "bg-rule")}>
+          <span className={clsx("absolute left-0.5 top-0.5 size-6 rounded-full bg-white shadow transition-transform duration-200", s.scheduled_enabled && "translate-x-5")} />
+        </button>
       </section>
 
       <section className="rounded-[12px] bg-card p-4">

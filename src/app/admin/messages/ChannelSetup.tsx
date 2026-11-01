@@ -88,7 +88,7 @@ export function ChannelSetup({ initial, error }: { initial: MsgStatus | null; er
       {/* Email */}
       <section className="rounded-[14px] bg-card p-4">
         <div className="flex items-center gap-2">
-          <Mail className="size-5 text-ink" /><h2 className="text-[20px] uppercase">Email</h2>
+          <Mail className="size-5 text-ink" /><h2 className="t-h5 uppercase">Email</h2>
           <span className="ml-auto"><Pill ok={initial.brevo_key} yes="Ready" no="Key needed" /></span>
         </div>
         <p className="mt-1 text-muted">Sent with Brevo (free: 300 a day). Delivery codes, offers and tests use this.</p>
@@ -107,7 +107,7 @@ export function ChannelSetup({ initial, error }: { initial: MsgStatus | null; er
       {/* WhatsApp */}
       <section className="rounded-[14px] bg-card p-4">
         <div className="flex items-center gap-2">
-          <MessageCircle className="size-5 text-ink" /><h2 className="text-[20px] uppercase">WhatsApp</h2>
+          <MessageCircle className="size-5 text-ink" /><h2 className="t-h5 uppercase">WhatsApp</h2>
           <span className="ml-auto"><Pill ok={st.wa_enabled && initial.openwa_key && !!initial.settings.wa_base_url} yes="On" no={st.wa_enabled ? "Needs setup" : "Off"} /></span>
         </div>
         <p className="mt-1 text-muted">Through your own free OpenWA gateway, linked to the shop&apos;s WhatsApp number. Order updates go to customers who turned WhatsApp on.</p>

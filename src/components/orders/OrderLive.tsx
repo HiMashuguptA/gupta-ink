@@ -89,7 +89,7 @@ export function OrderLive({ initialOrder, items, initialEvents, initialUtr, upi,
                     <motion.path d="M15 27 l8 8 l15 -17" fill="none" stroke="#1d1600" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round"
                       initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ delay: 0.45, duration: 0.45, ease: [0.23, 1, 0.32, 1] }} />
                   </svg>
-                  <p className="sign-type mt-3 text-[38px]">Order placed</p>
+                  <p className="sign-type mt-3 t-h1">Order placed</p>
                   <p className="num mt-1 text-sm font-semibold text-on-sign-muted">Order {order.order_no}</p>
                 </div>
               </div>
@@ -101,7 +101,7 @@ export function OrderLive({ initialOrder, items, initialEvents, initialUtr, upi,
       <div className="flex items-center gap-2">
         <Link href="/orders" className="press grid size-9 place-items-center rounded-full hover:bg-ink-soft" aria-label="All orders"><ChevronLeft className="size-5" /></Link>
         <div>
-          <h1 className="text-[30px] uppercase">Order {order.order_no}</h1>
+          <h1 className="t-h3 uppercase">Order {order.order_no}</h1>
           <p className="text-xs text-muted">{new Date(order.created_at).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", dateStyle: "medium", timeStyle: "short" })}</p>
         </div>
         <span className={clsx("ml-auto rounded-full px-3 py-1 text-xs font-bold", statusTone(order.status))}>{awaitingUpi ? "Awaiting payment" : STATUS_LABEL[order.status]}</span>

@@ -14,7 +14,7 @@ export function CategoryGrid({ categories, title = "Shop by category", showAll =
               <span className="block aspect-square overflow-hidden bg-sunk">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={c.image_url ?? "/brand/logo.svg"} alt="" loading="lazy" decoding="async"
-                  className="size-full object-cover transition-transform duration-500 ease-[var(--ease-out)] group-hover:scale-[1.06]" />
+                  className="size-full object-cover transition-transform duration-500 ease-[var(--ease-out)] group-hover:scale-[1.06] group-active:scale-[1.06]" />
               </span>
               <span className="flex flex-1 items-center px-2 py-2 text-[12.5px] font-bold leading-tight text-graphite">{c.name}</span>
             </Link>

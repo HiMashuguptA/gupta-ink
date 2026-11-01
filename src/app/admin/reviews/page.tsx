@@ -14,7 +14,7 @@ export default async function AdminReviews() {
   const rows = (data ?? []) as unknown as Row[];
   return (
     <div className="max-w-3xl">
-      <h1 className="text-[34px] uppercase">Reviews</h1>
+      <h1 className="t-h2 uppercase">Reviews</h1>
       <p className="mt-1 text-sm text-muted">Only verified buyers can review. Hide anything abusive or off-topic; ratings update straight away.</p>
       <ul className="mt-5 space-y-3">
         {rows.map((r) => (

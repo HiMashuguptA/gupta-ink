@@ -146,7 +146,7 @@ body {
   background: var(--paper);
   color: var(--graphite);
   font-family: var(--font-sans);
-  font-size: 15px;
+  font-size: 14px;
   line-height: 1.5;
   font-feature-settings: "ss01" on;
 }
@@ -266,9 +266,10 @@ html.no-splash #splash { display: none; }
 }
 .splash-board { display: grid; justify-items: center; transform-origin: 50% 4px; animation: splash-swing 900ms cubic-bezier(0.22, 1, 0.36, 1) both; }
 .splash-strings { width: 120px; height: 26px; display: block; }
+.splash-mark { width: 112px; height: auto; margin-bottom: 6px; }
 .splash-sign {
-  margin-top: -2px; display: grid; justify-items: center; gap: 4px; padding: 14px 22px 12px; border-radius: 10px;
-  background: #f5b800; color: #0a2e24; box-shadow: 0 10px 30px rgb(0 0 0 / 0.28), inset 0 0 0 3px rgb(10 46 36 / 0.85), inset 0 0 0 6px #f5b800, inset 0 0 0 8px rgb(10 46 36 / 0.4);
+  margin-top: -2px; display: grid; justify-items: center; gap: 4px; padding: 16px 24px 12px; border-radius: 12px;
+  background: #ffffff; color: #1b1550; box-shadow: 0 10px 30px rgb(0 0 0 / 0.28), inset 0 0 0 3px #f5b800;
 }
 .splash-name { font-size: clamp(30px, 9vw, 46px); line-height: 0.9; white-space: nowrap; }
 .splash-sub { font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; opacity: 0.75; }
@@ -291,3 +292,14 @@ html.no-splash #splash { display: none; }
 .shelf-dots::after { content: "…"; display: inline-block; width: 1.2em; text-align: left; animation: shelf-dots 1.2s steps(4) infinite; overflow: hidden; vertical-align: bottom; }
 @keyframes shelf-dots { 0% { width: 0; } 100% { width: 1.2em; } }
 @media (prefers-reduced-motion: reduce) { .shelf-hop, .shelf-dots::after { animation: none; } }
+
+@media (min-width: 768px) { body { font-size: 15px; } }
+
+/* Type scale (fluid): compact on phones like big shopping apps, roomier on computers.
+   Use with variants too, e.g. sm:t-h1. */
+@utility t-hero { font-size: clamp(32px, 7vw + 4px, 46px); }
+@utility t-h1 { font-size: clamp(26px, 4.6vw + 8px, 38px); }
+@utility t-h2 { font-size: clamp(23px, 3.6vw + 9px, 32px); }
+@utility t-h3 { font-size: clamp(20px, 2.6vw + 10px, 26px); }
+@utility t-h4 { font-size: clamp(17px, 1.6vw + 11px, 21px); }
+@utility t-h5 { font-size: clamp(16px, 1vw + 12px, 18px); }

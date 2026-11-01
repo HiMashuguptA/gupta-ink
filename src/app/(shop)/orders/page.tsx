@@ -27,7 +27,7 @@ export default async function OrdersPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 pt-4">
       <LiveRefresh at={Date.now()} id={`orders-${user.id}`} watch={[{ table: "orders", filter: `user_id=eq.${user.id}` }, { table: "returns", filter: `user_id=eq.${user.id}` }]} />
-      <h1 className="mb-4 text-[40px] uppercase">Your orders</h1>
+      <h1 className="mb-4 t-h1 uppercase">Your orders</h1>
       {orders.length ? (
         <ul className="grid gap-3">
           {orders.map((o) => {
@@ -71,7 +71,7 @@ export default async function OrdersPage() {
         </ul>
       ) : (
         <div className="rounded-[16px] bg-card p-8">
-          <h2 className="text-[24px] uppercase">No orders yet</h2>
+          <h2 className="t-h4 uppercase">No orders yet</h2>
           <p className="mt-1 text-muted">When you place an order, you&apos;ll track it here live, right up to your door.</p>
           <Link href="/" className="mt-4 inline-flex rounded-[10px] bg-ink px-4 py-2.5 text-sm font-semibold text-on-ink">Start shopping</Link>
         </div>

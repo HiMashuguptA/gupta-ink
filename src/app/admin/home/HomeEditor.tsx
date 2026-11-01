@@ -1,4 +1,5 @@
 "use client";
+import { DropZone } from "@/components/ui/DropZone";
 import { useSynced } from "@/lib/live";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -107,7 +108,7 @@ export function HomeEditor({ banners: initialBanners, sections: initialSections,
         return (
           <section key={pl.key}>
             <div className="flex items-center gap-2">
-              <div><h2 className="text-[24px] uppercase">{pl.label}</h2><p className="text-xs text-muted">{pl.hint}</p></div>
+              <div><h2 className="t-h4 uppercase">{pl.label}</h2><p className="text-xs text-muted">{pl.hint}</p></div>
               <button onClick={() => { setErr(null); setDraft(blank(pl.key)); }} className="ml-auto inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-ink px-3 text-sm font-semibold text-on-ink"><Plus className="size-4" /> Add</button>
             </div>
             <ul className={clsx("mt-3 grid gap-3", pl.key === "hero" ? "sm:grid-cols-2" : "grid-cols-2 sm:grid-cols-3")}>
@@ -138,7 +139,7 @@ export function HomeEditor({ banners: initialBanners, sections: initialSections,
       })}
 
       <section>
-        <h2 className="text-[24px] uppercase">Sections</h2>
+        <h2 className="t-h4 uppercase">Sections</h2>
         <p className="text-xs text-muted">The rows on the home page, top to bottom. Rename them or hide the ones you don&apos;t want.</p>
         <ul className="mt-3 divide-y divide-line rounded-[12px] bg-card">
           {[...sections].sort((a, b) => a.position - b.position).map((s, i, arr) => (
@@ -159,6 +160,7 @@ export function HomeEditor({ banners: initialBanners, sections: initialSections,
       <Sheet open={!!draft} onClose={() => setDraft(null)} title={draft?.id ? "Edit banner" : "New banner"} wide>
         {draft && (
           <div className="grid gap-3 text-sm">
+            <DropZone onFiles={(f) => void upload(f[0])} disabled={busy} paste>
             <label className="grid cursor-pointer place-items-center overflow-hidden rounded-[10px] border-[1.5px] border-dashed border-line bg-paper text-muted hover:border-ink" style={{ aspectRatio: draft.placement === "hero" ? "16/7" : "4/3" }}>
               {draft.image_url
                 // eslint-disable-next-line @next/next/no-img-element
@@ -166,7 +168,8 @@ export function HomeEditor({ banners: initialBanners, sections: initialSections,
                 : <span className="grid justify-items-center gap-1 font-semibold"><ImagePlus className="size-6" />{busy ? "Uploading…" : "Choose picture"}</span>}
               <input type="file" accept="image/jpeg,image/jpg,image/png,image/webp,.jpg,.jpeg,.png,.webp" hidden onChange={(e) => { void upload(e.target.files?.[0]); e.target.value = ""; }} />
             </label>
-            {draft.image_url && <p className="text-xs text-muted">Tap the picture to change it.</p>}
+            </DropZone>
+            <p className="text-xs text-muted">{draft.image_url ? "Tap the picture to change it, or drop a new one on it." : "Choose a picture, drag one in, or paste a copied image."}</p>
             <label className="font-semibold">Title (optional)<input value={draft.title ?? ""} onChange={(e) => setDraft({ ...draft, title: e.target.value })} className={field} placeholder="Back to school" /></label>
             <label className="font-semibold">Subtitle (optional)<input value={draft.subtitle ?? ""} onChange={(e) => setDraft({ ...draft, subtitle: e.target.value })} className={field} placeholder="Notebooks from ₹35" /></label>
             <div className="grid grid-cols-2 gap-3">

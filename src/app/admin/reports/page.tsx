@@ -58,7 +58,7 @@ export default async function Reports({ searchParams }: { searchParams: Promise<
 
   return (
     <div className="max-w-6xl">
-      <h1 className="text-[34px] uppercase">Reports</h1>
+      <h1 className="t-h2 uppercase">Reports</h1>
       <p className="mt-1 text-sm text-muted">{day(from, { day: "numeric", month: "short", year: "numeric" })} to {day(to, { day: "numeric", month: "short", year: "numeric" })}. Cancelled orders are left out.</p>
 
       {/* Filters: one row above the charts */}

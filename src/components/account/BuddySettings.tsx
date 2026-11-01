@@ -39,7 +39,7 @@ export function BuddySettings() {
           <div className="flex items-center gap-3">
             <span className="grid size-[68px] shrink-0 place-items-center rounded-[14px] bg-sunk"><PetArt kind={profile.pet} mood={profile.pet_hidden ? "sleepy" : "happy"} blink={false} size={58} /></span>
             <div className="min-w-0 flex-1">
-              <p className="font-display text-[22px] font-extrabold uppercase leading-none">{current}</p>
+              <p className="font-display t-h4 font-extrabold uppercase leading-none">{current}</p>
               <p className="text-sm text-muted">{meta.species}{profile.pet_hidden ? " · napping (hidden)" : " · out shopping with you"}</p>
             </div>
           </div>
@@ -55,6 +55,8 @@ export function BuddySettings() {
               {profile.pet_hidden ? <><Eye className="size-4 text-ink" /> Bring back</> : <><EyeOff className="size-4 text-ink" /> Hide for now</>}
             </button>
           </div>
+          <button type="button" onClick={() => { try { localStorage.removeItem("ge-buddy-pos"); localStorage.removeItem("ge-buddy-pos-touch"); } catch {} window.dispatchEvent(new Event("ge:pet-home")); setMsg("Back in its corner."); }}
+            className="mt-2 text-sm font-semibold text-ink underline-offset-2 hover:underline">Put {current} back in its corner</button>
         </>
       ) : (
         <div className="flex items-center gap-3">

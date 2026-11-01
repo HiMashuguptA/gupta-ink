@@ -23,7 +23,7 @@ export function LostSign({ categories, compact = false }: { categories: Category
         <h1 className="sign-type mt-8 text-[clamp(1.8rem,7vw,2.6rem)] text-on-sign">This shelf is empty</h1>
         <p className="mx-auto mt-2 max-w-sm text-on-sign-muted">The page may have moved or the link is mistyped. Everything else is still on the shelves.</p>
         <div className="mt-6 flex flex-wrap justify-center gap-2.5">
-          <Link href="/" className="sign-type press inline-flex h-12 items-center gap-2 rounded-[10px] bg-nib px-5 text-[19px] text-on-nib hover:bg-nib-deep"><ArrowLeft className="size-5" /> Back to the shop</Link>
+          <Link href="/" className="sign-type press inline-flex h-12 items-center gap-2 rounded-[10px] bg-nib px-5 t-h5 text-on-nib hover:bg-nib-deep"><ArrowLeft className="size-5" /> Back to the shop</Link>
           <Link href="/search?q=pen" className="press inline-flex h-12 items-center gap-2 rounded-[10px] bg-white/10 px-5 font-semibold text-on-sign hover:bg-white/20"><Search className="size-4" /> Search products</Link>
         </div>
         {categories.length > 0 && (

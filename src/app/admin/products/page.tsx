@@ -27,7 +27,7 @@ export default async function AdminProducts({ searchParams }: { searchParams: Pr
       )}
       <div className="flex flex-wrap items-center gap-3">
         <div>
-          <h1 className="text-[34px] uppercase">Products</h1>
+          <h1 className="t-h2 uppercase">Products</h1>
           <p className="mt-1 text-sm text-muted">Change stock and prices here; open a product to edit details, variants and photos.</p>
         </div>
         <Link href="/admin/products/new" className="ml-auto inline-flex h-10 items-center gap-2 rounded-[10px] bg-ink px-4 text-sm font-semibold text-on-ink"><Plus className="size-4" /> New product</Link>

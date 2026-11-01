@@ -106,7 +106,7 @@ export function Composer({ coupons, initialCoupon, status }: { coupons: CouponLi
 
   return (
     <section className="rounded-[14px] bg-card p-4 text-sm">
-      <h2 className="text-[22px] uppercase">New message</h2>
+      <h2 className="t-h4 uppercase">New message</h2>
 
       <div className="mt-3 flex flex-wrap gap-1.5">
         {TEMPLATES.map((t) => (

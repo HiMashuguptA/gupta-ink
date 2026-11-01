@@ -35,7 +35,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
       </div>
 
       <section id="reviews" className="mt-10 px-4">
-        <h2 className="text-[26px] uppercase">Reviews</h2>
+        <h2 className="t-h3 uppercase">Reviews</h2>
         {p.reviews.length === 0 ? (
           <p className="mt-1 text-sm text-muted">No written reviews yet. Customers can review after their order is delivered.</p>
         ) : (

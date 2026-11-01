@@ -55,13 +55,13 @@ export default async function BillPage({ params, searchParams }: { params: Promi
           <div className="flex items-center gap-3">
             <LogoMark size={48} />
             <div>
-              <p className="sign-type text-[28px] text-[#0a3329]">{store}</p>
+              <p className="sign-type t-h3 text-[#0a3329]">{store}</p>
               <p className="max-w-xs text-xs leading-snug text-[#536259]">{settings?.store_address ?? "Khedi Market, New NST, opposite Hotel Galaxy, Kohima, Nagaland 797001"}</p>
               <p className="text-xs text-[#536259]">Phone {settings?.store_phone ?? "7905529544"}{settings?.support_email ? ` · ${settings.support_email}` : ""}</p>
             </div>
           </div>
           <div className="w-full sm:w-auto sm:text-right">
-            <p className="sign-type text-[26px] text-[#0b5a45]">Order bill</p>
+            <p className="sign-type t-h3 text-[#0b5a45]">Order bill</p>
             <p className="text-sm font-semibold">#{o.order_no}</p>
             <p className="text-xs text-[#536259]">{fmt(o.created_at)}</p>
           </div>

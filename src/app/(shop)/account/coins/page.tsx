@@ -41,13 +41,13 @@ export default async function CoinsPage() {
       <LiveRefresh at={Date.now()} id={`acct-coins-${user.id}`} watch={[{ table: "coin_ledger", filter: `user_id=eq.${user.id}` }, { table: "wallets", filter: `user_id=eq.${user.id}` }, { table: "referrals" }, { table: "orders", filter: `user_id=eq.${user.id}` }]} />
       <div className="flex items-center gap-2">
         <Link href="/account" className="grid size-9 place-items-center rounded-full hover:bg-ink-soft" aria-label="Account"><ChevronLeft className="size-5" /></Link>
-        <h1 className="text-[34px] uppercase">SuperCoins</h1>
+        <h1 className="t-h2 uppercase">SuperCoins</h1>
       </div>
 
       <section className="relative mt-4 overflow-hidden rounded-[16px] bg-sign p-5 text-on-sign">
         <Coins className="absolute -right-4 -top-4 size-32 text-white/10" aria-hidden />
         <p className="text-sm text-on-sign-muted">Your balance</p>
-        <p className="sign-type text-[64px]"><Num value={balance} /><span className="ml-2 text-[22px] text-nib">= ₹<Num value={balance} /></span></p>
+        <p className="sign-type t-hero"><Num value={balance} /><span className="ml-2 t-h4 text-nib">= ₹<Num value={balance} /></span></p>
         <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold">
           {onTheWay > 0 && <span className="rounded-full bg-white/15 px-3 py-1">+{onTheWay} on the way</span>}
           {expiring > 0 && <span className="rounded-full bg-nib px-3 py-1 text-ink-deep">{expiring} expire by {fmt(soonest!)}</span>}
@@ -72,7 +72,7 @@ export default async function CoinsPage() {
       </section>
 
       <section className="mt-6">
-        <h2 className="text-[24px] uppercase">History</h2>
+        <h2 className="t-h4 uppercase">History</h2>
         {entries.length === 0 ? (
           <p className="mt-2 rounded-[12px] border border-dashed border-line p-6 text-center text-sm text-muted">No coins yet. Place an order and they&apos;ll show up here after the return window.</p>
         ) : (

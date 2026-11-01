@@ -100,7 +100,7 @@ export function OrderIsland() {
                 <div className="flex items-start gap-3">
                   <span className="grid size-10 shrink-0 place-items-center rounded-full bg-nib text-on-nib"><Icon o={o} className="size-5" /></span>
                   <div className="min-w-0 flex-1">
-                    <p className="sign-type text-[22px] text-nib">{STATUS_LABEL[o.status]}</p>
+                    <p className="sign-type t-h4 text-nib">{STATUS_LABEL[o.status]}</p>
                     <p className="text-[13px] text-white/75">{line(o)}</p>
                   </div>
                   <button onClick={() => setOpen(false)} className="press grid size-8 place-items-center rounded-full bg-white/10" aria-label="Collapse"><X className="size-4" /></button>

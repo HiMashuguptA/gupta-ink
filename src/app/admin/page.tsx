@@ -41,20 +41,20 @@ export default async function AdminHome() {
 
   return (
     <div>
-      <h1 className="text-[34px] uppercase">Overview</h1>
+      <h1 className="t-h2 uppercase">Overview</h1>
       <p className="mt-1 text-sm text-muted">Today at the store. Charts and best-sellers are in Reports.</p>
       <div className="mt-5 grid gap-2.5 lg:grid-cols-[1fr_1.4fr]">
         <dl className="grid grid-cols-2 gap-2.5">
-          <div className="reveal rounded-[12px] bg-sign p-4 text-on-sign"><dt className="text-sm text-on-sign-muted">Orders today</dt><dd className="sign-type mt-1.5 text-[44px]"><Num value={todays.length} /></dd></div>
-          <div className="reveal rounded-[12px] bg-card p-4" style={{ "--i": 1 } as React.CSSProperties}><dt className="text-sm text-muted">Revenue today</dt><dd className="sign-type mt-1.5 text-[44px] text-graphite"><Price paise={revenue} /></dd></div>
+          <div className="reveal rounded-[12px] bg-sign p-4 text-on-sign"><dt className="text-sm text-on-sign-muted">Orders today</dt><dd className="sign-type mt-1.5 t-hero"><Num value={todays.length} /></dd></div>
+          <div className="reveal rounded-[12px] bg-card p-4" style={{ "--i": 1 } as React.CSSProperties}><dt className="text-sm text-muted">Revenue today</dt><dd className="sign-type mt-1.5 t-hero text-graphite"><Price paise={revenue} /></dd></div>
         </dl>
         <ul className="divide-y divide-line rounded-[12px] bg-card" aria-label="Waiting on you">
           {actions.map((a, k) => (
             <li key={a.label} className="reveal" style={{ "--i": k + 2 } as React.CSSProperties}>
               <Link href={a.href} className="group flex items-center gap-3 px-4 py-3 first:rounded-t-[12px] last:rounded-b-[12px] hover:bg-sunk">
                 <span className="min-w-0 flex-1"><span className="block font-semibold">{a.label}</span><span className="block text-xs text-muted">{a.note}</span></span>
-                <span className={`sign-type text-[26px] ${a.n ? "text-graphite" : "text-muted"}`}>{a.money ? <Price paise={a.n} /> : <Num value={a.n} />}</span>
-                <ChevronRight className="size-4 text-muted transition-transform duration-200 group-hover:translate-x-0.5" />
+                <span className={`sign-type t-h3 ${a.n ? "text-graphite" : "text-muted"}`}>{a.money ? <Price paise={a.n} /> : <Num value={a.n} />}</span>
+                <ChevronRight className="size-4 text-muted transition-transform duration-200 group-hover:translate-x-0.5 group-active:translate-x-0.5" />
               </Link>
             </li>
           ))}
@@ -63,7 +63,7 @@ export default async function AdminHome() {
       <p className="num mt-3 text-sm text-muted">{products.count ?? 0} SKUs in {groups.count ?? 0} products on the shelf · {users.count ?? 0} customers and staff</p>
       <div className="mt-6 grid gap-5 lg:grid-cols-2">
         <section className="rounded-[12px] bg-card p-4">
-          <h2 className="text-[22px] uppercase">Low stock</h2>
+          <h2 className="t-h4 uppercase">Low stock</h2>
           <table className="mt-3 w-full text-sm">
             <thead><tr className="text-left text-muted"><th className="py-1 font-semibold">Product</th><th className="py-1 text-right font-semibold">Units left</th></tr></thead>
             <tbody>
@@ -75,7 +75,7 @@ export default async function AdminHome() {
           {!lowStock.data?.length && <p className="mt-2 text-sm text-muted">Everything is well stocked.</p>}
         </section>
         <section className="rounded-[12px] bg-card p-4">
-          <h2 className="text-[22px] uppercase">Most searched</h2><p className="text-xs text-muted">Last 200 searches</p>
+          <h2 className="t-h4 uppercase">Most searched</h2><p className="text-xs text-muted">Last 200 searches</p>
           <table className="mt-3 w-full text-sm">
             <thead><tr className="text-left text-muted"><th className="py-1 font-semibold">Term</th><th className="py-1 text-right font-semibold">Searches</th></tr></thead>
             <tbody>

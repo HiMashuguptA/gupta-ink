@@ -56,7 +56,7 @@ export function AddButton({ product, size = "sm", className }: { product: Produc
             transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
             className={clsx(
               "sign-type flex size-full items-center justify-center rounded-[9px] bg-nib text-on-nib transition-colors hover:bg-nib-deep",
-              big ? "text-[19px]" : "px-4 text-[17px]",
+              big ? "t-h5" : "px-4 text-[17px]",
             )}
             aria-label={`Add ${product.name}${product.variant_label ? ", " + product.variant_label : ""} to cart`}
           >

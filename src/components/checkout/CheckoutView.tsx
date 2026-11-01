@@ -27,7 +27,7 @@ type Quote = {
   items_total_paise: number; mrp_total_paise: number; coupon: { code: string; title?: string; discount_paise?: number; free_delivery?: boolean; error?: string } | null;
   coupon_discount_paise: number; after_coupon_paise: number; delivery_fee_paise: number; free_delivery_min_paise: number; fine_paise: number;
   coins: { available: number; max: number; used: number }; payable_paise: number; coins_to_earn: number;
-  availability: { quick: boolean; quick_reason: string | null; pickup: boolean; eta: string };
+  availability: { quick: boolean; quick_reason: string | null; pickup: boolean; eta: string; scheduled?: boolean };
   methods: Record<Method, boolean>; cod_limit_paise: number; errors: string[];
 };
 
@@ -117,11 +117,16 @@ export function CheckoutView({ addresses: initialAddresses, slots, coupons, radi
       // First load: if quick delivery isn't running now, start on scheduled
       if (firstQuote.current) {
         firstQuote.current = false;
-        if (!q.availability.quick && kind === "quick") setKind("scheduled");
+        if (!q.availability.quick && kind === "quick") setKind(q.availability.scheduled === false ? "pickup" : "scheduled");
       }
     }, firstQuote.current ? 0 : 250);
     return () => clearTimeout(t);
   }, [payload, sb, lines.length, toast, kind, bump]);
+
+  // Scheduled delivery switched off by the store: move to the next best option
+  useEffect(() => {
+    if (quote?.availability.scheduled === false && kind === "scheduled") setKind(quote.availability.quick ? "quick" : "pickup");
+  }, [quote, kind]);
 
   // Keep the payment choice valid for this order
   useEffect(() => {
@@ -171,28 +176,30 @@ export function CheckoutView({ addresses: initialAddresses, slots, coupons, radi
   if (!lines.length && !placing) {
     return (
       <div className="mx-4 mt-6 rounded-[16px] bg-sign p-7 text-on-sign">
-        <h1 className="text-[40px] uppercase">Your cart is empty</h1>
+        <h1 className="t-h1 uppercase">Your cart is empty</h1>
         <p className="mt-1 text-on-sign-muted">Add a few things, then come back to check out.</p>
-        <Link href="/" className="sign-type press mt-5 inline-flex h-12 items-center rounded-[10px] bg-nib px-5 text-[19px] text-on-nib">Start shopping</Link>
+        <Link href="/" className="sign-type press mt-5 inline-flex h-12 items-center rounded-[10px] bg-nib px-5 t-h5 text-on-nib">Start shopping</Link>
       </div>
     );
   }
 
   const daySlots = slots.filter((s) => s.slot_date === day);
+  // The store can switch scheduled delivery off in Admin, Store settings
+  const scheduledOn = quote?.availability.scheduled !== false;
   const kinds: { key: Kind; title: string; sub: string; icon: typeof Bike; disabled?: string | null }[] = [
-    { key: "quick", title: "Quick delivery", sub: quote?.availability.eta ?? "45-60 min", icon: Bike, disabled: quote && !quote.availability.quick ? "Not running now" : null },
-    { key: "scheduled", title: "Schedule", sub: "Pick a 2-hour slot", icon: CalendarClock },
-    { key: "pickup", title: "Store pickup", sub: "Free, at Khedi Market", icon: Store },
+    { key: "quick" as Kind, title: "Quick delivery", sub: quote?.availability.eta ?? "45-60 min", icon: Bike, disabled: quote && !quote.availability.quick ? "Not running now" : null },
+    ...(scheduledOn ? [{ key: "scheduled" as Kind, title: "Schedule", sub: "Pick a 2-hour slot", icon: CalendarClock }] : []),
+    { key: "pickup" as Kind, title: "Store pickup", sub: "Free, at Khedi Market", icon: Store },
   ];
 
   return (
     <div className="grid gap-6 px-4 pb-36 pt-4 lg:grid-cols-[1fr_380px] lg:pb-8">
       <div className="space-y-5">
-        <h1 className="text-[40px] uppercase">Checkout</h1>
+        <h1 className="t-h1 uppercase">Checkout</h1>
 
         {/* 1. How */}
         <Section title="How do you want it?">
-          <div className="grid grid-cols-3 gap-1.5 rounded-[14px] bg-card p-1.5" role="radiogroup" aria-label="Delivery option">
+          <div className={clsx("grid gap-1.5 rounded-[14px] bg-card p-1.5", kinds.length === 3 ? "grid-cols-3" : "grid-cols-2")} role="radiogroup" aria-label="Delivery option">
             {kinds.map(({ key, title, sub, icon: Icon, disabled }) => (
               <button key={key} type="button" role="radio" aria-checked={kind === key} disabled={!!disabled}
                 onClick={() => setKind(key)}
@@ -347,7 +354,7 @@ export function CheckoutView({ addresses: initialAddresses, slots, coupons, radi
                   {coupons.map((c) => (
                     <button key={c.code} type="button" onClick={() => applyCoupon(c.code)}
                       className="press w-56 shrink-0 rounded-[12px] border-[1.5px] border-dashed border-nib-deep/60 bg-nib-soft p-3 text-left">
-                      <span className="sign-type block text-[19px] text-graphite">{c.code}</span>
+                      <span className="sign-type block t-h5 text-graphite">{c.code}</span>
                       <span className="block text-sm font-semibold">{c.title}</span>
                       {c.description && <span className="block text-xs text-muted">{c.description}</span>}
                     </button>
@@ -404,7 +411,7 @@ export function CheckoutView({ addresses: initialAddresses, slots, coupons, radi
       {/* Bill */}
       <aside className="lg:sticky lg:top-28 lg:self-start" aria-label="Bill" aria-busy={quoting}>
         <div className="rounded-[12px] bg-card p-4">
-          <h2 className="text-[24px] uppercase">Bill details</h2>
+          <h2 className="t-h4 uppercase">Bill details</h2>
           {!quote ? (
             <div className="mt-3 space-y-2">{Array.from({ length: 4 }, (_, i) => <div key={i} className="skeleton h-4" />)}</div>
           ) : (
@@ -418,7 +425,7 @@ export function CheckoutView({ addresses: initialAddresses, slots, coupons, radi
                 <p className="text-xs text-muted">Free delivery on {rupees(quote.free_delivery_min_paise)}+. Add {rupees(quote.free_delivery_min_paise - quote.after_coupon_paise)} more.</p>
               )}
               {quote.fine_paise > 0 && <Row label="Cancellation fine (earlier order)" value={rupees(quote.fine_paise)} />}
-              <div className="flex items-baseline justify-between border-t border-line pt-2.5"><dt className="font-bold">To pay</dt><dd><Price paise={quote.payable_paise} className="sign-type text-[30px]" /></dd></div>
+              <div className="flex items-baseline justify-between border-t border-line pt-2.5"><dt className="font-bold">To pay</dt><dd><Price paise={quote.payable_paise} className="sign-type t-h3" /></dd></div>
               {quote.coins_to_earn > 0 && (
                 <p className="flex items-center gap-1.5 rounded-[8px] bg-nib-soft px-2.5 py-1.5 text-xs">
                   <Coins className="size-3.5 text-nib" /> You&apos;ll earn {quote.coins_to_earn} SuperCoins 3 days after delivery
@@ -460,7 +467,7 @@ export function CheckoutView({ addresses: initialAddresses, slots, coupons, radi
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section aria-label={title}>
-      <h2 className="mb-2 text-[22px] uppercase">{title}</h2>
+      <h2 className="mb-2 t-h4 uppercase">{title}</h2>
       {children}
     </section>
   );

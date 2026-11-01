@@ -108,7 +108,7 @@ export function AgentPortal({ agentId, name, isAgent, initialOnline, initialJobs
             )}
           </div>
         </div>
-        <h1 className="sign-type mt-5 text-[40px]">Hi {name}</h1>
+        <h1 className="sign-type mt-5 t-h1">Hi {name}</h1>
         <p className="text-sm text-on-sign-muted">{jobs.length ? `${jobs.length} ${jobs.length === 1 ? "delivery" : "deliveries"} with you` : online ? "No deliveries right now. New ones appear here." : "Go online so the store knows you're free."}</p>
       </header>
       <div className="px-4">
@@ -131,7 +131,7 @@ export function AgentPortal({ agentId, name, isAgent, initialOnline, initialJobs
 
       {pickups.length > 0 && (
         <section className="mt-6">
-          <h2 className="text-[24px] uppercase">Return pickups</h2>
+          <h2 className="t-h4 uppercase">Return pickups</h2>
           <div className="mt-2 space-y-3">{pickups.map((p) => <PickupCard key={p.id} p={p} canAct={isAgent} onDone={() => router.refresh()} />)}</div>
         </section>
       )}
@@ -249,7 +249,7 @@ function JobCard({ job, canAct, onChanged }: { job: Job; canAct: boolean; onChan
 
         {canAct && job.status === "agent_assigned" && (
           <div className="grid grid-cols-[1fr_auto] gap-2 pt-1">
-            <button disabled={busy} onClick={accept} className="sign-type press h-12 rounded-[10px] bg-nib text-[19px] text-on-nib disabled:opacity-50">Accept delivery</button>
+            <button disabled={busy} onClick={accept} className="sign-type press h-12 rounded-[10px] bg-nib t-h5 text-on-nib disabled:opacity-50">Accept delivery</button>
             <button disabled={busy} onClick={handBack} className="h-12 rounded-[10px] border border-line px-4 font-semibold disabled:opacity-50">Decline</button>
           </div>
         )}
@@ -271,7 +271,7 @@ function JobCard({ job, canAct, onChanged }: { job: Job; canAct: boolean; onChan
                 I collected {rupees(job.payable_paise)} in cash
               </label>
             )}
-            <button disabled={busy || locked || code.length !== 4 || (collect && !cash)} className="sign-type press h-12 w-full rounded-[10px] bg-ok text-[19px] text-white disabled:opacity-40">Mark delivered</button>
+            <button disabled={busy || locked || code.length !== 4 || (collect && !cash)} className="sign-type press h-12 w-full rounded-[10px] bg-ok t-h5 text-white disabled:opacity-40">Mark delivered</button>
             <div className="flex justify-between">
               <button type="button" disabled={busy} onClick={resend} className="text-sm font-semibold text-ink">Customer didn&apos;t get it?</button>
               <button type="button" disabled={busy} onClick={issue} className="text-sm font-semibold text-margin">Report a problem</button>

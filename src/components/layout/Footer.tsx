@@ -15,7 +15,7 @@ export function Footer() {
           </ul>
         </div>
         <nav className="text-sm" aria-label="Help">
-          <p className="sign-type text-[20px] text-nib">Help</p>
+          <p className="sign-type t-h5 text-nib">Help</p>
           <ul className="mt-2 space-y-2 text-on-sign-muted">
             <li><Link href="/policies/shipping" className="hover:text-on-sign">Delivery and pickup</Link></li>
             <li><Link href="/policies/cancellation" className="hover:text-on-sign">Cancellations</Link></li>
@@ -23,7 +23,7 @@ export function Footer() {
           </ul>
         </nav>
         <nav className="text-sm" aria-label="Legal">
-          <p className="sign-type text-[20px] text-nib">Legal</p>
+          <p className="sign-type t-h5 text-nib">Legal</p>
           <ul className="mt-2 space-y-2 text-on-sign-muted">
             <li><Link href="/policies/privacy" className="hover:text-on-sign">Privacy policy</Link></li>
             <li><Link href="/policies/terms" className="hover:text-on-sign">Terms of use</Link></li>

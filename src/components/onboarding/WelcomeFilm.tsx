@@ -78,7 +78,7 @@ export function WelcomeFilm({ name, onDone }: { name: string; onDone: () => void
             <path d="M34 32 L38 46 L46 50 Z" fill="#a9cfc0" />
           </svg>
           <motion.span
-            className="sign-type absolute left-16 top-9 whitespace-nowrap rounded-[6px] bg-nib px-3 pb-1 pt-1.5 text-[20px] text-on-nib"
+            className="sign-type absolute left-16 top-9 whitespace-nowrap rounded-[6px] bg-nib px-3 pb-1 pt-1.5 t-h5 text-on-nib"
             initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.5, type: "spring" }}
           >
             {first}
@@ -91,7 +91,7 @@ export function WelcomeFilm({ name, onDone }: { name: string; onDone: () => void
           <LogoMark size={76} tone="yellow" swing />
         </motion.div>
         <motion.h1
-          className="sign-type mt-5 text-[46px]"
+          className="sign-type mt-5 t-hero"
           initial={{ y: 16, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 3.1 }}
         >
           So glad you&apos;re here, {first}

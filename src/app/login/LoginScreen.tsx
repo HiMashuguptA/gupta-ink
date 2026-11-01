@@ -70,7 +70,7 @@ export function LoginScreen({ next, error }: { next: string; error?: string }) {
 
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="relative w-full max-w-sm text-center">
         <div className="mx-auto w-fit"><LogoMark size={104} tone="yellow" swing /></div>
-        <motion.h1 initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5, duration: 0.5, ease: [0.23, 1, 0.32, 1] }} className="sign-type mt-5 text-[52px] text-on-sign">
+        <motion.h1 initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5, duration: 0.5, ease: [0.23, 1, 0.32, 1] }} className="sign-type mt-5 t-hero text-on-sign">
           Gupta Enterprises
         </motion.h1>
         <p className="mt-1 text-sm font-semibold text-on-sign-muted">Stationery from Khedi Market, Kohima</p>

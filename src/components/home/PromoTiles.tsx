@@ -15,9 +15,9 @@ export function PromoTiles({ promos }: { promos: Banner[] }) {
           <li key={p.id} className="reveal" style={{ "--i": k } as React.CSSProperties}>
             <Link href={linkFor(p.link_type, p.link_value)}
               className={clsx("press group relative flex h-[92px] items-center justify-between gap-1 overflow-hidden rounded-[12px] py-3 pl-3.5", BOARDS[k % BOARDS.length])}>
-              <span className="sign-type relative z-10 max-w-[56%] text-[21px]">{p.title}</span>
+              <span className="sign-type relative z-10 max-w-[56%] t-h5">{p.title}</span>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={p.image_url} alt="" loading="lazy" className="absolute bottom-2.5 right-2.5 size-[62px] rotate-[-6deg] rounded-[10px] transition-transform duration-500 ease-[var(--ease-out)] group-hover:rotate-0 group-hover:scale-105" />
+              <img src={p.image_url} alt="" loading="lazy" className="absolute bottom-2.5 right-2.5 size-[62px] rotate-[-6deg] rounded-[10px] transition-transform duration-500 ease-[var(--ease-out)] group-hover:rotate-0 group-active:rotate-0 group-hover:scale-105 group-active:scale-105" />
               
             </Link>
           </li>

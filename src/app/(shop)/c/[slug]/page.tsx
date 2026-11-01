@@ -26,7 +26,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
       <div className="keyline relative flex min-h-[112px] items-center overflow-hidden rounded-[14px] bg-sign py-4 pl-3 pr-28 text-on-sign" style={{ "--keyline": "rgb(245 184 0 / 0.5)", "--shade": "#04261d" } as React.CSSProperties}>
         <Link href="/categories" className="press mr-2 grid size-9 shrink-0 place-items-center rounded-full bg-white/10 hover:bg-white/20" aria-label="All categories"><ChevronLeft className="size-5" /></Link>
         <div className="min-w-0">
-          <h1 className="sign-type sign-shade text-[40px] text-on-sign">{data.category.name}</h1>
+          <h1 className="sign-type sign-shade t-h1 text-on-sign">{data.category.name}</h1>
           <p className="num mt-1 text-sm text-on-sign-muted">{data.products.length} {data.products.length === 1 ? "product" : "products"} on the shelf</p>
         </div>
         {data.category.image_url && (

@@ -9,6 +9,8 @@ import { PetArt } from "./PetArt";
 const SIZE = 64;
 
 const POS_KEY = "ge-buddy-pos";
+const TOUCH_POS_KEY = "ge-buddy-pos-touch";
+const posKey = () => (window.matchMedia("(pointer: fine) and (min-width: 768px)").matches ? POS_KEY : TOUCH_POS_KEY);
 const clampX = (v: number) => Math.min(window.innerWidth - SIZE - 8, Math.max(8, v));
 const clampY = (v: number) => Math.min(window.innerHeight - SIZE - 8, Math.max(8, v));
 
@@ -95,13 +97,21 @@ export function Pet({ kind, name }: { kind: PetKind; name: string }) {
     return () => document.removeEventListener("focusin", onFocus);
   }, [follow]);
 
-  // Desktop with a real mouse: free placement, remembered between visits (as a share of the window)
+  // Free placement, remembered between visits (as a share of the window). Computers always;
+  // phones once the buddy has been dragged somewhere (until then it docks above the bottom bars).
+  const [homeTick, setHomeTick] = useState(0);
+  useEffect(() => {
+    const go = () => setHomeTick((n) => n + 1);
+    window.addEventListener("ge:pet-home", go);
+    return () => window.removeEventListener("ge:pet-home", go);
+  }, []);
   useEffect(() => {
     const fine = window.matchMedia("(pointer: fine) and (min-width: 768px)").matches;
-    setFollow(fine);
-    if (!fine) return;
     let fx = -1, fy = -1;
-    try { const p = JSON.parse(localStorage.getItem(POS_KEY) ?? "null"); if (p && typeof p.x === "number") { fx = p.x; fy = p.y; } } catch {}
+    try { const p = JSON.parse(localStorage.getItem(posKey()) ?? "null"); if (p && typeof p.x === "number") { fx = p.x; fy = p.y; } } catch {}
+    const free = fine || fx >= 0;
+    setFollow(free);
+    if (!free) return;
     const place = () => {
       const nx = clampX(fx >= 0 ? fx * window.innerWidth : 24);
       const ny = clampY(fy >= 0 ? fy * window.innerHeight : window.innerHeight - SIZE - 24);
@@ -110,7 +120,7 @@ export function Pet({ kind, name }: { kind: PetKind; name: string }) {
     place();
     window.addEventListener("resize", place);
     return () => window.removeEventListener("resize", place);
-  }, [tx, ty, x, y]);
+  }, [tx, ty, x, y, homeTick]);
 
   // Watch the pointer: eyes always track it; on desktop it also turns and leans toward it
   useEffect(() => {
@@ -256,24 +266,25 @@ export function Pet({ kind, name }: { kind: PetKind; name: string }) {
       <motion.div role="button" tabIndex={0} aria-label={`${name}, your shop buddy. Tap to play, drag to move.`}
         className="pointer-events-auto relative size-full cursor-grab touch-none select-none rounded-full outline-offset-4 active:cursor-grabbing"
         style={{ x: dragX, y: dragY }}
-        drag dragSnapToOrigin={!follow} dragElastic={follow ? 0 : 0.6} dragMomentum={false}
+        drag dragElastic={0} dragMomentum={false}
         onDragStart={() => { dragging.current = true; tilt.set(0); feel("excited", "Wheee!", 1600); }}
         onDragEnd={() => {
           dragging.current = false;
-          if (!follow) return;
-          // Move the home spot to where it was dropped, then clear the drag offset in the same frame
-          const nx = clampX(tx.get() + dragX.get()), ny = clampY(ty.get() + dragY.get());
+          // Move the home spot to where it was dropped, then clear the drag offset in the same frame.
+          // Docked on a phone: switch to free placement from where it was let go.
+          const r = wrap.current?.getBoundingClientRect();
+          const bx = follow ? tx.get() : (r?.left ?? 0), by = follow ? ty.get() : (r?.top ?? 0);
+          const nx = clampX(bx + dragX.get()), ny = clampY(by + dragY.get());
+          if (!follow) setFollow(true);
           tx.set(nx); ty.set(ny); x.jump(nx); y.jump(ny); dragX.set(0); dragY.set(0);
           setBelow(ny < 110); setLeftHalf(nx < window.innerWidth / 2);
-          try { localStorage.setItem(POS_KEY, JSON.stringify({ x: nx / window.innerWidth, y: ny / window.innerHeight })); } catch {}
+          try { localStorage.setItem(posKey(), JSON.stringify({ x: nx / window.innerWidth, y: ny / window.innerHeight })); } catch {}
           feel("happy", "Nice spot!", 1600);
         }}
         onDoubleClick={() => {
-          // Double-click sends it back home (bottom-left)
-          if (!follow) return;
-          const nx = clampX(24), ny = clampY(window.innerHeight - SIZE - 24);
-          tx.set(nx); ty.set(ny); setBelow(false); setLeftHalf(true);
-          try { localStorage.removeItem(POS_KEY); } catch {}
+          // Double-click sends it back home
+          try { localStorage.removeItem(posKey()); } catch {}
+          setHomeTick((n) => n + 1);
         }}
         onTap={touch}
         onPointerDown={() => { press.current = setTimeout(() => feel("love", PET_LINES[0], 2600), 550); }}

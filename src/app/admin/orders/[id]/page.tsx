@@ -30,7 +30,7 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
     <div className="max-w-5xl">
       <div className="flex flex-wrap items-center gap-2">
         <Link href="/admin/orders" className="grid size-9 place-items-center rounded-full hover:bg-ink-soft" aria-label="All orders"><ChevronLeft className="size-5" /></Link>
-        <h1 className="text-[34px] uppercase">{o.order_no}</h1>
+        <h1 className="t-h2 uppercase">{o.order_no}</h1>
         <span className={clsx("rounded-full px-3 py-1 text-xs font-bold", statusTone(o.status))}>{STATUS_LABEL[o.status]}</span>
         <span className="text-sm text-muted">{new Date(o.created_at).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", dateStyle: "medium", timeStyle: "short" })}</span>
         <Link href={`/bill/${o.id}?from=admin`} className="ml-auto inline-flex h-9 items-center gap-1.5 rounded-[8px] border border-ink px-3 text-sm font-semibold text-ink"><ReceiptText className="size-4" /> Bill</Link>

@@ -68,7 +68,7 @@ export function BuddyPicker({ onDone, current, asSheet }: { onDone: () => void; 
   const body = (
     <>
       {!asSheet && <p className="sign-type text-[15px] tracking-[0.12em] text-ink">New at the shop</p>}
-      {!asSheet && <h2 id="buddy-title" className="mt-1 text-[34px] uppercase leading-none">Pick a shop buddy</h2>}
+      {!asSheet && <h2 id="buddy-title" className="mt-1 t-h2 uppercase leading-none">Pick a shop buddy</h2>}
       <p className="mt-2 text-[15px] text-muted">They keep you company while you shop, cheer when you add things, and watch your order come in. Tap one to say hi.</p>
 
       <div ref={grid} role="radiogroup" aria-label="Shop buddies" className="mt-5 grid grid-cols-2 gap-2.5">

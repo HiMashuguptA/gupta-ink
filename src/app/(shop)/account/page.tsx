@@ -39,13 +39,13 @@ export default async function AccountPage() {
               <img src={profile.avatar_url} alt="" className="size-14 rounded-full ring-[3px] ring-nib" referrerPolicy="no-referrer" />
             )}
             <div className="min-w-0">
-              <h1 className="sign-type sign-shade truncate text-[34px] text-on-sign">{profile.name ?? "Your account"}</h1>
+              <h1 className="sign-type sign-shade truncate t-h2 text-on-sign">{profile.name ?? "Your account"}</h1>
               <p className="truncate text-sm text-on-sign-muted">{profile.email}</p>
             </div>
           </div>
           <Link href="/account/coins" className="press mt-4 flex items-center justify-between rounded-[10px] bg-nib px-4 py-3 text-on-nib">
             <span className="text-sm font-bold">SuperCoins</span>
-            <span className="sign-type text-[28px]"><Num value={wallet?.coin_balance ?? 0} /></span>
+            <span className="sign-type t-h3"><Num value={wallet?.coin_balance ?? 0} /></span>
           </Link>
         </div>
 
@@ -65,7 +65,7 @@ export default async function AccountPage() {
             <li key={href}>
               <Link href={href} className="group flex items-center gap-3 p-4 text-sm font-semibold first:rounded-t-[12px] last:rounded-b-[12px] hover:bg-sunk">
                 <Icon className="size-5 text-ink" /> {label}
-                <ChevronRight className="ml-auto size-4 text-muted transition-transform duration-200 group-hover:translate-x-0.5" />
+                <ChevronRight className="ml-auto size-4 text-muted transition-transform duration-200 group-hover:translate-x-0.5 group-active:translate-x-0.5" />
               </Link>
             </li>
           ))}
@@ -76,12 +76,12 @@ export default async function AccountPage() {
         )}
 
         <section className="mt-5">
-          <h2 className="mb-2 text-[22px] uppercase">Appearance</h2>
+          <h2 className="mb-2 t-h4 uppercase">Appearance</h2>
           <ThemeToggle />
         </section>
 
         <section className="mt-5">
-          <h2 className="mb-2 text-[22px] uppercase">Shop buddy</h2>
+          <h2 className="mb-2 t-h4 uppercase">Shop buddy</h2>
           <BuddySettings />
         </section>
 
@@ -91,11 +91,11 @@ export default async function AccountPage() {
       <div className="grid content-start gap-5">
         <ReferralCard code={profile.referral_code} />
         <section id="details" className="scroll-mt-24">
-          <h2 className="mb-2 text-[24px] uppercase">Your details</h2>
+          <h2 className="mb-2 t-h4 uppercase">Your details</h2>
           <ProfileForm initial={{ id: profile.id, email: profile.email, name: profile.name, phone: profile.phone }} />
         </section>
         <section>
-          <h2 className="mb-2 text-[24px] uppercase">Messages from the shop</h2>
+          <h2 className="mb-2 t-h4 uppercase">Messages from the shop</h2>
           <MessagePrefs />
         </section>
       </div>

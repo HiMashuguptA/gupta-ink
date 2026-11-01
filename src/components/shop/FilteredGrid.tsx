@@ -122,7 +122,7 @@ export function FilteredGrid({ cards, highlightId, showCategoryFilter = false }:
         <Grid cards={result} highlightId={highlightId} />
       ) : (
         <div className="rounded-[16px] bg-card p-8">
-          <h3 className="text-[26px] uppercase">Nothing matches these filters</h3>
+          <h3 className="t-h3 uppercase">Nothing matches these filters</h3>
           <p className="mt-1 text-muted">Remove a filter or two to see more products.</p>
           <button onClick={() => setF(EMPTY)} className="press mt-4 rounded-[10px] bg-nib px-4 py-2.5 text-sm font-bold text-on-nib">Clear all filters</button>
         </div>
@@ -135,7 +135,7 @@ export function FilteredGrid({ cards, highlightId, showCategoryFilter = false }:
               initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%", transition: { duration: 0.22, ease: [0.32, 0.72, 0, 1] } }} transition={{ duration: 0.42, ease: [0.32, 0.72, 0, 1] }}
               className="flex max-h-[85dvh] w-full max-w-md flex-col rounded-t-[20px] bg-card sm:rounded-[16px]">
               <div className="flex items-center justify-between border-b border-line px-5 py-4">
-                <h2 id="filters-title" className="text-[26px] uppercase">Filters</h2>
+                <h2 id="filters-title" className="t-h3 uppercase">Filters</h2>
                 <button onClick={() => setOpen(false)} className="grid size-9 place-items-center rounded-full hover:bg-paper" aria-label="Close filters"><X className="size-5" /></button>
               </div>
               <div className="flex-1 space-y-6 overflow-y-auto px-5 py-5">
@@ -167,7 +167,7 @@ export function FilteredGrid({ cards, highlightId, showCategoryFilter = false }:
               </div>
               <div className="flex gap-3 border-t border-line p-4">
                 <button onClick={() => setF(EMPTY)} className="press h-12 flex-1 rounded-[10px] bg-sunk font-semibold">Clear all</button>
-                <button onClick={() => setOpen(false)} className="sign-type press h-12 flex-[2] rounded-[10px] bg-nib text-[19px] text-on-nib">Show <Num value={result.length} /> products</button>
+                <button onClick={() => setOpen(false)} className="sign-type press h-12 flex-[2] rounded-[10px] bg-nib t-h5 text-on-nib">Show <Num value={result.length} /> products</button>
               </div>
             </motion.div>
           </motion.div>

@@ -43,7 +43,7 @@ export function NotificationList({ initial, userId }: { initial: N[]; userId: st
   if (!items.length) {
     return (
       <div className="rounded-[16px] bg-card p-8">
-        <h2 className="text-[24px] uppercase">No notifications yet</h2>
+        <h2 className="t-h4 uppercase">No notifications yet</h2>
         <p className="mt-1 text-muted">Order updates, coupons and coin credits will show up here.</p>
       </div>
     );

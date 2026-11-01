@@ -10,6 +10,8 @@ export function Splash() {
         <div className="splash-board">
           <svg viewBox="0 0 120 26" className="splash-strings"><path d="M14 26 L60 4 L106 26" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /><circle cx="60" cy="4" r="3.4" fill="#f5b800" /></svg>
           <div className="splash-sign">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/brand/ge-mark.svg" alt="" width="132" height="100" className="splash-mark" />
             <span className="sign-type splash-name">Gupta Enterprises</span>
             <span className="splash-sub">Khedi Market · Kohima</span>
           </div>

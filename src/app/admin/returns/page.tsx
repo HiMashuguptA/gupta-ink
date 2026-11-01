@@ -31,7 +31,7 @@ export default async function AdminReturns({ searchParams }: { searchParams: Pro
 
   return (
     <div className="max-w-5xl">
-      <h1 className="text-[34px] uppercase">Returns and refunds</h1>
+      <h1 className="t-h2 uppercase">Returns and refunds</h1>
       <p className="mt-1 text-sm text-muted">Review requests, arrange pickups, then pay refunds by UPI and upload the screenshot.</p>
 
       {(cancelRefunds.data ?? []).length > 0 && (

@@ -15,7 +15,7 @@ function T({ t }: { t: Tally }) {
 export function CampaignLog({ rows }: { rows: CampaignRow[] }) {
   return (
     <section className="mt-6">
-      <h2 className="text-[24px] uppercase">Sent messages</h2>
+      <h2 className="t-h4 uppercase">Sent messages</h2>
       {!rows.length ? (
         <p className="mt-2 rounded-[12px] bg-card p-6 text-center text-sm text-muted">Nothing sent yet. Your first message will show up here with how many people got it.</p>
       ) : (

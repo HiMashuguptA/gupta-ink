@@ -27,7 +27,7 @@ export function ProductTile({ card, className, highlight = false, index = 0 }: {
         <Link href={href} tabIndex={-1} aria-hidden onClick={nameHero}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img data-hero src={card.images[0] ?? "/brand/logo.svg"} alt="" loading="lazy" decoding="async"
-            className="size-full object-cover transition-transform duration-500 ease-[var(--ease-out)] group-hover:scale-[1.05]" />
+            className="size-full object-cover transition-transform duration-500 ease-[var(--ease-out)] group-hover:scale-[1.05] group-active:scale-[1.05]" />
         </Link>
         {card.discount_pct >= 5 && (
           <span className="sign-type pointer-events-none absolute left-0 top-0 rounded-br-[10px] bg-[#cf1f2b] px-2 pb-[5px] pt-[6px] text-[14px] text-white">
@@ -56,7 +56,7 @@ export function ProductTile({ card, className, highlight = false, index = 0 }: {
         <div className="relative z-10 mt-auto flex items-end justify-between gap-2 pt-2">
           {/* Price painted on a small tag plate */}
           <div className="leading-none">
-            <p className="sign-type num inline-block rounded-[5px] bg-ink-soft px-1.5 pb-[3px] pt-[5px] text-[21px] text-ink-deep">{rupees(card.price_paise)}</p>
+            <p className="sign-type num inline-block rounded-[5px] bg-ink-soft px-1.5 pb-[3px] pt-[5px] t-h5 text-ink-deep">{rupees(card.price_paise)}</p>
             {card.mrp_paise > card.price_paise && <p className="num mt-1 text-[11px] text-muted line-through">{rupees(card.mrp_paise)}</p>}
           </div>
           <AddButton product={card} />

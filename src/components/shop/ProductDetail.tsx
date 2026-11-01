@@ -72,7 +72,7 @@ export function ProductDetail({ card, description, returnable }: { card: GroupCa
       </div>
 
       <div>
-        <h1 className="text-[34px] leading-[1.02] sm:text-[44px]">{card.name}</h1>
+        <h1 className="t-h2 leading-[1.02] sm:t-hero">{card.name}</h1>
         <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
           <span className="font-bold text-ink">{card.brand}</span>
           {card.rating_count > 0 && (
@@ -87,7 +87,7 @@ export function ProductDetail({ card, description, returnable }: { card: GroupCa
         </p>
 
         <div className="mt-4 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          <Price paise={v.price_paise} className="sign-type text-[44px] text-graphite" />
+          <Price paise={v.price_paise} className="sign-type t-hero text-graphite" />
           {v.mrp_paise > v.price_paise && (
             <>
               <span className="num text-muted line-through">MRP {rupees(v.mrp_paise)}</span>
@@ -121,7 +121,7 @@ export function ProductDetail({ card, description, returnable }: { card: GroupCa
           <AddButton product={v} size="lg" />
           {capFor(v) > 0 && (
             <Link href={buyHref} prefetch={false}
-              className="sign-type press flex h-12 items-center justify-center gap-1.5 rounded-[9px] bg-sign text-[19px] text-on-sign hover:bg-ink">
+              className="sign-type press flex h-12 items-center justify-center gap-1.5 rounded-[9px] bg-sign t-h5 text-on-sign hover:bg-ink">
               <Zap className="size-4 fill-nib text-nib" /> Buy now
             </Link>
           )}
@@ -133,7 +133,7 @@ export function ProductDetail({ card, description, returnable }: { card: GroupCa
               data-pet-avoid className="fixed inset-x-0 bottom-[calc(57px+env(safe-area-inset-bottom))] z-30 border-t border-line bg-card px-3 py-2.5 md:hidden">
               <div className="mx-auto flex max-w-md items-center gap-2.5">
                 <div className="min-w-0 shrink-0 leading-tight">
-                  <Price paise={v.price_paise} className="sign-type block text-[24px]" />
+                  <Price paise={v.price_paise} className="sign-type block t-h4" />
                   {v.mrp_paise > v.price_paise && <p className="text-[11px] text-muted line-through">{rupees(v.mrp_paise)}</p>}
                 </div>
                 <AddButton product={v} size="lg" className="!h-11 flex-1" />
@@ -157,7 +157,7 @@ export function ProductDetail({ card, description, returnable }: { card: GroupCa
 
         {description && (
           <section className="mt-6">
-            <h2 className="text-[24px] uppercase">About this item</h2>
+            <h2 className="t-h4 uppercase">About this item</h2>
             <p className="mt-1.5 max-w-prose text-muted">{description}</p>
           </section>
         )}

@@ -23,9 +23,9 @@ export function CartView({ rules }: { rules: Rules }) {
     return (
       <div className="mx-4 mt-6 flex flex-col items-start gap-1 rounded-[16px] bg-sign p-7 text-on-sign">
         <ShoppingBag className="mb-2 size-10 text-nib" />
-        <h1 className="text-[40px] uppercase">Your cart is empty</h1>
+        <h1 className="t-h1 uppercase">Your cart is empty</h1>
         <p className="text-on-sign-muted">Pens, notebooks and exam supplies, delivered in under an hour.</p>
-        <Link href="/" className="sign-type press mt-5 inline-flex h-12 items-center gap-2 rounded-[10px] bg-nib px-5 text-[19px] text-on-nib">Start shopping <ArrowRight className="size-5" /></Link>
+        <Link href="/" className="sign-type press mt-5 inline-flex h-12 items-center gap-2 rounded-[10px] bg-nib px-5 t-h5 text-on-nib">Start shopping <ArrowRight className="size-5" /></Link>
       </div>
     );
   }
@@ -39,7 +39,7 @@ export function CartView({ rules }: { rules: Rules }) {
   return (
     <div className="grid gap-5 px-4 pt-4 lg:grid-cols-[1fr_360px]">
       <section aria-label="Items in your cart">
-        <h1 className="text-[40px] uppercase">Cart <span className="font-sans text-base font-semibold normal-case text-muted"><Num value={count} /> {count === 1 ? "item" : "items"}</span></h1>
+        <h1 className="t-h1 uppercase">Cart <span className="font-sans text-base font-semibold normal-case text-muted"><Num value={count} /> {count === 1 ? "item" : "items"}</span></h1>
 
         <div className="mt-3 rounded-[12px] bg-card p-4">
           <p className="flex items-center gap-2 text-sm font-semibold">
@@ -65,7 +65,7 @@ export function CartView({ rules }: { rules: Rules }) {
                   {l.stock <= 0 && <p className="mt-0.5 text-xs font-semibold text-margin">Out of stock, remove to continue</p>}
                   <div className="mt-2 flex items-center justify-between">
                     <div className="leading-tight">
-                      <Price paise={l.price_paise * l.qty} className="sign-type text-[20px]" />
+                      <Price paise={l.price_paise * l.qty} className="sign-type t-h5" />
                       {l.mrp_paise > l.price_paise && <p className="text-xs text-muted line-through">{rupees(l.mrp_paise * l.qty)}</p>}
                     </div>
                     <div className="flex items-center gap-2">
@@ -88,19 +88,19 @@ export function CartView({ rules }: { rules: Rules }) {
 
       <aside className="lg:sticky lg:top-28 lg:self-start" aria-label="Bill summary">
         <div className="rounded-[12px] bg-card p-4">
-          <h2 className="text-[24px] uppercase">Bill summary</h2>
+          <h2 className="t-h4 uppercase">Bill summary</h2>
           <dl className="mt-3 space-y-2 text-sm">
             <div className="flex justify-between"><dt className="text-muted">Items (MRP)</dt><dd><Price paise={mrpTotal} /></dd></div>
             {mrpTotal > itemsTotal && <div className="flex justify-between text-ok"><dt>Store discount</dt><dd>−<Price paise={mrpTotal - itemsTotal} /></dd></div>}
             <div className="flex justify-between"><dt className="text-muted">Delivery fee</dt><dd>{delivery ? <Price paise={delivery} /> : <span className="font-semibold text-ok">Free</span>}</dd></div>
-            <div className="flex items-baseline justify-between border-t border-line pt-2.5"><dt className="font-bold">Estimated total</dt><dd><Price paise={itemsTotal + delivery} className="sign-type text-[28px]" /></dd></div>
+            <div className="flex items-baseline justify-between border-t border-line pt-2.5"><dt className="font-bold">Estimated total</dt><dd><Price paise={itemsTotal + delivery} className="sign-type t-h3" /></dd></div>
           </dl>
           <p className="mt-2 text-xs text-muted">Coupons, SuperCoins and the final total are applied at checkout. Store pickup is always free.</p>
           {belowMin && <p className="mt-3 rounded-[10px] bg-nib-soft px-3 py-2 text-sm">Minimum order is {rupees(rules.min_order_paise)}. Add {rupees(rules.min_order_paise - itemsTotal)} more.</p>}
           <Link
             href={user || !ready ? "/cart/checkout" : "/login?next=/cart/checkout"}
             aria-disabled={belowMin || unavailable.length > 0}
-            className={clsx("sign-type press mt-4 flex h-12 items-center justify-center gap-2 rounded-[10px] text-[20px]", belowMin || unavailable.length ? "pointer-events-none bg-sunk text-muted" : "bg-nib text-on-nib hover:bg-nib-deep")}
+            className={clsx("sign-type press mt-4 flex h-12 items-center justify-center gap-2 rounded-[10px] t-h5", belowMin || unavailable.length ? "pointer-events-none bg-sunk text-muted" : "bg-nib text-on-nib hover:bg-nib-deep")}
           >
             {user || !ready ? "Proceed to checkout" : "Sign in to check out"} <ArrowRight className="size-5" />
           </Link>

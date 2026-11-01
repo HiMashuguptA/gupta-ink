@@ -34,7 +34,7 @@ export default async function AdminReturn({ params }: { params: Promise<{ id: st
     <div className="max-w-5xl">
       <div className="flex flex-wrap items-center gap-2">
         <Link href="/admin/returns" className="grid size-9 place-items-center rounded-full hover:bg-ink-soft" aria-label="All returns"><ChevronLeft className="size-5" /></Link>
-        <h1 className="text-[34px] uppercase">Return on {o?.order_no}</h1>
+        <h1 className="t-h2 uppercase">Return on {o?.order_no}</h1>
         <span className={clsx("rounded-full px-3 py-1 text-xs font-bold", returnTone(r.status))}>{RETURN_LABEL[r.status]}</span>
         {o && <Link href={`/admin/orders/${o.id}`} className="text-sm font-semibold text-ink hover:underline">Open order</Link>}
       </div>

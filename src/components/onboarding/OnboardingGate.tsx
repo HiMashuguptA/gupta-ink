@@ -67,7 +67,7 @@ export function OnboardingGate() {
             transition={{ type: "spring", stiffness: 260, damping: 20 }}
             className="flex items-center gap-3 bg-ink px-5 py-3.5 text-on-ink shadow-float shadow-ink/30"
           >
-            <span className="sign-type text-[22px] text-nib">Hello again,</span>
+            <span className="sign-type t-h4 text-nib">Hello again,</span>
             <span className="font-display text-lg font-bold">{profile?.name?.split(" ")[0] ?? "friend"}</span>
           </motion.div>
         </motion.div>
