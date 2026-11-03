@@ -6,7 +6,7 @@ import { UrlFilteredGrid } from "@/components/shop/FilteredGrid";
 
 export const revalidate = 300;
 export async function generateStaticParams() {
-  return (await getCategories()).map((c) => ({ slug: c.slug }));
+  try { return (await getCategories()).map((c) => ({ slug: c.slug })); } catch { return []; }
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {

@@ -1,4 +1,5 @@
 import "server-only";
+import { internalSecret } from "@/lib/secrets";
 
 /**
  * Files live in Cloudflare R2 (binding MEDIA). Public buckets are served at /media/<bucket>/<path>;
@@ -9,8 +10,8 @@ export const PRIVATE_BUCKETS = ["returns", "refund-proofs"] as const;
 
 const enc = new TextEncoder();
 async function key() {
-  const secret = process.env.MEDIA_SIGNING_KEY || process.env.DISTANCE_SIGNING_KEY || "";
-  if (!secret) throw new Error("MEDIA_SIGNING_KEY is not set");
+  const secret = internalSecret("MEDIA_SIGNING_KEY");
+  if (!secret) throw new Error("CLERK_SECRET_KEY is not set");
   return crypto.subtle.importKey("raw", enc.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign", "verify"]);
 }
 const hex = (b: ArrayBuffer) => [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, "0")).join("");

@@ -7,7 +7,7 @@ import { getProduct, getCollection } from "@/lib/catalog";
 export const revalidate = 300;
 export async function generateStaticParams() {
   // Pre-build the 40 best sellers; the rest are built on first visit, then cached
-  return (await getCollection("most_purchased", 40)).map((g) => ({ slug: g.slug }));
+  try { return (await getCollection("most_purchased", 40)).map((g) => ({ slug: g.slug })); } catch { return []; }
 }
 import { ProductDetail } from "@/components/shop/ProductDetail";
 import { Rail } from "@/components/shop/Rail";

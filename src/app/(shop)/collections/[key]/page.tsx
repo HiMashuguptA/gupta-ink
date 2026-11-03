@@ -3,8 +3,9 @@ import { COLLECTIONS, getCollection } from "@/lib/catalog";
 import { FilteredGrid } from "@/components/shop/FilteredGrid";
 
 export const revalidate = 300;
+// Built on first visit, then cached for 5 minutes (keeps builds independent of the database)
 export function generateStaticParams() {
-  return Object.keys(COLLECTIONS).map((key) => ({ key }));
+  return [] as { key: string }[];
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ key: string }> }) {

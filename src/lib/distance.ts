@@ -27,7 +27,7 @@ export async function roadDistanceKm(from: { lat: number; lng: number }, to: { l
 }
 
 async function googleDistanceKm(from: { lat: number; lng: number }, to: { lat: number; lng: number }) {
-  const key = process.env.GOOGLE_ROUTES_KEY;
+  const key = process.env.GOOGLE_MAPS_KEY || process.env.GOOGLE_ROUTES_KEY;
   if (!key) return null;
   try {
     const ctrl = new AbortController();
@@ -55,9 +55,19 @@ export const round6 = (n: number) => Math.round(n * 1e6) / 1e6;
 export const round2 = (n: number) => Math.round(n * 100) / 100;
 
 /** Must produce exactly the string the database checks in _distance_sig_ok(). */
-export function signDistance(id: string, lat: number, lng: number, km: number) {
-  const key = process.env.DISTANCE_SIGNING_KEY;
-  if (!key) throw new Error("DISTANCE_SIGNING_KEY is not set in .env.local");
+let cachedKey: string | null = null;
+async function distanceKey() {
+  if (process.env.DISTANCE_SIGNING_KEY) return process.env.DISTANCE_SIGNING_KEY;
+  if (cachedKey) return cachedKey;
+  // Same key the database uses in _distance_sig_ok(), read with the server-only owner connection
+  const { sql } = await import("@/lib/jobs");
+  const r = (await sql()`select decrypted_secret from private.secrets where name = 'distance_hmac'`) as { decrypted_secret: string }[];
+  if (!r[0]) throw new Error("The distance signing key is missing in the database");
+  return (cachedKey = r[0].decrypted_secret);
+}
+
+export async function signDistance(id: string, lat: number, lng: number, km: number) {
+  const key = await distanceKey();
   const msg = `${id}|${lat.toFixed(6)}|${lng.toFixed(6)}|${km.toFixed(2)}`;
   return createHmac("sha256", key).update(msg).digest("hex");
 }

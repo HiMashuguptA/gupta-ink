@@ -15,10 +15,13 @@
 	],
 	"triggers": { "crons": ["* * * * *"] },
 	"observability": { "enabled": true },
-	// Public settings (secrets are added in the dashboard: CLERK_SECRET_KEY, DATABASE_URL, CRON_SECRET,
-	// MEDIA_SIGNING_KEY, DISTANCE_SIGNING_KEY, RESEND_API_KEY, GOOGLE_ROUTES_KEY, CASHFREE_SECRET_KEY)
+	// Public settings. Secrets are added in the Cloudflare dashboard (Settings, Variables and Secrets):
+	// CLERK_SECRET_KEY, DATABASE_URL, GOOGLE_MAPS_KEY, and later CASHFREE_APP_ID / CASHFREE_SECRET_KEY.
+	// The Resend key and distance key live in the database (private.secrets).
 	"vars": {
 		"NEXT_PUBLIC_SITE_URL": "https://guptaenterpriseskohima.com",
+		"NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_test_dXByaWdodC1nYXRvci04MDUuY2xlcmsuYWNjb3VudHMuZGV2JA",
+		"NEXT_PUBLIC_DATA_API_URL": "https://ep-delicate-glitter-aov8b6tz.apirest.c-2.ap-southeast-1.aws.neon.tech/neondb/rest/v1",
 		"EMAIL_FROM": "orders@guptaenterpriseskohima.com"
 	}
 }

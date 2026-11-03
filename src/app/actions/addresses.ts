@@ -49,7 +49,7 @@ export async function saveAddress(input: AddressInput): Promise<Result> {
   const row = {
     id, user_id: user.id, label: a.label, house_name: a.house_name, road: a.road, landmark: a.landmark || null,
     contact_name: a.contact_name, contact_phone: a.contact_phone, for_someone_else: a.for_someone_else,
-    lat, lng, road_km: km, distance_sig: signDistance(id, lat, lng, km), distance_at: new Date().toISOString(),
+    lat, lng, road_km: km, distance_sig: await signDistance(id, lat, lng, km), distance_at: new Date().toISOString(),
     is_default: a.is_default,
   };
 

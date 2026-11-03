@@ -21,7 +21,11 @@ const allCards = unstable_cache(
     // Page through in 1000-row chunks (PostgREST's default cap)
     for (let from = 0; ; from += 1000) {
       const { data, error } = await sb.from("product_cards").select("*").order("sold_count", { ascending: false }).range(from, from + 999);
-      if (error) throw error;
+      if (error) {
+        // A build that can't reach the database still succeeds; pages refill on their 5-minute refresh
+        if (process.env.NEXT_PHASE === "phase-production-build") return out;
+        throw error;
+      }
       out.push(...((data ?? []) as ProductCard[]));
       if (!data || data.length < 1000) break;
     }
