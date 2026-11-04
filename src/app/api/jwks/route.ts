@@ -17,7 +17,8 @@ function clerkHost() {
  * The one key list the Neon Data API trusts: Clerk's signing keys (signed-in shoppers)
  * plus the shop's own guest key (see src/lib/anon-token.ts).
  */
-export async function GET() {
+export async function GET(req: Request) {
+  console.log("jwks requested by", req.headers.get("user-agent") ?? "unknown", req.headers.get("cf-connecting-ip") ?? "");
   const keys: unknown[] = [];
   const host = clerkHost();
   if (host) {
