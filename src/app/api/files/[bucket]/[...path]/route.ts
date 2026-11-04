@@ -8,7 +8,7 @@ const TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const MAX = 5 * 1024 * 1024;
 
 /**
- * Upload one photo to Cloudflare R2. The same rules the database used for files:
+ * Upload one photo to file storage (Supabase Storage). The same rules the database used for files:
  * catalogue pictures and refund proofs are admin-only; review and return photos go only into
  * the uploader's own folder. Photos only, 5 MB at most.
  */

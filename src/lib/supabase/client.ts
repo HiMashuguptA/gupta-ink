@@ -5,7 +5,7 @@ import { PollChannel } from "@/lib/db/poll";
 /**
  * The browser's database client. Kept under its old name so the whole app keeps working:
  * queries and functions go to the Neon Data API with the Clerk session token, files go to
- * Cloudflare R2 through /api/files, and live updates are polled (see PollChannel).
+ * Supabase Storage through /api/files, and live updates are polled (see PollChannel).
  */
 type ClerkGlobal = { session?: { getToken: () => Promise<string | null> } | null };
 const clerkToken = async () => {

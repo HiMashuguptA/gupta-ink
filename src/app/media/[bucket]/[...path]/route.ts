@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { mediaBucket, PRIVATE_BUCKETS, PUBLIC_BUCKETS, verifyMedia } from "@/lib/media";
 
-/** Serves photos from R2. Public buckets are cached for a week; private ones need a signed, expiring link. */
+/** Serves photos from file storage. Public buckets are cached for a week; private ones need a signed, expiring link. */
 export async function GET(req: NextRequest, ctx: { params: Promise<{ bucket: string; path: string[] }> }) {
   const { bucket, path } = await ctx.params;
   const key = path.join("/");

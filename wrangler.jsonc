@@ -2,26 +2,21 @@
 	"$schema": "node_modules/wrangler/config-schema.json",
 	// worker.ts wraps the OpenNext worker and adds the every-minute cron job
 	"main": "worker.ts",
-	"name": "gupta-enterprises",
+	"name": "gupta-ink",
 	"compatibility_date": "2026-10-01",
 	"compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
 	"assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
-	"services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "gupta-enterprises" }],
-	"r2_buckets": [
-		// Next.js page cache
-		{ "binding": "NEXT_INC_CACHE_R2_BUCKET", "bucket_name": "ge-next-cache" },
-		// Product photos, banners, review and return photos, refund proofs
-		{ "binding": "MEDIA", "bucket_name": "ge-media" }
-	],
+	"services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "gupta-ink" }],
 	"triggers": { "crons": ["* * * * *"] },
 	"observability": { "enabled": true },
 	// Public settings. Secrets are added in the Cloudflare dashboard (Settings, Variables and Secrets):
-	// CLERK_SECRET_KEY, DATABASE_URL, GOOGLE_MAPS_KEY, and later CASHFREE_APP_ID / CASHFREE_SECRET_KEY.
+	// CLERK_SECRET_KEY, DATABASE_URL, GOOGLE_MAPS_KEY, SUPABASE_SECRET_KEY (file storage), and later payment keys.
 	// The Resend key and distance key live in the database (private.secrets).
 	"vars": {
 		"NEXT_PUBLIC_SITE_URL": "https://guptaenterpriseskohima.com",
 		"NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_test_dXByaWdodC1nYXRvci04MDUuY2xlcmsuYWNjb3VudHMuZGV2JA",
 		"NEXT_PUBLIC_DATA_API_URL": "https://ep-delicate-glitter-aov8b6tz.apirest.c-2.ap-southeast-1.aws.neon.tech/neondb/rest/v1",
-		"EMAIL_FROM": "orders@guptaenterpriseskohima.com"
+		"EMAIL_FROM": "orders@guptaenterpriseskohima.com",
+		"SUPABASE_URL": "https://tctsibxbatywwzqoaweu.supabase.co"
 	}
 }

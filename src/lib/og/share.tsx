@@ -34,7 +34,7 @@ export async function ogFonts() {
   ];
 }
 
-/** A picture Satori can draw: site files as data URIs, outside photos (R2, shop CDN) as absolute links. */
+/** A picture Satori can draw: site files as data URIs, outside photos (file storage, shop CDN) as absolute links. */
 export async function publicAsDataUri(src: string | null | undefined) {
   if (!src) return null;
   if (/^https?:\/\//.test(src)) return src;
