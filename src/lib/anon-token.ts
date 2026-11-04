@@ -48,6 +48,15 @@ const enc = new TextEncoder();
 
 let cached: { token: string; exp: number } | null = null;
 
+/** Signs a token with the guest key (also used by the temporary /api/db-check probe). */
+export async function signGuest(claims: Record<string, unknown>) {
+  const { privateKey } = await keys();
+  const header = b64url(enc.encode(JSON.stringify({ alg: "RS256", typ: "JWT", kid: KID })));
+  const payload = b64url(enc.encode(JSON.stringify(claims)));
+  const sig = await crypto.subtle.sign(ALG, privateKey, enc.encode(`${header}.${payload}`));
+  return `${header}.${payload}.${b64url(sig)}`;
+}
+
 /** A guest token, reused until five minutes before it expires. */
 export async function anonToken(): Promise<{ token: string; exp: number }> {
   const now = Math.floor(Date.now() / 1000);
