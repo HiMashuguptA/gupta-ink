@@ -3,7 +3,6 @@ import { cache } from "react";
 import { auth } from "@clerk/nextjs/server";
 import { makeRest, type Rest } from "@/lib/db/rest";
 import { signMedia } from "@/lib/media";
-import { anonToken } from "@/lib/anon-token";
 import type { Profile } from "../types";
 
 /**
@@ -34,8 +33,7 @@ function withStorage(rest: Rest): ServerDb {
 
 export async function supabaseServer(): Promise<ServerDb> {
   const { getToken } = await auth();
-  // Signed out: fall back to the guest token, since the Data API needs a JWT on every request.
-  return withStorage(makeRest(async () => (await getToken()) ?? (await anonToken()).token));
+  return withStorage(makeRest(() => getToken()));
 }
 
 export type SessionUser = { id: string; email: string | null };

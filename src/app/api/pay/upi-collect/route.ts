@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSessionProfile } from "@/lib/supabase/server";
 import { cashfreeReady, createUpiCollect } from "@/lib/cashfree";
-import { sql } from "@/lib/jobs";
+import { rpc } from "@/lib/admin-db";
 
 const UPI_ID = /^[a-z0-9._-]{2,256}@[a-z][a-z0-9.-]{1,63}$/i;
 
@@ -31,7 +31,7 @@ export async function POST(req: Request) {
       id: o.id, order_no: o.order_no, amount_paise: o.payable_paise, customer_id: me.user.id, phone,
       email: me.profile.email, name: me.profile.name, upi_id: upi, return_url: `${site}/orders/${o.id}`,
     });
-    await sql()`select public._gateway_started(${o.id}::uuid, ${cfo.order_id}, ${upi})`;
+    await rpc("_gateway_started", { p_order: o.id, p_ref: cfo.order_id, p_upi: upi });
     return NextResponse.json({ ok: true });
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : "Couldn't send the request" }, { status: 502 });

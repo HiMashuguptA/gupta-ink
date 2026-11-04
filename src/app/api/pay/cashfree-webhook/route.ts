@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCfOrder, verifyWebhook } from "@/lib/cashfree";
-import { sql } from "@/lib/jobs";
+import { rpc } from "@/lib/admin-db";
 
 type Hook = {
   type?: string;
@@ -22,6 +22,6 @@ export async function POST(req: Request) {
   const orderId = cfo.order_tags?.order ?? h.data?.order?.order_tags?.order;
   if (cfo.order_status !== "PAID" || !orderId) return NextResponse.json({ ok: true });
   const paise = Math.round(Number(p.payment_amount ?? cfo.order_amount) * 100);
-  await sql()`select public._gateway_paid(${orderId}::uuid, ${p.bank_reference ?? null}, ${paise}::int, ${JSON.stringify({ cf_order: cfId, cf_payment: p.cf_payment_id ?? null })}::jsonb)`;
+  await rpc("_gateway_paid", { p_order: orderId, p_utr: p.bank_reference ?? null, p_amount_paise: paise, p_raw: { cf_order: cfId, cf_payment: p.cf_payment_id ?? null } });
   return NextResponse.json({ ok: true });
 }

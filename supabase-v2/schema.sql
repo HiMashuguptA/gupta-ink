@@ -1,0 +1,6198 @@
+-- Gupta Enterprises on Supabase (Postgres + PostgREST), sign-in by Clerk (third-party auth).
+-- Built by supabase-v2/build.sh from supabase/migrations + neon/extras.sql. Do not edit by hand.
+create schema if not exists extensions;
+create extension if not exists pgcrypto with schema extensions;
+create extension if not exists pg_trgm with schema extensions;
+create extension if not exists unaccent with schema extensions;
+
+grant usage on schema public to anon, authenticated, service_role;
+alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
+alter default privileges in schema public grant all on functions to anon, authenticated, service_role;
+alter default privileges in schema public grant all on sequences to anon, authenticated, service_role;
+
+-- Keys the server needs (email, WhatsApp gateway, distance signing). Never exposed through the API.
+create schema if not exists private;
+create table if not exists private.secrets (
+  name text primary key,
+  decrypted_secret text not null,
+  updated_at timestamptz not null default now()
+);
+revoke all on schema private from public, anon, authenticated;
+
+-- The signed-in shopper. Clerk ids ("user_2abc...") become a stable uuid, so every table keeps uuid keys.
+create or replace function public.uid() returns uuid
+language sql stable set search_path = '' as $$
+  select case when coalesce(auth.jwt()->>'sub', '') = '' then null else md5('clerk:' || (auth.jwt()->>'sub'))::uuid end
+$$;
+create or replace function public.jwt() returns jsonb
+language sql stable set search_path = '' as $$ select coalesce(auth.jwt(), '{}'::jsonb) $$;
+--
+-- PostgreSQL database dump
+--
+
+\restrict w4ukmpxY0uc1RYw9pbImtqDi1eyk6sZ43iZ2o0etA9lgsDRQPTiNGfl5rOlVqWF
+
+-- Dumped from database version 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
+-- Dumped by pg_dump version 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
+
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SELECT pg_catalog.set_config('search_path', '', false);
+SET check_function_bodies = false;
+SET xmloption = content;
+SET client_min_messages = warning;
+SET row_security = off;
+
+--
+-- Name: public; Type: SCHEMA; Schema: -; Owner: -
+--
+
+
+
+--
+-- Name: coin_entry; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.coin_entry AS ENUM (
+    'earn',
+    'spend',
+    'expire',
+    'referral',
+    'restore',
+    'adjust'
+);
+
+
+--
+-- Name: coupon_type; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.coupon_type AS ENUM (
+    'percent',
+    'flat',
+    'free_delivery'
+);
+
+
+--
+-- Name: order_status; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.order_status AS ENUM (
+    'placed',
+    'confirmed',
+    'getting_ready',
+    'packed',
+    'agent_assigned',
+    'agent_accepted',
+    'out_for_delivery',
+    'delivered',
+    'ready_for_pickup',
+    'collected',
+    'completed',
+    'cancelled'
+);
+
+
+--
+-- Name: order_type; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.order_type AS ENUM (
+    'quick',
+    'scheduled',
+    'pickup'
+);
+
+
+--
+-- Name: payment_method; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.payment_method AS ENUM (
+    'upi',
+    'cod',
+    'counter'
+);
+
+
+--
+-- Name: payment_status; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.payment_status AS ENUM (
+    'pending',
+    'paid',
+    'failed',
+    'refunded',
+    'partially_refunded'
+);
+
+
+--
+-- Name: return_status; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.return_status AS ENUM (
+    'requested',
+    'approved',
+    'rejected',
+    'pickup_assigned',
+    'picked_up',
+    'received',
+    'refunded'
+);
+
+
+--
+-- Name: user_role; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.user_role AS ENUM (
+    'customer',
+    'admin',
+    'delivery_agent',
+    'blocked'
+);
+
+
+--
+-- Name: order_no_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.order_no_seq
+    START WITH 1001
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+SET default_tablespace = '';
+
+SET default_table_access_method = heap;
+
+--
+-- Name: orders; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.orders (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    order_no text DEFAULT ('GI'::text || nextval('public.order_no_seq'::regclass)) NOT NULL,
+    user_id uuid NOT NULL,
+    type public.order_type NOT NULL,
+    slot_date date,
+    slot_start time without time zone,
+    slot_end time without time zone,
+    address jsonb,
+    road_km numeric,
+    items_total_paise integer NOT NULL,
+    coupon_code text,
+    coupon_discount_paise integer DEFAULT 0 NOT NULL,
+    coins_used integer DEFAULT 0 NOT NULL,
+    delivery_fee_paise integer DEFAULT 0 NOT NULL,
+    fine_paise integer DEFAULT 0 NOT NULL,
+    payable_paise integer NOT NULL,
+    coins_to_earn integer DEFAULT 0 NOT NULL,
+    payment_method public.payment_method NOT NULL,
+    payment_status public.payment_status DEFAULT 'pending'::public.payment_status NOT NULL,
+    status public.order_status DEFAULT 'placed'::public.order_status NOT NULL,
+    agent_id uuid,
+    otp_hash text,
+    otp_attempts integer DEFAULT 0 NOT NULL,
+    note text,
+    cancel_reason text,
+    cancelled_by text,
+    cancel_was_free boolean,
+    ready_at timestamp with time zone,
+    delivered_at timestamp with time zone,
+    return_window_ends_at timestamp with time zone,
+    coins_credited boolean DEFAULT false NOT NULL,
+    idempotency_key text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    refund_upi_id text,
+    refund_due_paise integer DEFAULT 0 NOT NULL,
+    paid_at timestamp with time zone,
+    confirmed_at timestamp with time zone,
+    cancelled_at timestamp with time zone,
+    refund_utr text,
+    refund_proof_path text,
+    refunded_at timestamp with time zone,
+    pickup_contact jsonb
+);
+
+ALTER TABLE ONLY public.orders FORCE ROW LEVEL SECURITY;
+
+
+--
+-- Name: _agent_order(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public._agent_order(p_order uuid) RETURNS public.orders
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+declare o public.orders;
+begin
+  if not public.is_agent() then raise exception 'Delivery partners only' using errcode = '42501'; end if;
+  select * into o from public.orders where id = p_order for update;
+  if not found or o.agent_id is distinct from public.uid() then raise exception 'This delivery isn''t assigned to you'; end if;
+  return o;
+end $$;
+
+
+--
+-- Name: _audience(text, integer); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public._audience(p_audience text, p_days integer) RETURNS TABLE(id uuid, name text, email text, phone text, wa_opt_in boolean, email_offers boolean)
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+  select p.id, p.name, p.email, p.phone, p.wa_opt_in, p.email_offers
+  from public.profiles p
+  where p.role = 'customer'
+    and case p_audience
+      when 'all' then true
+      when 'never_ordered' then not exists (select 1 from public.orders o where o.user_id = p.id and o.status <> 'cancelled')
+      when 'inactive' then p.created_at < now() - make_interval(days => coalesce(p_days, 30))
+        and not exists (select 1 from public.orders o where o.user_id = p.id and o.status <> 'cancelled' and o.created_at >= now() - make_interval(days => coalesce(p_days, 30)))
+      else false end
+$$;
+
+
+--
+-- Name: _cancel_order(uuid, text, text, boolean, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public._cancel_order(p_order uuid, p_by text, p_reason text, p_customer boolean, p_refund_upi text DEFAULT NULL::text) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+declare
+  o public.orders; s public.settings; w public.wallets; a jsonb; spend jsonb;
+  wk date := date_trunc('week', public._ist_now())::date;
+  free boolean := true; fine_added int := 0; refund int := 0;
+begin
+  select * into o from public.orders where id = p_order for update;
+  if o.status = 'cancelled' then return jsonb_build_object('already', true); end if;
+  select * into s from public.settings where id = 1;
+  select * into w from public.wallets where user_id = o.user_id for update;
+
+  -- Stock and popularity
+  update public.products pp set stock = pp.stock + oi.qty from public.order_items oi
+   where oi.order_id = o.id and pp.id = oi.product_id;
+  update public.product_groups g set sold_count = greatest(0, g.sold_count - x.q)
+    from (select pp.group_id, sum(oi.qty) q from public.order_items oi join public.products pp on pp.id = oi.product_id
+           where oi.order_id = o.id group by pp.group_id) x
+   where g.id = x.group_id;
+
+  -- Slot
+  if o.type = 'scheduled' then
+    update public.slot_bookings set booked = greatest(0, booked - 1) where slot_date = o.slot_date and window_start = o.slot_start;
+  end if;
+
+  -- Coupon comes back
+  if o.coupon_code is not null then
+    update public.coupon_uses set reverted = true where order_id = o.id and not reverted;
+    if found then update public.coupons set used_count = greatest(0, used_count - 1) where code = o.coupon_code; end if;
+  end if;
+
+  -- SuperCoins come back to the credits they came from (expired ones get 2 more days)
+  if o.coins_used > 0 then
+    select alloc into spend from public.coin_ledger where order_id = o.id and entry = 'spend' limit 1;
+    for a in select * from jsonb_array_elements(coalesce(spend, '[]'::jsonb)) loop
+      update public.coin_ledger
+         set remaining = remaining + (a->>'n')::int,
+             expires_at = case when expires_at is not null and expires_at < now() + interval '2 days' then now() + interval '2 days' else expires_at end
+       where id = (a->>'credit_id')::uuid;
+    end loop;
+    insert into public.coin_ledger (user_id, entry, amount, remaining, order_id, note)
+    values (o.user_id, 'restore', o.coins_used, 0, o.id, 'Returned from cancelled order ' || o.order_no);
+    update public.wallets set coin_balance = coin_balance + o.coins_used where user_id = o.user_id;
+  end if;
+
+  -- A fine that was settled on this order goes back to pending
+  if o.fine_paise > 0 then
+    update public.wallets set pending_fine_paise = pending_fine_paise + o.fine_paise where user_id = o.user_id;
+  end if;
+
+  -- Customer cancellations: 3 free per week (Mon-Sun IST), then a fine on the next order
+  if p_customer then
+    if w.week_start <> wk then
+      update public.wallets set week_start = wk, week_cancels = 0 where user_id = o.user_id;
+      w.week_cancels := 0;
+    end if;
+    free := w.week_cancels < s.free_cancels_per_week;
+    update public.wallets set week_cancels = week_cancels + 1,
+      pending_fine_paise = pending_fine_paise + case when free then 0 else s.cancel_fine_paise end,
+      updated_at = now()
+     where user_id = o.user_id;
+    fine_added := case when free then 0 else s.cancel_fine_paise end;
+  end if;
+
+  refund := case when o.payment_status = 'paid' then o.payable_paise else 0 end;
+  update public.orders set status = 'cancelled', cancel_reason = left(p_reason, 300), cancelled_by = p_by,
+    cancel_was_free = case when p_customer then free end, cancelled_at = now(),
+    refund_due_paise = refund, refund_upi_id = coalesce(nullif(trim(p_refund_upi), ''), refund_upi_id)
+   where id = o.id;
+  update public.payments set status = 'expired', updated_at = now() where order_id = o.id and status = 'pending';
+
+  insert into public.order_events (order_id, status, actor_id, note) values (o.id, 'cancelled', public.uid(), left(p_reason, 300));
+  perform public.notify(o.user_id, 'order', 'Order ' || o.order_no || ' cancelled',
+    concat_ws(' ',
+      case when p_by = 'customer' then null else coalesce(p_reason, 'The store cancelled this order.') end,
+      case when refund > 0 then 'Your refund of ' || public._inr(refund) || ' will be sent to your UPI ID within 7 working days.' end,
+      case when fine_added > 0 then 'A ' || public._inr(fine_added) || ' cancellation fine will be added to your next order.' end),
+    '/orders/' || o.id);
+  if p_by <> 'store' then
+    perform public.notify_admins('cancelled', 'Order ' || o.order_no || ' cancelled by ' || p_by,
+      concat_ws(' ', p_reason, case when refund > 0 then 'Refund due: ' || public._inr(refund) || '.' end), '/admin/orders/' || o.id);
+  end if;
+
+  return jsonb_build_object('cancelled', true, 'free', free, 'fine_paise', fine_added, 'refund_paise', refund,
+    'free_left', greatest(0, s.free_cancels_per_week - (w.week_cancels + case when p_customer then 1 else 0 end)));
+end $$;
+
+
+--
+-- Name: _cleanup_ordered_carts(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public._cleanup_ordered_carts() RETURNS integer
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+declare n int;
+begin
+  with gone as (
+    delete from public.cart_items c
+     using public.order_items oi join public.orders o on o.id = oi.order_id
+     where c.user_id = o.user_id and c.product_id = oi.product_id and c.added_at <= o.created_at
+    returning 1)
+  select count(*) into n from gone;
+  return n;
+end $$;
+
+
+--
+-- Name: addresses; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.addresses (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_id uuid DEFAULT public.uid() NOT NULL,
+    label text DEFAULT 'Home'::text NOT NULL,
+    house_name text NOT NULL,
+    road text NOT NULL,
+    landmark text,
+    contact_name text NOT NULL,
+    contact_phone text NOT NULL,
+    for_someone_else boolean DEFAULT false NOT NULL,
+    lat double precision NOT NULL,
+    lng double precision NOT NULL,
+    road_km numeric,
+    is_default boolean DEFAULT false NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    distance_sig text,
+    distance_at timestamp with time zone,
+    CONSTRAINT addresses_contact_phone_check CHECK ((contact_phone ~ '^[6-9][0-9]{9}$'::text)),
+    CONSTRAINT addresses_lat_check CHECK (((lat >= ('-90'::integer)::double precision) AND (lat <= (90)::double precision))),
+    CONSTRAINT addresses_lng_check CHECK (((lng >= ('-180'::integer)::double precision) AND (lng <= (180)::double precision)))
+);
+
+ALTER TABLE ONLY public.addresses FORCE ROW LEVEL SECURITY;
+
+
+--
+-- Name: _distance_sig_ok(public.addresses); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public._distance_sig_ok(a public.addresses) RETURNS boolean
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+  select a.distance_sig is not null and a.road_km is not null and a.distance_sig = encode(
+    extensions.hmac(
+      a.id::text || '|' || round(a.lat::numeric, 6)::text || '|' || round(a.lng::numeric, 6)::text || '|' || round(a.road_km::numeric, 2)::text,
+      (select decrypted_secret from private.secrets where name = 'distance_hmac'),
+      'sha256'),
+    'hex')
+$$;
+
+
+--
+-- Name: _email_delivery_code(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public._email_delivery_code(p_order uuid) RETURNS boolean
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
+    AS $_$
+declare o public.orders; c public.order_otps; u public.profiles; s public.settings; html text; sent boolean;
+begin
+  select * into o from public.orders where id = p_order;
+  select * into c from public.order_otps where order_id = p_order;
+  select * into u from public.profiles where id = o.user_id;
+  select * into s from public.settings where id = 1;
+  if c.code is null then return false; end if;
+  html := format($h$
+<div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;color:#1f2a44">
+  <h2 style="color:#1e2a78;margin:0 0 4px">%1$s</h2>
+  <p>Hi %2$s, your order <b>%3$s</b> is out for delivery.</p>
+  <p>Give this code to the delivery partner when they hand over your order:</p>
+  <p style="font-size:36px;font-weight:800;letter-spacing:10px;background:#f1f3fb;border-radius:12px;padding:16px;text-align:center;margin:12px 0">%4$s</p>
+  <p style="color:#6b7280;font-size:13px">Only share it once you have the parcel in hand. %5$s will never ask for it on a call.</p>
+  <p style="color:#6b7280;font-size:13px">%6$s, Khedi Market, Kohima. Call %7$s.</p>
+</div>$h$,
+    public._html(s.store_name), public._html(coalesce(split_part(u.name, ' ', 1), 'there')), o.order_no, c.code,
+    public._html(s.store_name), public._html(s.legal_name), s.store_phone);
+  sent := public._send_email(u.email, u.name, 'Your delivery code for ' || o.order_no || ': ' || c.code, html);
+  if sent then
+    update public.order_otps set emailed_count = emailed_count + 1, last_emailed_at = now() where order_id = p_order;
+  end if;
+  return sent;
+end $_$;
+
+
+--
+-- Name: _email_wrap(text, text, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public._email_wrap(p_title text, p_body text, p_link text) RETURNS text
+    LANGUAGE plpgsql STABLE
+    SET search_path TO ''
+    AS $_$
+declare s public.settings; site text := 'https://gupta-ink-g22y.vercel.app';
+begin
+  select * into s from public.settings where id = 1;
+  return format($h$
+<div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;color:#14231d">
+  <div style="background:#0a4d3b;border-radius:14px 14px 0 0;padding:18px 22px">
+    <span style="display:inline-block;background:#f5b800;color:#0a2e24;font-weight:800;letter-spacing:.04em;text-transform:uppercase;padding:6px 12px;border-radius:8px">%1$s</span>
+  </div>
+  <div style="border:1px solid #e3e0d6;border-top:0;border-radius:0 0 14px 14px;padding:22px">
+    <h2 style="margin:0 0 10px;font-size:22px">%2$s</h2>
+    <p style="font-size:15px;line-height:1.55;margin:0 0 18px">%3$s</p>
+    <a href="%4$s" style="display:inline-block;background:#f5b800;color:#0a2e24;font-weight:700;text-decoration:none;padding:12px 18px;border-radius:10px">Open the shop</a>
+    <p style="color:#6b7280;font-size:12px;margin:22px 0 0">%5$s, Khedi Market, Kohima. You get these because you shop with us. Turn offers off any time in Account.</p>
+  </div>
+</div>$h$,
+    public._html(s.store_name), public._html(p_title),
+    replace(public._html(p_body), E'\n', '<br>'),
+    site || coalesce(p_link, '/'), public._html(s.legal_name));
+end $_$;
+
+
+--
+-- Name: _expire_coins(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public._expire_coins() RETURNS integer
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+declare c public.coin_ledger; n int := 0;
+begin
+  for c in select * from public.coin_ledger where remaining > 0 and expires_at <= now() order by expires_at limit 500 for update skip locked loop
+    insert into public.coin_ledger (user_id, entry, amount, remaining, order_id, note)
+    values (c.user_id, 'expire', -c.remaining, 0, c.order_id, 'Expired');
+    update public.coin_ledger set remaining = 0 where id = c.id;
+    update public.wallets set coin_balance = greatest(0, coin_balance - c.remaining), updated_at = now() where user_id = c.user_id;
+    n := n + 1;
+  end loop;
+  return n;
+end $$;
+
+
+--
+-- Name: _expire_pickups(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public._expire_pickups() RETURNS integer
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+declare r record; n int := 0; s public.settings;
+begin
+  select * into s from public.settings where id = 1;
+  for r in select id from public.orders
+            where status = 'ready_for_pickup' and ready_at < now() - make_interval(hours => s.pickup_hold_hours) loop
+    perform public._cancel_order(r.id, 'system', 'Not collected within ' || s.pickup_hold_hours || ' hours.', false);
+    n := n + 1;
+  end loop;
+  return n;
+end $$;
+
+
+--
+-- Name: _expire_unpaid_upi(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public._expire_unpaid_upi() RETURNS integer
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+declare r record; n int := 0;
+begin
+  for r in select o.id from public.orders o join public.payments pay on pay.order_id = o.id
+            where o.status = 'placed' and o.payment_method = 'upi' and pay.utr is null
+              and o.created_at < now() - interval '30 minutes' loop
+    perform public._cancel_order(r.id, 'system', 'UPI payment wasn''t received within 30 minutes.', false);
+    n := n + 1;
+  end loop;
+  return n;
+end $$;
+
+
+--
+-- Name: _forward_notification(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public._forward_notification() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+declare u public.profiles; m public.messaging_settings; chat text; s public.settings;
+begin
+  if new.type not in ('order', 'return') then return new; end if;
+  select * into m from public.messaging_settings where id = 1;
+  if not m.wa_enabled or not m.order_updates_wa then return new; end if;
+  select * into u from public.profiles where id = new.user_id;
+  chat := public._wa_chat(u.phone);
+  if not u.wa_opt_in or chat is null then return new; end if;
+  select * into s from public.settings where id = 1;
+  insert into public.outbox (user_id, channel, to_addr, to_name, subject, body)
+  values (u.id, 'whatsapp', chat, u.name, new.title,
+    '*' || new.title || '*' || coalesce(E'\n' || new.body, '') ||
+    case when new.link is not null then E'\n\nhttps://gupta-ink-g22y.vercel.app' || new.link else '' end ||
+    E'\n\n— ' || s.store_name);
+  return new;
+end $$;
+
+
+--
+-- Name: _guard_scheduled(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public._guard_scheduled() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+begin
+  if new.type = 'scheduled' and not (select scheduled_enabled from public.settings where id = 1) then
+    raise exception 'Scheduled delivery is not available right now';
+  end if;
+  return new;
+end $$;
+
+
+--
+-- Name: _html(text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public._html(t text) RETURNS text
+    LANGUAGE sql IMMUTABLE
+    SET search_path TO ''
+    AS $$
+  select replace(replace(replace(coalesce(t, ''), '&', '&amp;'), '<', '&lt;'), '>', '&gt;')
+$$;
+
+
+--
+-- Name: _inr(integer); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public._inr(p integer) RETURNS text
+    LANGUAGE sql IMMUTABLE
+    SET search_path TO ''
+    AS $_$
+  select '₹' || regexp_replace(to_char(p / 100.0, 'FM999999990.00'), '\.00$', '')
+$_$;
+
+
+--
+-- Name: _ist_now(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public._ist_now() RETURNS timestamp without time zone
+    LANGUAGE sql STABLE
+    SET search_path TO ''
+    AS $$ select (now() at time zone 'Asia/Kolkata') $$;
+
+
+--
+-- Name: returns; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.returns (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    order_id uuid NOT NULL,
+    user_id uuid NOT NULL,
+    items jsonb NOT NULL,
+    reason text NOT NULL,
+    photos text[] DEFAULT '{}'::text[] NOT NULL,
+    refund_upi_id text NOT NULL,
+    refund_amount_paise integer DEFAULT 0 NOT NULL,
+    status public.return_status DEFAULT 'requested'::public.return_status NOT NULL,
+    admin_note text,
+    agent_id uuid,
+    refund_proof_path text,
+    refund_utr text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    pickup_address jsonb,
+    restocked boolean DEFAULT false NOT NULL,
+    refunded_at timestamp with time zone,
+    CONSTRAINT returns_photos_check CHECK (((array_length(photos, 1) >= 1) AND (array_length(photos, 1) <= 5))),
+    CONSTRAINT returns_reason_check CHECK (((length(reason) >= 5) AND (length(reason) <= 1000))),
+    CONSTRAINT returns_refund_upi_id_check CHECK ((refund_upi_id ~ '^[a-zA-Z0-9._-]{2,64}@[a-zA-Z]{2,64}$'::text))
+);
+
+ALTER TABLE ONLY public.returns FORCE ROW LEVEL SECURITY;
+
+
+--
+-- Name: _lock_return(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public._lock_return(p_return uuid) RETURNS public.returns
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+declare r public.returns;
+begin
+  select * into r from public.returns where id = p_return for update;
+  if not found then raise exception 'Return not found'; end if;
+  return r;
+end $$;
+
+
+--
+-- Name: _on_out_for_delivery(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public._on_out_for_delivery() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+declare code text;
+begin
+  code := lpad(((('x' || encode(extensions.gen_random_bytes(4), 'hex'))::bit(32)::bigint) % 10000)::text, 4, '0');
+  insert into public.order_otps (order_id, code) values (new.id, code)
+    on conflict (order_id) do update set code = excluded.code, emailed_count = 0, last_emailed_at = null, created_at = now();
+  new.otp_attempts := 0;
+  perform public._email_delivery_code(new.id);
+  return new;
+end $$;
+
+
+--
+-- Name: _order_item_clears_cart(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public._order_item_clears_cart() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+begin
+  delete from public.cart_items c
+   using public.orders o
+   where o.id = new.order_id and c.user_id = o.user_id and c.product_id = new.product_id;
+  return null;
+end $$;
+
+
+--
+-- Name: _paid_share(public.orders); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public._paid_share(o public.orders) RETURNS numeric
+    LANGUAGE sql IMMUTABLE
+    SET search_path TO ''
+    AS $$
+  select case when o.items_total_paise > 0
+    then greatest(0, o.items_total_paise - o.coupon_discount_paise - o.coins_used * 100)::numeric / o.items_total_paise
+    else 0 end
+$$;
+
+
+--
+-- Name: _price_order(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public._price_order(p_user uuid, p jsonb) RETURNS jsonb
+    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+declare
+  s public.settings;
+  w public.wallets;
+  typ text := coalesce(p->>'type', 'quick');
+  it jsonb; pr record; q int;
+  items jsonb := '[]'; errors text[] := '{}';
+  total int := 0; mrp_total int := 0;
+  c public.coupons; coupon jsonb := null; disc int := 0; free_del boolean := false; eligible int := 0; uses int;
+  after_c int; fee int := 0; fine int := 0;
+  coins_avail int := 0; coins_max int := 0; coins_used int := 0;
+  payable int; earn int;
+  n timestamp := public._ist_now();
+  holiday boolean; quick_ok boolean; quick_reason text;
+  slot record; addr public.addresses; addr_json jsonb := null;
+  upi_today int; methods jsonb;
+begin
+  select * into s from public.settings where id = 1;
+  select * into w from public.wallets where user_id = p_user;
+
+  -- Items: always re-priced from the database
+  for it in select * from jsonb_array_elements(coalesce(p->'items', '[]'::jsonb)) loop
+    q := greatest(coalesce((it->>'qty')::int, 0), 0);
+    if q < 1 then continue; end if;
+    select pp.id, pp.price_paise, pp.mrp_paise, pp.stock, pp.max_per_order, pp.active, pp.variant_label,
+           pp.images, pp.gst_rate, pp.hsn, g.name, g.returnable, g.category_id, ct.active as cat_active
+      into pr
+      from public.products pp
+      join public.product_groups g on g.id = pp.group_id
+      join public.categories ct on ct.id = g.category_id
+     where pp.id = (it->>'product_id')::uuid;
+    if not found or not pr.active or not pr.cat_active then
+      errors := array_append(errors, 'An item in your cart is no longer available. Remove it to continue.'::text);
+      continue;
+    end if;
+    if q > least(pr.stock, pr.max_per_order) then
+      errors := array_append(errors, format('Only %s of %s can be ordered right now', least(pr.stock, pr.max_per_order), pr.name)::text);
+    end if;
+    total := total + pr.price_paise * q;
+    mrp_total := mrp_total + pr.mrp_paise * q;
+    items := items || jsonb_build_object(
+      'product_id', pr.id, 'name', pr.name, 'variant_label', pr.variant_label, 'image', pr.images[1],
+      'price_paise', pr.price_paise, 'mrp_paise', pr.mrp_paise, 'qty', q, 'gst_rate', pr.gst_rate,
+      'hsn', pr.hsn, 'returnable', pr.returnable, 'category_id', pr.category_id);
+  end loop;
+  if jsonb_array_length(items) = 0 then errors := array_append(errors, 'Your cart is empty'::text); end if;
+
+  -- Coupon
+  if coalesce(trim(p->>'coupon_code'), '') <> '' then
+    select * into c from public.coupons where code = upper(trim(p->>'coupon_code'));
+    if not found or not c.active or c.valid_from > now() or (c.valid_to is not null and c.valid_to <= now())
+       or (c.audience = 'selected' and not (p_user = any(c.audience_user_ids))) then
+      coupon := jsonb_build_object('code', upper(trim(p->>'coupon_code')), 'error', 'This coupon isn''t valid');
+    else
+      select count(*) into uses from public.coupon_uses where code = c.code and user_id = p_user and not reverted;
+      eligible := case when cardinality(c.category_ids) = 0 then total else
+        (select coalesce(sum((x->>'price_paise')::int * (x->>'qty')::int), 0) from jsonb_array_elements(items) x
+          where (x->>'category_id')::uuid = any(c.category_ids)) end;
+      if uses >= c.per_user_limit then
+        coupon := jsonb_build_object('code', c.code, 'error', 'You''ve already used this coupon');
+      elsif c.total_limit is not null and c.used_count >= c.total_limit then
+        coupon := jsonb_build_object('code', c.code, 'error', 'This coupon has run out');
+      elsif c.first_order_only and exists (select 1 from public.orders o where o.user_id = p_user and o.status <> 'cancelled') then
+        coupon := jsonb_build_object('code', c.code, 'error', 'This coupon is for your first order only');
+      elsif total < c.min_order_paise then
+        coupon := jsonb_build_object('code', c.code, 'error', format('Add %s more to use this coupon', public._inr(c.min_order_paise - total)));
+      elsif eligible = 0 then
+        coupon := jsonb_build_object('code', c.code, 'error', 'This coupon doesn''t apply to these items');
+      else
+        disc := case c.type
+          when 'percent' then least((floor(eligible * c.value / 10000.0) * 100)::int, coalesce(c.max_discount_paise, 2147483647))
+          when 'flat' then least(c.value, eligible)
+          else 0 end;
+        free_del := c.type = 'free_delivery';
+        coupon := jsonb_build_object('code', c.code, 'title', c.title, 'discount_paise', disc, 'free_delivery', free_del);
+      end if;
+    end if;
+  end if;
+
+  after_c := total - disc;
+  if jsonb_array_length(items) > 0 and after_c < s.min_order_paise then
+    errors := array_append(errors, format('Minimum order is %s. Add %s more.', public._inr(s.min_order_paise), public._inr(s.min_order_paise - after_c))::text);
+  end if;
+
+  -- Fulfilment availability
+  holiday := n::date = any(s.holidays);
+  quick_ok := not s.orders_paused and not holiday and n::time >= s.delivery_start and n::time <= s.quick_last_order;
+  quick_reason := case
+    when s.orders_paused then 'We''re not taking orders right now'
+    when holiday then 'The store is closed today'
+    when not quick_ok then format('Quick delivery runs %s to %s. Schedule a slot or pick up instead.', to_char(s.delivery_start, 'HH24:MI'), to_char(s.quick_last_order, 'HH24:MI'))
+    end;
+  if s.orders_paused then errors := array_append(errors, 'We''re not taking orders right now'::text); end if;
+  if typ = 'quick' and not quick_ok and not s.orders_paused then errors := array_append(errors, quick_reason::text); end if;
+
+  if typ = 'scheduled' then
+    select * into slot from public.checkout_slots() cs
+     where cs.slot_date = (p->>'slot_date')::date and cs.window_start = (p->>'slot_start')::time;
+    if not found then errors := array_append(errors, 'Choose a delivery slot'::text);
+    elsif not slot.open then errors := array_append(errors, format('That slot isn''t available (%s). Pick another.', lower(slot.reason))::text);
+    end if;
+  end if;
+
+  -- Address and distance (delivery only)
+  if typ <> 'pickup' then
+    select * into addr from public.addresses a where a.id = nullif(p->>'address_id', '')::uuid and a.user_id = p_user;
+    if not found then
+      errors := array_append(errors, 'Choose a delivery address'::text);
+    else
+      addr_json := jsonb_build_object('id', addr.id, 'road_km', addr.road_km, 'in_range', addr.road_km is not null and addr.road_km <= s.delivery_radius_km);
+      if addr.road_km is null then errors := array_append(errors, 'Confirm your delivery location on the map'::text);
+      elsif addr.road_km > s.delivery_radius_km then
+        errors := array_append(errors, format('This address is %s km away by road. We deliver within %s km; store pickup is available.', round(addr.road_km, 1), s.delivery_radius_km)::text);
+      end if;
+    end if;
+  end if;
+
+  -- Fees, fine, coins
+  fee := case when typ = 'pickup' or free_del or after_c >= s.free_delivery_min_paise then 0 else s.delivery_fee_paise end;
+  fine := coalesce(w.pending_fine_paise, 0);
+  select coalesce(sum(remaining), 0) into coins_avail from public.coin_ledger
+   where user_id = p_user and remaining > 0 and (expires_at is null or expires_at > now());
+  -- Coins can't bring the item total below ₹1 and never pay the delivery fee or fine
+  coins_max := greatest(0, least(coins_avail, (after_c - 100) / 100));
+  coins_used := case when coalesce((p->>'use_coins')::boolean, false) then coins_max else 0 end;
+  payable := after_c - coins_used * 100 + fee + fine;
+  earn := floor((after_c - coins_used * 100) * s.coin_rate_bp / 10000.0 / 100)::int;
+
+  -- Payment methods
+  select count(*) into upi_today from public.payments
+   where method = 'upi' and status in ('pending', 'success') and (created_at at time zone 'Asia/Kolkata')::date = n::date;
+  methods := jsonb_build_object(
+    'upi', upi_today < s.upi_daily_cap,
+    'cod', typ <> 'pickup' and payable <= s.cod_limit_paise,
+    'counter', typ = 'pickup');
+
+  return jsonb_build_object(
+    'items', items,
+    'items_total_paise', total,
+    'mrp_total_paise', mrp_total,
+    'coupon', coupon,
+    'coupon_discount_paise', disc,
+    'after_coupon_paise', after_c,
+    'delivery_fee_paise', fee,
+    'free_delivery_min_paise', s.free_delivery_min_paise,
+    'fine_paise', fine,
+    'coins', jsonb_build_object('available', coins_avail, 'max', coins_max, 'used', coins_used),
+    'payable_paise', payable,
+    'coins_to_earn', earn,
+    'address', addr_json,
+    'availability', jsonb_build_object('quick', quick_ok, 'quick_reason', quick_reason, 'pickup', not s.orders_paused,
+      'eta', format('%s-%s min', s.quick_eta_min, s.quick_eta_max)),
+    'methods', methods,
+    'cod_limit_paise', s.cod_limit_paise,
+    'errors', to_jsonb(errors));
+end $$;
+
+
+--
+-- Name: _refresh_rating(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public._refresh_rating(p_group uuid) RETURNS void
+    LANGUAGE sql SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+  update public.product_groups g set
+    rating_avg = coalesce((select round(avg(stars)::numeric, 1) from public.reviews where group_id = p_group and not hidden), 0),
+    rating_count = (select count(*) from public.reviews where group_id = p_group and not hidden)
+  where g.id = p_group;
+$$;
+
+
+--
+-- Name: _remind_expiring_coins(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public._remind_expiring_coins() RETURNS integer
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+declare r record; n int := 0;
+begin
+  for r in select user_id, sum(remaining) coins, min(expires_at) soonest from public.coin_ledger
+            where remaining > 0 and not reminded and expires_at > now() and expires_at <= now() + interval '2 days'
+            group by user_id loop
+    perform public.notify(r.user_id, 'coins', r.coins || ' SuperCoins expire soon',
+      'Use them before ' || to_char(r.soonest at time zone 'Asia/Kolkata', 'DD Mon, HH12:MI am') || ' on your next order.', '/account/coins');
+    update public.coin_ledger set reminded = true
+     where user_id = r.user_id and remaining > 0 and not reminded and expires_at <= now() + interval '2 days';
+    n := n + 1;
+  end loop;
+  return n;
+end $$;
+
+
+--
+-- Name: _send_email(text, text, text, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public._send_email(p_to text, p_name text, p_subject text, p_html text) RETURNS boolean
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+declare k text; s public.settings;
+begin
+  select decrypted_secret into k from private.secrets where name = 'brevo_api_key';
+  if coalesce(k, '') = '' or coalesce(p_to, '') = '' then return false; end if;
+  select * into s from public.settings where id = 1;
+  perform net.http_post(
+    url := 'https://api.brevo.com/v3/smtp/email',
+    headers := jsonb_build_object('api-key', k, 'content-type', 'application/json', 'accept', 'application/json'),
+    body := jsonb_build_object(
+      'sender', jsonb_build_object('name', s.store_name, 'email', s.support_email),
+      'to', jsonb_build_array(jsonb_build_object('email', p_to, 'name', coalesce(nullif(p_name, ''), p_to))),
+      'subject', p_subject,
+      'htmlContent', p_html));
+  return true;
+exception when others then
+  return false;  -- never block an order because email failed
+end $$;
+
+
+--
+-- Name: _settle_orders(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public._settle_orders() RETURNS integer
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+declare
+  o public.orders; s public.settings; ref public.referrals; refunded int; base int; earn int; n int := 0;
+  exp timestamptz; reward int;
+begin
+  select * into s from public.settings where id = 1;
+  exp := now() + make_interval(days => s.coin_expiry_days);
+  reward := s.referral_reward_coins;
+  for o in
+    select x.* from public.orders x
+     where x.status in ('delivered', 'collected') and not x.coins_credited and x.return_window_ends_at < now()
+       and not exists (select 1 from public.returns r where r.order_id = x.id
+                        and r.status in ('requested', 'approved', 'pickup_assigned', 'picked_up', 'received'))
+     order by x.return_window_ends_at
+     limit 200
+     for update skip locked
+  loop
+    select coalesce(sum(refund_amount_paise), 0) into refunded from public.returns where order_id = o.id and status = 'refunded';
+    base := greatest(0, o.items_total_paise - o.coupon_discount_paise - o.coins_used * 100 - refunded);
+    earn := floor(base * s.coin_rate_bp / 10000.0 / 100)::int;
+    if earn > 0 then
+      insert into public.coin_ledger (user_id, entry, amount, remaining, order_id, note, expires_at)
+      values (o.user_id, 'earn', earn, earn, o.id, 'Earned on order ' || o.order_no, exp);
+      update public.wallets set coin_balance = coin_balance + earn, updated_at = now() where user_id = o.user_id;
+      perform public.notify(o.user_id, 'coins', earn || ' SuperCoins added',
+        'From order ' || o.order_no || '. Use them within ' || s.coin_expiry_days || ' days (1 coin = ₹1).', '/account/coins');
+    end if;
+    update public.orders set coins_credited = true, status = 'completed' where id = o.id;
+    insert into public.order_events (order_id, status, actor_id, note) values (o.id, 'completed', null, case when earn > 0 then earn || ' SuperCoins credited' end);
+
+    -- Referral: both people get coins once the friend's first order is kept past its return window
+    select * into ref from public.referrals where referee_id = o.user_id and status = 'pending' for update;
+    if found and base > 0 and reward > 0 then
+      insert into public.coin_ledger (user_id, entry, amount, remaining, order_id, note, expires_at) values
+        (ref.referrer_id, 'referral', reward, reward, o.id, 'Referral reward', exp),
+        (ref.referee_id, 'referral', reward, reward, o.id, 'Welcome reward for joining with a referral', exp);
+      update public.wallets set coin_balance = coin_balance + reward, updated_at = now() where user_id in (ref.referrer_id, ref.referee_id);
+      update public.referrals set status = 'rewarded', first_order_id = o.id, rewarded_at = now() where id = ref.id;
+      perform public.notify(ref.referrer_id, 'referral', reward || ' referral coins added', 'Your friend''s first order is complete. Thanks for spreading the word!', '/account/coins');
+      perform public.notify(ref.referee_id, 'referral', reward || ' referral coins added', 'Thanks for joining with a friend''s code.', '/account/coins');
+    end if;
+    n := n + 1;
+  end loop;
+  return n;
+end $$;
+
+
+--
+-- Name: _status_message(public.order_status, public.orders); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public._status_message(st public.order_status, o public.orders) RETURNS text[]
+    LANGUAGE sql IMMUTABLE
+    SET search_path TO ''
+    AS $$
+  select case st
+    when 'confirmed' then array['Order ' || o.order_no || ' confirmed', 'We''ll start packing it soon.']
+    when 'getting_ready' then array['We''re getting your order ready', 'Picking your items off the shelf.']
+    when 'packed' then array['Your order is packed', case when o.type = 'pickup' then 'Almost ready for pickup.' else 'A delivery partner will be assigned shortly.' end]
+    when 'agent_assigned' then array['Delivery partner assigned', 'They''ll pick up your order from the store soon.']
+    when 'agent_accepted' then array['Your delivery partner is on the way', 'You can follow them live on the map.']
+    when 'out_for_delivery' then array['Out for delivery', 'Open your order to see your delivery code. We''ve emailed it too.']
+    when 'delivered' then array['Delivered', 'Enjoy! You can rate your items or request a return within 3 days.']
+    when 'ready_for_pickup' then array['Ready for pickup', 'Collect it at Khedi Market, opposite Hotel Galaxy, within 48 hours.']
+    when 'collected' then array['Collected', 'Thanks for shopping with Gupta Enterprises!']
+    when 'cancelled' then array['Order ' || o.order_no || ' cancelled', null]
+    else array['Order ' || o.order_no || ' updated', null] end
+$$;
+
+
+--
+-- Name: _wa_chat(text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public._wa_chat(p_phone text) RETURNS text
+    LANGUAGE sql IMMUTABLE
+    SET search_path TO ''
+    AS $_$
+  select case when regexp_replace(coalesce(p_phone, ''), '\D', '', 'g') ~ '^(91)?[6-9]\d{9}$'
+    then '91' || right(regexp_replace(p_phone, '\D', '', 'g'), 10) || '@c.us' end
+$_$;
+
+
+--
+-- Name: admin_assign_agent(uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.admin_assign_agent(p_order uuid, p_agent uuid) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+declare o public.orders; ag public.profiles; msg text[];
+begin
+  if not public.is_admin() then raise exception 'Admins only' using errcode = '42501'; end if;
+  select * into o from public.orders where id = p_order for update;
+  if not found then raise exception 'Order not found'; end if;
+  if o.type = 'pickup' then raise exception 'Pickup orders don''t need a delivery partner'; end if;
+  if o.status not in ('packed', 'agent_assigned') then raise exception 'Pack the order before assigning a delivery partner'; end if;
+  select * into ag from public.profiles where id = p_agent and role = 'delivery_agent';
+  if not found then raise exception 'That person isn''t a delivery agent'; end if;
+  update public.orders set agent_id = ag.id, status = 'agent_assigned' where id = o.id returning * into o;
+  insert into public.order_events (order_id, status, actor_id, note) values (o.id, 'agent_assigned', public.uid(), ag.name);
+  perform public.notify(ag.id, 'job', 'New delivery: ' || o.order_no, 'Open the agent portal to accept it.', '/agent');
+  msg := public._status_message('agent_assigned', o);
+  perform public.notify(o.user_id, 'order', msg[1], msg[2], '/orders/' || o.id);
+end $$;
+
+
+--
+-- Name: admin_assign_return_agent(uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.admin_assign_return_agent(p_return uuid, p_agent uuid) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+declare r public.returns; o public.orders;
+begin
+  if not public.is_admin() then raise exception 'Admins only' using errcode = '42501'; end if;
+  r := public._lock_return(p_return);
+  if r.status not in ('approved', 'pickup_assigned') then raise exception 'Approve the return first'; end if;
+  if not exists (select 1 from public.profiles where id = p_agent and role = 'delivery_agent') then raise exception 'That person isn''t a delivery agent'; end if;
+  select * into o from public.orders where id = r.order_id;
+  update public.returns set agent_id = p_agent, status = 'pickup_assigned', updated_at = now() where id = r.id;
+  perform public.notify(p_agent, 'job', 'Return pickup: ' || o.order_no, 'Collect the items and bring them to the store.', '/agent');
+  perform public.notify(r.user_id, 'return', 'Pickup arranged', 'A delivery partner will collect your return soon.', '/orders/' || r.order_id);
+end $$;
+
+
+--
+-- Name: admin_audience_count(text, integer); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.admin_audience_count(p_audience text, p_days integer DEFAULT NULL::integer) RETURNS jsonb
+    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+declare j jsonb;
+begin
+  if not public.is_admin() then raise exception 'Admins only'; end if;
+  select jsonb_build_object(
+    'total', count(*),
+    'email', count(*) filter (where a.email_offers and coalesce(a.email, '') <> ''),
+    'whatsapp', count(*) filter (where a.wa_opt_in and public._wa_chat(a.phone) is not null))
+  into j from public._audience(p_audience, p_days) a;
+  return j;
+end $$;
+
+
+--
+-- Name: admin_hide_review(uuid, boolean); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.admin_hide_review(p_review uuid, p_hidden boolean) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+declare g uuid;
+begin
+  if not public.is_admin() then raise exception 'Admins only' using errcode = '42501'; end if;
+  update public.reviews set hidden = coalesce(p_hidden, true) where id = p_review returning group_id into g;
+  if g is null then raise exception 'Review not found'; end if;
+  perform public._refresh_rating(g);
+end $$;
+
+
+--
+-- Name: admin_mark_paid(uuid, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.admin_mark_paid(p_order uuid, p_utr text DEFAULT NULL::text) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+declare o public.orders; msg text[];
+begin
+  if not public.is_admin() then raise exception 'Admins only' using errcode = '42501'; end if;
+  select * into o from public.orders where id = p_order for update;
+  if not found then raise exception 'Order not found'; end if;
+  if o.status = 'cancelled' then raise exception 'This order is cancelled'; end if;
+  update public.payments set status = 'success', utr = coalesce(nullif(trim(p_utr), ''), utr), reconciled_by = public.uid(), updated_at = now()
+   where order_id = o.id;
+  update public.orders set payment_status = 'paid', paid_at = now(),
+    status = case when status = 'placed' then 'confirmed' else status end,
+    confirmed_at = case when status = 'placed' then now() else confirmed_at end
+   where id = o.id returning * into o;
+  insert into public.order_events (order_id, status, actor_id, note) values (o.id, 'payment_verified', public.uid(), null);
+  if o.status = 'confirmed' then
+    insert into public.order_events (order_id, status, actor_id, note) values (o.id, 'confirmed', public.uid(), null);
+  end if;
+  msg := public._status_message('confirmed', o);
+  perform public.notify(o.user_id, 'order', 'Payment received for ' || o.order_no, msg[2], '/orders/' || o.id);
+end $$;
+
+
+--
+-- Name: admin_mark_refund_paid(uuid, text, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.admin_mark_refund_paid(p_order uuid, p_proof_path text, p_utr text DEFAULT NULL::text) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
+    AS $_$
+declare o public.orders; u text := nullif(regexp_replace(coalesce(p_utr, ''), '\s', '', 'g'), '');
+begin
+  if not public.is_admin() then raise exception 'Admins only' using errcode = '42501'; end if;
+  select * into o from public.orders where id = p_order for update;
+  if not found then raise exception 'Order not found'; end if;
+  if o.refund_due_paise <= 0 or o.refunded_at is not null then raise exception 'No refund is due on this order'; end if;
+  if coalesce(p_proof_path, '') = '' or strpos(p_proof_path, o.user_id::text || '/') <> 1 then raise exception 'Upload the payment screenshot'; end if;
+  if u is not null and u !~ '^[0-9]{12}$' then raise exception 'The UTR is the 12-digit number in your UPI app'; end if;
+  update public.orders set refund_utr = u, refund_proof_path = p_proof_path, refunded_at = now(), payment_status = 'refunded' where id = o.id;
+  update public.payments set status = 'refunded', updated_at = now() where order_id = o.id and status = 'success';
+  insert into public.order_events (order_id, status, actor_id, note) values (o.id, 'refunded', public.uid(), public._inr(o.refund_due_paise));
+  perform public.notify(o.user_id, 'order', 'Refund sent: ' || public._inr(o.refund_due_paise),
+    'Sent to ' || coalesce(o.refund_upi_id, 'your UPI ID') || coalesce(', reference ' || u, '') || '.', '/orders/' || o.id);
+end $_$;
+
+
+--
+-- Name: admin_messaging_status(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.admin_messaging_status() RETURNS jsonb
+    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+declare m public.messaging_settings; today timestamptz := date_trunc('day', now() at time zone 'Asia/Kolkata') at time zone 'Asia/Kolkata';
+begin
+  if not public.is_admin() then raise exception 'Admins only'; end if;
+  select * into m from public.messaging_settings where id = 1;
+  return jsonb_build_object(
+    'brevo_key', exists (select 1 from private.secrets where name = 'brevo_api_key'),
+    'openwa_key', exists (select 1 from private.secrets where name = 'openwa_api_key'),
+    'sender', (select support_email from public.settings where id = 1),
+    'settings', to_jsonb(m),
+    'email', jsonb_build_object(
+      'queued', (select count(*) from public.outbox where channel = 'email' and status = 'queued'),
+      'sent_today', (select count(*) from public.outbox where channel = 'email' and status = 'sent' and sent_at >= today),
+      'failed_today', (select count(*) from public.outbox where channel = 'email' and status = 'failed' and created_at >= today)),
+    'whatsapp', jsonb_build_object(
+      'queued', (select count(*) from public.outbox where channel = 'whatsapp' and status = 'queued'),
+      'sent_today', (select count(*) from public.outbox where channel = 'whatsapp' and status = 'sent' and sent_at >= today),
+      'failed_today', (select count(*) from public.outbox where channel = 'whatsapp' and status = 'failed' and created_at >= today)),
+    'last_error', (select jsonb_build_object('channel', channel, 'error', error, 'at', created_at) from public.outbox where status = 'failed' order by id desc limit 1));
+end $$;
+
+
+--
+-- Name: admin_receive_return(uuid, boolean); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.admin_receive_return(p_return uuid, p_restock boolean DEFAULT true) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+declare r public.returns; x jsonb;
+begin
+  if not public.is_admin() then raise exception 'Admins only' using errcode = '42501'; end if;
+  r := public._lock_return(p_return);
+  if r.status not in ('approved', 'pickup_assigned', 'picked_up') then raise exception 'This return can''t be marked received now'; end if;
+  for x in select * from jsonb_array_elements(r.items) loop
+    update public.order_items set returned_qty = returned_qty + (x->>'qty')::int where id = (x->>'order_item_id')::uuid;
+    if p_restock then
+      update public.products p set stock = p.stock + (x->>'qty')::int
+        from public.order_items oi where oi.id = (x->>'order_item_id')::uuid and p.id = oi.product_id;
+    end if;
+  end loop;
+  update public.returns set status = 'received', restocked = coalesce(p_restock, false), updated_at = now() where id = r.id;
+end $$;
+
+
+--
+-- Name: admin_refund_return(uuid, text, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.admin_refund_return(p_return uuid, p_proof_path text, p_utr text DEFAULT NULL::text) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
+    AS $_$
+declare r public.returns; o public.orders; refunded int; u text := nullif(regexp_replace(coalesce(p_utr, ''), '\s', '', 'g'), '');
+begin
+  if not public.is_admin() then raise exception 'Admins only' using errcode = '42501'; end if;
+  r := public._lock_return(p_return);
+  if r.status <> 'received' then raise exception 'Mark the items received before refunding'; end if;
+  if coalesce(p_proof_path, '') = '' or strpos(p_proof_path, r.user_id::text || '/') <> 1 then raise exception 'Upload the payment screenshot'; end if;
+  if u is not null and u !~ '^[0-9]{12}$' then raise exception 'The UTR is the 12-digit number in your UPI app'; end if;
+  update public.returns set status = 'refunded', refund_proof_path = p_proof_path, refund_utr = u, refunded_at = now(), updated_at = now() where id = r.id;
+  select * into o from public.orders where id = r.order_id for update;
+  select coalesce(sum(refund_amount_paise), 0) into refunded from public.returns where order_id = o.id and status = 'refunded';
+  update public.orders set payment_status = case when refunded >= o.payable_paise then 'refunded' else 'partially_refunded' end::public.payment_status where id = o.id;
+  insert into public.order_events (order_id, status, actor_id, note) values (o.id, 'return_refunded', public.uid(), public._inr(r.refund_amount_paise));
+  perform public.notify(r.user_id, 'return', 'Refund sent: ' || public._inr(r.refund_amount_paise),
+    'Sent to ' || r.refund_upi_id || coalesce(', reference ' || u, '') || '. The screenshot is on your order.', '/orders/' || r.order_id);
+end $_$;
+
+
+--
+-- Name: admin_report(date, date); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.admin_report(p_from date, p_to date) RETURNS jsonb
+    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+declare d0 timestamptz; d1 timestamptz; p0 timestamptz; span int; res jsonb;
+begin
+  if not public.is_admin() then raise exception 'Admins only' using errcode = '42501'; end if;
+  if p_from is null or p_to is null or p_to < p_from then raise exception 'Pick a valid date range'; end if;
+  if p_to - p_from > 366 then raise exception 'Pick a range of up to one year'; end if;
+  d0 := p_from::timestamp at time zone 'Asia/Kolkata';
+  d1 := (p_to + 1)::timestamp at time zone 'Asia/Kolkata';
+  span := p_to - p_from + 1;
+  p0 := d0 - make_interval(days => span);
+
+  with o as (
+    select * from public.orders where created_at >= d0 and created_at < d1 and status <> 'cancelled'
+  ), prev as (
+    select * from public.orders where created_at >= p0 and created_at < d0 and status <> 'cancelled'
+  ), lines as (
+    select oi.*, g.name as group_name, c.name as category
+      from public.order_items oi
+      join o on o.id = oi.order_id
+      join public.products p on p.id = oi.product_id
+      join public.product_groups g on g.id = p.group_id
+      join public.categories c on c.id = g.category_id
+  )
+  select jsonb_build_object(
+    'from', p_from, 'to', p_to,
+    'totals', (select jsonb_build_object(
+        'revenue', coalesce(sum(payable_paise), 0), 'orders', count(*), 'customers', count(distinct user_id),
+        'coupon_cost', coalesce(sum(coupon_discount_paise), 0), 'coin_cost', coalesce(sum(coins_used), 0) * 100,
+        'delivery_fees', coalesce(sum(delivery_fee_paise), 0),
+        'units', (select coalesce(sum(qty), 0) from lines)) from o),
+    'prev', (select jsonb_build_object('revenue', coalesce(sum(payable_paise), 0), 'orders', count(*), 'customers', count(distinct user_id)) from prev),
+    'cancelled', (select count(*) from public.orders where created_at >= d0 and created_at < d1 and status = 'cancelled'),
+    'refunds', (select coalesce(sum(refund_amount_paise), 0) from public.returns where status = 'refunded' and refunded_at >= d0 and refunded_at < d1)
+             + (select coalesce(sum(refund_due_paise), 0) from public.orders where refunded_at >= d0 and refunded_at < d1),
+    'new_customers', (select count(*) from (
+        select user_id, min(created_at) first_at from public.orders where status <> 'cancelled' group by user_id) f
+        where f.first_at >= d0 and f.first_at < d1),
+    'daily', (select jsonb_agg(jsonb_build_object('date', d::date, 'revenue', coalesce(x.rev, 0), 'orders', coalesce(x.n, 0)) order by d)
+        from generate_series(p_from::timestamp, p_to::timestamp, interval '1 day') d
+        left join (select (created_at at time zone 'Asia/Kolkata')::date as day, sum(payable_paise) rev, count(*) n from o group by 1) x on x.day = d::date),
+    'hours', (select jsonb_agg(jsonb_build_object('hour', h, 'orders', coalesce(x.n, 0)) order by h)
+        from generate_series(0, 23) h
+        left join (select extract(hour from created_at at time zone 'Asia/Kolkata')::int as hr, count(*) n from o group by 1) x on x.hr = h),
+    'categories', coalesce((select jsonb_agg(row_to_json(t) order by t.revenue desc) from (
+        select category as name, sum(price_paise * (qty - returned_qty))::int as revenue, sum(qty - returned_qty)::int as units
+          from lines group by category) t), '[]'),
+    'products', coalesce((select jsonb_agg(row_to_json(t) order by t.units desc, t.revenue desc) from (
+        select group_name as name, variant_label, sum(qty - returned_qty)::int as units, sum(price_paise * (qty - returned_qty))::int as revenue
+          from lines group by group_name, variant_label order by 3 desc, 4 desc limit 10) t), '[]'),
+    'customers', coalesce((select jsonb_agg(row_to_json(t) order by t.spend desc) from (
+        select pr.name, pr.email, count(*)::int as orders, sum(o.payable_paise)::int as spend, max(o.created_at) as last_order
+          from o join public.profiles pr on pr.id = o.user_id group by pr.id, pr.name, pr.email order by 4 desc limit 10) t), '[]'),
+    'types', coalesce((select jsonb_agg(row_to_json(t) order by t.orders desc) from (
+        select type::text as name, count(*)::int as orders, sum(payable_paise)::int as revenue from o group by type) t), '[]'),
+    'payments', coalesce((select jsonb_agg(row_to_json(t) order by t.orders desc) from (
+        select payment_method::text as name, count(*)::int as orders, sum(payable_paise)::int as revenue from o group by payment_method) t), '[]')
+  ) into res;
+  return res;
+end $$;
+
+
+--
+-- Name: admin_review_return(uuid, boolean, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.admin_review_return(p_return uuid, p_approve boolean, p_note text DEFAULT NULL::text) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+declare r public.returns; o public.orders;
+begin
+  if not public.is_admin() then raise exception 'Admins only' using errcode = '42501'; end if;
+  r := public._lock_return(p_return);
+  if r.status <> 'requested' then raise exception 'This return was already reviewed'; end if;
+  if not p_approve and coalesce(trim(p_note), '') = '' then raise exception 'Give the customer a reason'; end if;
+  select * into o from public.orders where id = r.order_id;
+  update public.returns set status = case when p_approve then 'approved' else 'rejected' end::public.return_status,
+    admin_note = nullif(trim(p_note), ''), updated_at = now() where id = r.id;
+  perform public.notify(r.user_id, 'return',
+    case when p_approve then 'Return approved' else 'Return not approved' end,
+    case when p_approve then
+      case when o.type = 'pickup' then 'Bring the items to the store at Khedi Market. ' else 'Our partner will collect the items. ' end
+      || 'Refund: ' || public._inr(r.refund_amount_paise) || '.'
+    else trim(p_note) end, '/orders/' || r.order_id);
+end $$;
+
+
+--
+-- Name: admin_send_campaign(jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.admin_send_campaign(p jsonb) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+declare c public.campaigns; ch text[]; n_in int := 0; n_mail int := 0; n_wa int := 0; s public.settings;
+begin
+  if not public.is_admin() then raise exception 'Admins only'; end if;
+  select array_agg(distinct x) into ch from jsonb_array_elements_text(p->'channels') x;
+  insert into public.campaigns (title, body, link, channels, audience, inactive_days, coupon_code, created_by)
+  values (btrim(p->>'title'), btrim(p->>'body'), nullif(p->>'link', ''), ch, p->>'audience',
+    nullif(p->>'inactive_days', '')::int, nullif(p->>'coupon_code', ''), public.uid())
+  returning * into c;
+  select * into s from public.settings where id = 1;
+
+  if 'inapp' = any(ch) then
+    insert into public.notifications (user_id, type, title, body, link)
+    select a.id, 'offer', c.title, replace(c.body, '{name}', coalesce(split_part(a.name, ' ', 1), 'there')), coalesce(c.link, '/')
+    from public._audience(c.audience, c.inactive_days) a;
+    get diagnostics n_in = row_count;
+  end if;
+  if 'email' = any(ch) then
+    insert into public.outbox (campaign_id, user_id, channel, to_addr, to_name, subject, body, html)
+    select c.id, a.id, 'email', a.email, a.name, c.title,
+      replace(c.body, '{name}', coalesce(split_part(a.name, ' ', 1), 'there')),
+      public._email_wrap(c.title, replace(c.body, '{name}', coalesce(split_part(a.name, ' ', 1), 'there')), c.link)
+    from public._audience(c.audience, c.inactive_days) a
+    where a.email_offers and coalesce(a.email, '') <> '';
+    get diagnostics n_mail = row_count;
+  end if;
+  if 'whatsapp' = any(ch) then
+    insert into public.outbox (campaign_id, user_id, channel, to_addr, to_name, subject, body)
+    select c.id, a.id, 'whatsapp', public._wa_chat(a.phone), a.name, c.title,
+      '*' || c.title || '*' || E'\n' || replace(c.body, '{name}', coalesce(split_part(a.name, ' ', 1), 'there')) ||
+      E'\n\nhttps://gupta-ink-g22y.vercel.app' || coalesce(c.link, '/') ||
+      E'\n\n— ' || s.store_name || E'\nTurn off WhatsApp offers any time in Account.'
+    from public._audience(c.audience, c.inactive_days) a
+    where a.wa_opt_in and public._wa_chat(a.phone) is not null;
+    get diagnostics n_wa = row_count;
+  end if;
+
+  update public.campaigns set recipients = greatest(n_in, n_mail, n_wa) where id = c.id;
+  return jsonb_build_object('id', c.id, 'inapp', n_in, 'email', n_mail, 'whatsapp', n_wa);
+end $$;
+
+
+--
+-- Name: admin_set_order_status(uuid, public.order_status, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.admin_set_order_status(p_order uuid, p_status public.order_status, p_note text DEFAULT NULL::text) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+declare o public.orders; s public.settings; ok boolean; msg text[];
+begin
+  if not public.is_admin() then raise exception 'Admins only' using errcode = '42501'; end if;
+  select * into o from public.orders where id = p_order for update;
+  if not found then raise exception 'Order not found'; end if;
+  if p_status = 'cancelled' then
+    perform public._cancel_order(o.id, 'store', coalesce(nullif(trim(p_note), ''), 'The store cancelled this order.'), false);
+    return;
+  end if;
+  ok := case o.status
+    when 'placed' then p_status = 'confirmed'
+    when 'confirmed' then p_status = 'getting_ready'
+    when 'getting_ready' then p_status = 'packed'
+    when 'packed' then (o.type = 'pickup' and p_status = 'ready_for_pickup')
+    when 'agent_assigned' then p_status in ('packed', 'agent_accepted')
+    when 'agent_accepted' then p_status = 'out_for_delivery'
+    when 'out_for_delivery' then p_status = 'delivered'
+    when 'ready_for_pickup' then p_status = 'collected'
+    else false end;
+  if not ok then raise exception 'Can''t move this order from % to %', replace(o.status::text, '_', ' '), replace(p_status::text, '_', ' '); end if;
+  if p_status = 'confirmed' and o.payment_method = 'upi' and o.payment_status <> 'paid' then
+    raise exception 'Verify the UPI payment first';
+  end if;
+  select * into s from public.settings where id = 1;
+
+  update public.orders set status = p_status,
+    agent_id = case when p_status = 'packed' then null else agent_id end,
+    confirmed_at = case when p_status = 'confirmed' then now() else confirmed_at end,
+    ready_at = case when p_status = 'ready_for_pickup' then now() else ready_at end,
+    delivered_at = case when p_status in ('delivered', 'collected') then now() else delivered_at end,
+    return_window_ends_at = case when p_status in ('delivered', 'collected') then now() + make_interval(days => s.return_window_days) else return_window_ends_at end,
+    payment_status = case when p_status in ('delivered', 'collected') and payment_method in ('cod', 'counter') then 'paid' else payment_status end,
+    paid_at = case when p_status in ('delivered', 'collected') and payment_method in ('cod', 'counter') then now() else paid_at end
+   where id = o.id
+   returning * into o;
+  if p_status in ('delivered', 'collected') and o.payment_method in ('cod', 'counter') then
+    update public.payments set status = 'success', updated_at = now() where order_id = o.id and status = 'pending';
+  end if;
+  insert into public.order_events (order_id, status, actor_id, note) values (o.id, p_status::text, public.uid(), left(p_note, 300));
+  msg := public._status_message(p_status, o);
+  perform public.notify(o.user_id, 'order', msg[1], msg[2], '/orders/' || o.id);
+end $$;
+
+
+--
+-- Name: admin_set_role(uuid, public.user_role, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.admin_set_role(p_user uuid, p_role public.user_role, p_reason text DEFAULT NULL::text) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+declare old_role public.user_role;
+begin
+  if not public.is_admin() then raise exception 'Admins only' using errcode = '42501'; end if;
+  if p_user = public.uid() and p_role <> 'admin' then raise exception 'You cannot change your own role'; end if;
+  select role into old_role from public.profiles where id = p_user;
+  if old_role is null then raise exception 'User not found'; end if;
+  update public.profiles
+     set role = p_role,
+         blocked_reason = case when p_role = 'blocked' then p_reason else null end,
+         agent_online = case when p_role = 'delivery_agent' then agent_online else false end
+   where id = p_user;
+  perform public.audit('set_role', p_user::text, jsonb_build_object('role', old_role), jsonb_build_object('role', p_role, 'reason', p_reason));
+  if p_role = 'delivery_agent' then
+    perform public.notify(p_user, 'account', 'You are now a delivery agent', 'Open the Agent portal to start taking deliveries.', '/agent');
+  end if;
+end $$;
+
+
+--
+-- Name: admin_set_secret(text, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.admin_set_secret(p_name text, p_value text) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+declare sid uuid;
+begin
+  if not public.is_admin() then raise exception 'Admins only'; end if;
+  if p_name not in ('brevo_api_key', 'openwa_api_key') then raise exception 'Unknown key'; end if;
+  if length(coalesce(btrim(p_value), '')) < 8 then raise exception 'That key looks too short'; end if;
+  select id into sid from private.secrets where name = p_name;
+  if sid is null then perform vault.create_secret(btrim(p_value), p_name);
+  else perform vault.update_secret(sid, btrim(p_value)); end if;
+end $$;
+
+
+--
+-- Name: admin_test_message(text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.admin_test_message(p_channel text) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+declare u public.profiles; s public.settings;
+begin
+  if not public.is_admin() then raise exception 'Admins only'; end if;
+  select * into u from public.profiles where id = public.uid();
+  select * into s from public.settings where id = 1;
+  if p_channel = 'email' then
+    insert into public.outbox (user_id, channel, to_addr, to_name, subject, body, html)
+    values (u.id, 'email', u.email, u.name, 'Test email from ' || s.store_name, 'Emails from the shop are working.',
+      public._email_wrap('Emails are working', 'This is a test from Admin, Messages. Customers will get offers and delivery codes like this.', '/'));
+  elsif p_channel = 'whatsapp' then
+    if public._wa_chat(u.phone) is null then raise exception 'Add your 10-digit mobile number in Account first'; end if;
+    insert into public.outbox (user_id, channel, to_addr, to_name, subject, body)
+    values (u.id, 'whatsapp', public._wa_chat(u.phone), u.name, 'Test', '*WhatsApp is working*' || E'\nThis is a test from ' || s.store_name || ' admin.');
+  else raise exception 'Unknown channel'; end if;
+end $$;
+
+
+--
+-- Name: agent_accept(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.agent_accept(p_order uuid) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+declare o public.orders; msg text[];
+begin
+  o := public._agent_order(p_order);
+  if o.status <> 'agent_assigned' then raise exception 'This delivery can''t be accepted now'; end if;
+  update public.orders set status = 'agent_accepted' where id = o.id returning * into o;
+  insert into public.order_events (order_id, status, actor_id) values (o.id, 'agent_accepted', public.uid());
+  msg := public._status_message('agent_accepted', o);
+  perform public.notify(o.user_id, 'order', msg[1], msg[2], '/orders/' || o.id);
+end $$;
+
+
+--
+-- Name: agent_complete(uuid, text, boolean); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.agent_complete(p_order uuid, p_code text, p_cash_collected boolean DEFAULT false) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+declare o public.orders; c public.order_otps; s public.settings; msg text[]; left_tries int;
+begin
+  o := public._agent_order(p_order);
+  if o.status <> 'out_for_delivery' then raise exception 'Start the delivery first'; end if;
+  if o.otp_attempts >= 5 then raise exception 'Too many wrong codes. Call the store to finish this delivery.'; end if;
+  select * into c from public.order_otps where order_id = o.id;
+  if c.code is null or regexp_replace(coalesce(p_code, ''), '\D', '', 'g') <> c.code then
+    update public.orders set otp_attempts = otp_attempts + 1 where id = o.id returning * into o;
+    left_tries := 5 - o.otp_attempts;
+    if left_tries = 0 then
+      perform public.notify_admins('order', 'Delivery code locked: ' || o.order_no, 'Five wrong codes. Check with the customer.', '/admin/orders/' || o.id);
+    end if;
+    return jsonb_build_object('ok', false, 'tries_left', left_tries);
+  end if;
+  if o.payment_method = 'cod' and o.payment_status <> 'paid' and not coalesce(p_cash_collected, false) then
+    raise exception 'Collect % in cash first', public._inr(o.payable_paise);
+  end if;
+  select * into s from public.settings where id = 1;
+  update public.orders set status = 'delivered', delivered_at = now(),
+    return_window_ends_at = now() + make_interval(days => s.return_window_days),
+    payment_status = case when payment_method = 'cod' then 'paid' else payment_status end,
+    paid_at = case when payment_method = 'cod' then now() else paid_at end
+   where id = o.id returning * into o;
+  if o.payment_method = 'cod' then
+    update public.payments set status = 'success', raw = coalesce(raw, '{}'::jsonb) || jsonb_build_object('cash_with', public.uid()), updated_at = now()
+     where order_id = o.id and status = 'pending';
+  end if;
+  insert into public.order_events (order_id, status, actor_id, note) values (o.id, 'delivered', public.uid(),
+    case when o.payment_method = 'cod' then 'Cash ' || public._inr(o.payable_paise) || ' collected' end);
+  msg := public._status_message('delivered', o);
+  perform public.notify(o.user_id, 'order', msg[1], msg[2], '/orders/' || o.id);
+  perform public.notify_admins('order', o.order_no || ' delivered',
+    case when o.payment_method = 'cod' then 'Partner has ' || public._inr(o.payable_paise) || ' cash to hand in.' else null end, '/admin/orders/' || o.id);
+  return jsonb_build_object('ok', true);
+end $$;
+
+
+--
+-- Name: agent_decline(uuid, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.agent_decline(p_order uuid, p_reason text DEFAULT NULL::text) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+declare o public.orders; who text;
+begin
+  o := public._agent_order(p_order);
+  if o.status not in ('agent_assigned', 'agent_accepted') then raise exception 'You can only hand back a delivery before you leave the store'; end if;
+  select coalesce(name, 'Delivery partner') into who from public.profiles where id = public.uid();
+  update public.orders set status = 'packed', agent_id = null where id = o.id;
+  insert into public.order_events (order_id, status, actor_id, note) values (o.id, 'agent_declined', public.uid(), left(nullif(trim(p_reason), ''), 200));
+  perform public.notify_admins('order', who || ' handed back ' || o.order_no,
+    coalesce(nullif(trim(p_reason), ''), 'Assign another partner.'), '/admin/orders/' || o.id);
+end $$;
+
+
+--
+-- Name: agent_report_issue(uuid, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.agent_report_issue(p_order uuid, p_note text) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+declare o public.orders;
+begin
+  o := public._agent_order(p_order);
+  if coalesce(trim(p_note), '') = '' then raise exception 'Say what went wrong'; end if;
+  perform public.hit_rate_limit('agent_issue', 10, 3600);
+  insert into public.order_events (order_id, status, actor_id, note) values (o.id, 'delivery_issue', public.uid(), left(trim(p_note), 300));
+  perform public.notify_admins('order', 'Delivery problem: ' || o.order_no, left(trim(p_note), 200), '/admin/orders/' || o.id);
+end $$;
+
+
+--
+-- Name: agent_resend_code(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.agent_resend_code(p_order uuid) RETURNS boolean
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+declare o public.orders; c public.order_otps;
+begin
+  o := public._agent_order(p_order);
+  if o.status <> 'out_for_delivery' then raise exception 'The order isn''t out for delivery'; end if;
+  select * into c from public.order_otps where order_id = o.id;
+  if c.emailed_count >= 4 then raise exception 'The code was already emailed several times. Ask the customer to check the Gupta Enterprises app.'; end if;
+  if c.last_emailed_at > now() - interval '1 minute' then raise exception 'Wait a minute before sending again'; end if;
+  perform public.notify(o.user_id, 'order', 'Your delivery code', 'Open your order to see the code for ' || o.order_no || '.', '/orders/' || o.id);
+  return public._email_delivery_code(o.id);
+end $$;
+
+
+--
+-- Name: agent_return_picked_up(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.agent_return_picked_up(p_return uuid) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+declare r public.returns; o public.orders;
+begin
+  if not public.is_agent() then raise exception 'Delivery partners only' using errcode = '42501'; end if;
+  r := public._lock_return(p_return);
+  if r.agent_id is distinct from public.uid() then raise exception 'This pickup isn''t assigned to you'; end if;
+  if r.status <> 'pickup_assigned' then raise exception 'This pickup is already done'; end if;
+  select * into o from public.orders where id = r.order_id;
+  update public.returns set status = 'picked_up', updated_at = now() where id = r.id;
+  perform public.notify_admins('return', 'Return picked up: ' || o.order_no, 'Check the items when they reach the store.', '/admin/returns/' || r.id);
+  perform public.notify(r.user_id, 'return', 'Return picked up', 'We''ll check the items and send your refund.', '/orders/' || r.order_id);
+end $$;
+
+
+--
+-- Name: agent_set_online(boolean); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.agent_set_online(p_online boolean) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+begin
+  if not public.is_agent() then raise exception 'Delivery partners only' using errcode = '42501'; end if;
+  update public.profiles set agent_online = coalesce(p_online, false) where id = public.uid();
+end $$;
+
+
+--
+-- Name: agent_start_delivery(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.agent_start_delivery(p_order uuid) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+declare o public.orders; msg text[];
+begin
+  o := public._agent_order(p_order);
+  if o.status <> 'agent_accepted' then raise exception 'Accept the delivery first'; end if;
+  update public.orders set status = 'out_for_delivery' where id = o.id returning * into o;  -- trigger makes and emails the code
+  insert into public.order_events (order_id, status, actor_id) values (o.id, 'out_for_delivery', public.uid());
+  msg := public._status_message('out_for_delivery', o);
+  perform public.notify(o.user_id, 'order', msg[1], msg[2], '/orders/' || o.id);
+end $$;
+
+
+--
+-- Name: apply_referral(text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.apply_referral(p_code text) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+declare me public.profiles; ref public.profiles;
+begin
+  perform public.require_active();
+  perform public.hit_rate_limit('referral', 5, 3600);
+  select * into me from public.profiles where id = public.uid() for update;
+  if me.referred_by is not null then raise exception 'You have already used a referral code'; end if;
+  if me.created_at < now() - interval '7 days' then raise exception 'Referral codes can only be used by new users'; end if;
+  if exists (select 1 from public.orders where user_id = me.id) then
+    raise exception 'Referral codes must be applied before your first order';
+  end if;
+  select * into ref from public.profiles where referral_code = upper(trim(p_code));
+  if ref.id is null then raise exception 'That referral code is not valid'; end if;
+  if ref.id = me.id then raise exception 'You cannot use your own code'; end if;
+  if ref.role = 'blocked' then raise exception 'That referral code is not valid'; end if;
+
+  update public.profiles set referred_by = ref.id, referral_prompt_done = true where id = me.id;
+  insert into public.referrals (referrer_id, referee_id) values (ref.id, me.id);
+  perform public.notify(ref.id, 'referral', 'Your friend joined Gupta Enterprises!',
+    coalesce(me.name, 'A friend') || ' used your code. You both get coins after their first order.', '/account/referrals');
+  perform public.notify(me.id, 'referral', 'Referral applied',
+    'You and ' || coalesce(ref.name, 'your friend') || ' get coins once your first order is delivered and its return window closes.', '/account/referrals');
+  return jsonb_build_object('ok', true, 'referrer_name', coalesce(ref.name, 'your friend'));
+end $$;
+
+
+--
+-- Name: audit(text, text, jsonb, jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.audit(p_action text, p_target text, p_before jsonb, p_after jsonb) RETURNS void
+    LANGUAGE sql SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+  insert into public.audit_logs (actor_id, action, target, before, after)
+  values (public.uid(), p_action, p_target, p_before, p_after);
+$$;
+
+
+--
+-- Name: can_see_order(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.can_see_order(o uuid) RETURNS boolean
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+  select exists (
+    select 1 from public.orders
+    where id = o and (user_id = public.uid() or agent_id = public.uid()
+      or (select role = 'admin' from public.profiles where id = public.uid()))
+  )
+$$;
+
+
+--
+-- Name: cancel_order(uuid, text, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.cancel_order(p_order uuid, p_reason text, p_refund_upi text DEFAULT NULL::text) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
+    AS $_$
+declare o public.orders;
+begin
+  perform public.require_active();
+  perform public.hit_rate_limit('cancel_order', 10, 3600);
+  select * into o from public.orders where id = p_order and user_id = public.uid();
+  if not found then raise exception 'Order not found'; end if;
+  if o.status not in ('placed', 'confirmed', 'getting_ready', 'packed', 'agent_assigned', 'agent_accepted', 'ready_for_pickup') then
+    raise exception 'This order can''t be cancelled now. If it''s out for delivery, you can refuse it at the door.';
+  end if;
+  if o.payment_status = 'paid' and coalesce(trim(p_refund_upi), '') !~ '^[a-zA-Z0-9._-]{2,64}@[a-zA-Z]{2,64}$' then
+    raise exception 'Enter the UPI ID where we should send your refund';
+  end if;
+  return public._cancel_order(o.id, 'customer', coalesce(nullif(trim(p_reason), ''), 'Cancelled by customer'), true, p_refund_upi);
+end $_$;
+
+
+--
+-- Name: cancel_preview(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.cancel_preview() RETURNS jsonb
+    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+declare s public.settings; w public.wallets; wk date := date_trunc('week', public._ist_now())::date; used int;
+begin
+  select * into s from public.settings where id = 1;
+  select * into w from public.wallets where user_id = public.uid();
+  used := case when w.week_start = wk then w.week_cancels else 0 end;
+  return jsonb_build_object('free_left', greatest(0, s.free_cancels_per_week - used), 'fine_paise', s.cancel_fine_paise);
+end $$;
+
+
+--
+-- Name: checkout_slots(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.checkout_slots() RETURNS TABLE(slot_date date, window_start time without time zone, window_end time without time zone, capacity integer, booked integer, available integer, open boolean, reason text)
+    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+declare
+  s public.settings;
+  n timestamp := public._ist_now();
+  d date; w jsonb; st time; en time; b int; why text;
+begin
+  select * into s from public.settings where id = 1;
+  for i in 0 .. s.slot_days_ahead loop
+    d := n::date + i;
+    for w in select * from jsonb_array_elements(s.slot_windows) loop
+      st := (w->>'start')::time; en := (w->>'end')::time;
+      select sb.booked into b from public.slot_bookings sb where sb.slot_date = d and sb.window_start = st;
+      b := coalesce(b, 0);
+      why := case
+        when s.orders_paused then 'Ordering is paused'
+        when d = any(s.holidays) then 'Store holiday'
+        when (d + st) < (n + interval '60 minutes') then 'Too late to book'
+        when b >= s.slot_capacity then 'Full'
+        else null end;
+      slot_date := d; window_start := st; window_end := en; capacity := s.slot_capacity;
+      booked := b; available := greatest(s.slot_capacity - b, 0); open := why is null; reason := why;
+      return next;
+    end loop;
+  end loop;
+end $$;
+
+
+--
+-- Name: finish_onboarding(boolean, boolean); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.finish_onboarding(p_skip_referral boolean DEFAULT true, p_welcome_seen boolean DEFAULT true) RETURNS void
+    LANGUAGE sql SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+  update public.profiles
+     set referral_prompt_done = referral_prompt_done or p_skip_referral,
+         welcome_seen = welcome_seen or p_welcome_seen,
+         terms_accepted_at = coalesce(terms_accepted_at, now())
+   where id = public.uid();
+$$;
+
+
+--
+-- Name: gen_referral_code(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gen_referral_code() RETURNS text
+    LANGUAGE plpgsql
+    SET search_path TO ''
+    AS $$
+declare c text;
+begin
+  loop
+    c := 'GI' || upper(substr(translate(encode(extensions.gen_random_bytes(8), 'base64'), '+/=0O1Il', ''), 1, 6));
+    exit when length(c) = 8 and not exists (select 1 from public.profiles where referral_code = c);
+  end loop;
+  return c;
+end $$;
+
+
+--
+-- Name: hit_rate_limit(text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.hit_rate_limit(p_bucket text, p_max integer, p_window_seconds integer) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+declare w timestamptz := to_timestamp(floor(extract(epoch from now()) / p_window_seconds) * p_window_seconds);
+        n int;
+begin
+  if public.uid() is null then raise exception 'Sign in required'; end if;
+  insert into public.rate_limits (user_id, bucket, window_start, hits) values (public.uid(), p_bucket, w, 1)
+  on conflict (user_id, bucket, window_start) do update set hits = public.rate_limits.hits + 1
+  returning hits into n;
+  if n > p_max then raise exception 'Too many requests, please slow down' using errcode = 'P0429'; end if;
+end $$;
+
+
+--
+-- Name: is_active_user(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.is_active_user() RETURNS boolean
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+  select coalesce((select role <> 'blocked' from public.profiles where id = public.uid()), false)
+$$;
+
+
+--
+-- Name: is_admin(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.is_admin() RETURNS boolean
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+  select coalesce((select role = 'admin' from public.profiles where id = public.uid()), false)
+$$;
+
+
+--
+-- Name: is_agent(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.is_agent() RETURNS boolean
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+  select coalesce((select role = 'delivery_agent' from public.profiles where id = public.uid()), false)
+$$;
+
+
+--
+-- Name: log_search(text, integer); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.log_search(p_term text, p_results integer) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+begin
+  if length(trim(p_term)) < 2 or length(p_term) > 80 then return; end if;
+  if public.uid() is not null then perform public.hit_rate_limit('search_log', 60, 60); end if;
+  insert into public.search_logs (term, results_count, user_id) values (lower(trim(p_term)), greatest(p_results, 0), public.uid());
+end $$;
+
+
+--
+-- Name: my_delivery_code(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.my_delivery_code(p_order uuid) RETURNS text
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+  select c.code from public.order_otps c join public.orders o on o.id = c.order_id
+   where o.id = p_order and o.user_id = public.uid() and o.status = 'out_for_delivery'
+$$;
+
+
+--
+-- Name: my_role(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.my_role() RETURNS public.user_role
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+  select role from public.profiles where id = public.uid()
+$$;
+
+
+--
+-- Name: my_spending(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.my_spending() RETURNS jsonb
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+  with o as (
+    select * from public.orders where user_id = public.uid() and status <> 'cancelled'
+  ), refunds as (
+    select coalesce(sum(refund_amount_paise), 0) n from public.returns where user_id = public.uid() and status = 'refunded'
+  ), lines as (
+    select oi.*, c.name as category from public.order_items oi join o on o.id = oi.order_id
+      join public.products p on p.id = oi.product_id join public.product_groups g on g.id = p.group_id
+      join public.categories c on c.id = g.category_id
+  ), months as (
+    select generate_series(date_trunc('month', (now() at time zone 'Asia/Kolkata')) - interval '5 months',
+                           date_trunc('month', (now() at time zone 'Asia/Kolkata')), interval '1 month')::date as m
+  )
+  select jsonb_build_object(
+    'spent', (select coalesce(sum(payable_paise), 0) from o) - (select n from refunds),
+    'orders', (select count(*) from o),
+    'saved', (select coalesce(sum((mrp_paise - price_paise) * qty), 0) from lines)
+           + (select coalesce(sum(coupon_discount_paise + coins_used * 100), 0) from o),
+    'coins_earned', (select coalesce(sum(amount), 0) from public.coin_ledger where user_id = public.uid() and entry in ('earn', 'referral')),
+    'months', (select jsonb_agg(jsonb_build_object('month', m, 'spent', coalesce(x.s, 0), 'orders', coalesce(x.n, 0)) order by m)
+        from months left join (select date_trunc('month', created_at at time zone 'Asia/Kolkata')::date mo, sum(payable_paise) s, count(*) n from o group by 1) x on x.mo = m),
+    'categories', coalesce((select jsonb_agg(row_to_json(t) order by t.spent desc) from (
+        select category as name, sum(price_paise * (qty - returned_qty))::int as spent from lines group by category) t), '[]')
+  )
+$$;
+
+
+--
+-- Name: notify(uuid, text, text, text, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.notify(p_user uuid, p_type text, p_title text, p_body text, p_link text) RETURNS void
+    LANGUAGE sql SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+  insert into public.notifications (user_id, type, title, body, link)
+  values (p_user, p_type, p_title, p_body, p_link);
+$$;
+
+
+--
+-- Name: notify_admins(text, text, text, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.notify_admins(p_type text, p_title text, p_body text, p_link text) RETURNS void
+    LANGUAGE sql SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+  insert into public.notifications (user_id, type, title, body, link)
+  select id, p_type, p_title, p_body, p_link from public.profiles where role = 'admin';
+$$;
+
+
+--
+-- Name: picked_for_you(integer); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.picked_for_you(p_limit integer DEFAULT 12) RETURNS SETOF uuid
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+  with me as (select public.uid() as uid),
+  live as (   -- product groups with something in stock
+    select g.id, g.category_id, g.search_text, g.sold_count, g.rating_avg, g.rating_count
+      from public.product_groups g join public.categories c on c.id = g.category_id and c.active
+     where exists (select 1 from public.products p where p.group_id = g.id and p.active and p.stock > 0)
+  ),
+  bought as (
+    select p.group_id, g.category_id, max(o.created_at) last_at
+      from me join public.orders o on o.user_id = me.uid and o.status <> 'cancelled'
+      join public.order_items oi on oi.order_id = o.id
+      join public.products p on p.id = oi.product_id join public.product_groups g on g.id = p.group_id
+     group by p.group_id, g.category_id
+  ),
+  viewed as (
+    select rv.group_id, g.category_id from me join public.recently_viewed rv on rv.user_id = me.uid
+      join public.product_groups g on g.id = rv.group_id
+     where rv.viewed_at > now() - interval '30 days'
+  ),
+  saved as (
+    select distinct p.group_id from me join public.wishlist w on w.user_id = me.uid join public.products p on p.id = w.product_id
+  ),
+  terms as (
+    select distinct s.term from me join public.search_logs s on s.user_id = me.uid
+     where s.created_at > now() - interval '30 days' and s.results_count > 0
+     limit 8
+  ),
+  cat_score as (
+    select category_id, sum(w) w from (
+      select category_id, 3.0 w from bought
+      union all select category_id, 1.5 from viewed) x group by category_id
+  ),
+  scored as (
+    select l.id,
+        coalesce((select least(w, 9) from cat_score cs where cs.category_id = l.category_id), 0)
+      + case when exists (select 1 from saved s where s.group_id = l.id) then 3 else 0 end
+      + case when exists (select 1 from viewed v where v.group_id = l.id) then 1.5 else 0 end
+      + 2 * (select count(*) from terms t where strpos(l.search_text, t.term) > 0)
+      -- just bought it in the last 2 weeks: show it less (consumables come back later)
+      - case when exists (select 1 from bought b where b.group_id = l.id and b.last_at > now() - interval '14 days') then 4 else 0 end
+      + 0.6 * ln(1 + l.sold_count) + 0.3 * l.rating_avg * least(l.rating_count, 10) / 10.0
+      -- daily shuffle, different for each person
+      + 2.5 * ((abs(hashtext(coalesce((select uid::text from me), 'guest') || (now() at time zone 'Asia/Kolkata')::date::text || l.id::text)) % 1000) / 1000.0)
+      as score
+      from live l
+  )
+  select id from scored order by score desc limit greatest(1, least(p_limit, 30));
+$$;
+
+
+--
+-- Name: place_order(jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.place_order(p jsonb) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
+    AS $_$
+declare
+  uid uuid := public.uid();
+  s public.settings;
+  q jsonb; o public.orders; addr public.addresses;
+  typ public.order_type; pm public.payment_method;
+  key text := nullif(p->>'idempotency_key', '');
+  it jsonb; need int; take int; cr record; alloc jsonb := '[]';
+  coins_used int; fine int; disc int; slot_end time;
+  first_status public.order_status;
+begin
+  perform public.require_active();
+
+  -- A double tap or network retry returns the order already placed
+  if key is not null then
+    select * into o from public.orders where idempotency_key = key and user_id = uid;
+    if found then
+      return jsonb_build_object('order_id', o.id, 'order_no', o.order_no, 'payable_paise', o.payable_paise,
+        'payment_method', o.payment_method, 'status', o.status, 'duplicate', true);
+    end if;
+  end if;
+  perform public.hit_rate_limit('place_order', 10, 3600);
+
+  select * into s from public.settings where id = 1;
+  begin
+    typ := (p->>'type')::public.order_type;
+    pm := (p->>'payment_method')::public.payment_method;
+  exception when others then
+    raise exception 'Choose how you want to get your order and how you''ll pay';
+  end;
+
+  -- Lock the products and wallet so two orders can't oversell or double-spend coins
+  perform 1 from public.products
+   where id in (select (x->>'product_id')::uuid from jsonb_array_elements(p->'items') x)
+   order by id for update;
+  perform 1 from public.wallets where user_id = uid for update;
+
+  q := public._price_order(uid, p);
+  if jsonb_array_length(q->'errors') > 0 then
+    raise exception '%', q->'errors'->>0;
+  end if;
+  if not coalesce((q->'methods'->>(pm::text))::boolean, false) then
+    raise exception 'That payment option isn''t available for this order';
+  end if;
+  if q->'coupon' ? 'error' then
+    raise exception '%', q->'coupon'->>'error';
+  end if;
+
+  if typ <> 'pickup' then
+    select * into addr from public.addresses where id = (p->>'address_id')::uuid and user_id = uid;
+    if not public._distance_sig_ok(addr) then
+      raise exception 'Please confirm your delivery location on the map again';
+    end if;
+  end if;
+
+  -- Reserve the delivery slot
+  if typ = 'scheduled' then
+    select cs.window_end into slot_end from public.checkout_slots() cs
+     where cs.slot_date = (p->>'slot_date')::date and cs.window_start = (p->>'slot_start')::time;
+    insert into public.slot_bookings (slot_date, window_start, window_end, booked)
+    values ((p->>'slot_date')::date, (p->>'slot_start')::time, slot_end, 0)
+    on conflict (slot_date, window_start) do nothing;
+    update public.slot_bookings set booked = booked + 1
+     where slot_date = (p->>'slot_date')::date and window_start = (p->>'slot_start')::time and booked < s.slot_capacity;
+    if not found then raise exception 'That slot just filled up. Please pick another.'; end if;
+  end if;
+
+  disc := (q->>'coupon_discount_paise')::int;
+  coins_used := (q->'coins'->>'used')::int;
+  fine := (q->>'fine_paise')::int;
+
+  -- Coupon usage (locked count so a limited coupon can't be over-used)
+  if q->'coupon' is not null and jsonb_typeof(q->'coupon') = 'object' then
+    update public.coupons set used_count = used_count + 1
+     where code = q->'coupon'->>'code' and (total_limit is null or used_count < total_limit);
+    if not found then raise exception 'This coupon has run out'; end if;
+  end if;
+
+  first_status := case when pm = 'upi' then 'placed' else 'confirmed' end;
+
+  -- Pickup: who collects, and a mobile number the store can call
+  if typ = 'pickup' then
+    if length(trim(coalesce(p->>'pickup_name', ''))) < 2 then
+      raise exception 'Enter the name of the person who will collect the order';
+    end if;
+    if regexp_replace(coalesce(p->>'pickup_phone', ''), '\D', '', 'g') !~ '^[6-9][0-9]{9}$' then
+      raise exception 'Enter a 10-digit mobile number for the pickup';
+    end if;
+    update public.profiles set phone = regexp_replace(p->>'pickup_phone', '\D', '', 'g')
+     where id = uid and coalesce(phone, '') = '';
+  end if;
+
+  insert into public.orders (
+    user_id, type, slot_date, slot_start, slot_end, address, road_km,
+    items_total_paise, coupon_code, coupon_discount_paise, coins_used, delivery_fee_paise, fine_paise,
+    payable_paise, coins_to_earn, payment_method, payment_status, status, note, idempotency_key, confirmed_at, pickup_contact)
+  values (
+    uid, typ,
+    case when typ = 'scheduled' then (p->>'slot_date')::date end,
+    case when typ = 'scheduled' then (p->>'slot_start')::time end,
+    case when typ = 'scheduled' then slot_end end,
+    case when typ <> 'pickup' then jsonb_build_object(
+      'label', addr.label, 'house_name', addr.house_name, 'road', addr.road, 'landmark', addr.landmark,
+      'contact_name', addr.contact_name, 'contact_phone', addr.contact_phone, 'for_someone_else', addr.for_someone_else,
+      'lat', addr.lat, 'lng', addr.lng) end,
+    case when typ <> 'pickup' then addr.road_km end,
+    (q->>'items_total_paise')::int, case when disc > 0 or (q->'coupon'->>'free_delivery')::boolean then q->'coupon'->>'code' end,
+    disc, coins_used, (q->>'delivery_fee_paise')::int, fine,
+    (q->>'payable_paise')::int, (q->>'coins_to_earn')::int, pm, 'pending', first_status,
+    left(nullif(trim(p->>'note'), ''), 300), key,
+    case when first_status = 'confirmed' then now() end,
+    case when typ = 'pickup' then jsonb_build_object('name', left(trim(p->>'pickup_name'), 80),
+      'phone', regexp_replace(coalesce(p->>'pickup_phone', ''), '\D', '', 'g')) end)
+  returning * into o;
+
+  -- Items, stock and popularity
+  for it in select * from jsonb_array_elements(q->'items') loop
+    insert into public.order_items (order_id, product_id, name, variant_label, image_url, mrp_paise, price_paise, qty, gst_rate, hsn, returnable)
+    values (o.id, (it->>'product_id')::uuid, it->>'name', it->>'variant_label', it->>'image', (it->>'mrp_paise')::int,
+      (it->>'price_paise')::int, (it->>'qty')::int, (it->>'gst_rate')::numeric, it->>'hsn', (it->>'returnable')::boolean);
+    update public.products set stock = stock - (it->>'qty')::int where id = (it->>'product_id')::uuid;
+    update public.product_groups g set sold_count = sold_count + (it->>'qty')::int
+      from public.products pp where pp.id = (it->>'product_id')::uuid and g.id = pp.group_id;
+  end loop;
+
+  if o.coupon_code is not null then
+    insert into public.coupon_uses (code, user_id, order_id, discount_paise) values (o.coupon_code, uid, o.id, disc);
+  end if;
+
+  -- Spend coins, oldest-expiring first
+  if coins_used > 0 then
+    need := coins_used;
+    for cr in select id, remaining from public.coin_ledger
+               where user_id = uid and remaining > 0 and (expires_at is null or expires_at > now())
+               order by expires_at nulls last, created_at for update loop
+      take := least(need, cr.remaining);
+      update public.coin_ledger set remaining = remaining - take where id = cr.id;
+      alloc := alloc || jsonb_build_object('credit_id', cr.id, 'n', take);
+      need := need - take;
+      exit when need = 0;
+    end loop;
+    if need > 0 then raise exception 'Your SuperCoin balance changed. Please review your order.'; end if;
+    insert into public.coin_ledger (user_id, entry, amount, remaining, order_id, note, alloc)
+    values (uid, 'spend', -coins_used, 0, o.id, 'Used on order ' || o.order_no, alloc);
+    update public.wallets set coin_balance = coin_balance - coins_used, updated_at = now() where user_id = uid;
+  end if;
+
+  -- A pending cancellation fine is settled on this order
+  if fine > 0 then
+    update public.wallets set pending_fine_paise = 0, updated_at = now() where user_id = uid;
+  end if;
+
+  insert into public.payments (order_id, method, amount_paise, status) values (o.id, pm, o.payable_paise, 'pending');
+
+  insert into public.order_events (order_id, status, actor_id, note) values (o.id, 'placed', uid, null);
+  if first_status = 'confirmed' then
+    insert into public.order_events (order_id, status, actor_id, note) values (o.id, 'confirmed', null, null);
+  end if;
+
+  perform public.notify(uid, 'order', 'Order ' || o.order_no || ' placed',
+    case when pm = 'upi' then 'Complete your UPI payment of ' || public._inr(o.payable_paise) || ' to confirm it.'
+         else 'We''ve got it. We''ll let you know as it moves along.' end,
+    '/orders/' || o.id);
+  perform public.notify_admins('new_order', 'New order ' || o.order_no || ': ' || public._inr(o.payable_paise),
+    initcap(o.type::text) || ', ' || case pm when 'cod' then 'cash on delivery' when 'counter' then 'pay at counter' else 'UPI (awaiting payment)' end,
+    '/admin/orders/' || o.id);
+
+  return jsonb_build_object('order_id', o.id, 'order_no', o.order_no, 'payable_paise', o.payable_paise,
+    'payment_method', o.payment_method, 'status', o.status,
+    'upi', case when pm = 'upi' then jsonb_build_object('vpa', s.store_upi_id, 'name', s.store_name, 'note', o.order_no) end);
+end $_$;
+
+
+--
+-- Name: product_groups_search_text(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.product_groups_search_text() RETURNS trigger
+    LANGUAGE plpgsql
+    SET search_path TO ''
+    AS $$
+declare cat text;
+begin
+  select name into cat from public.categories where id = new.category_id;
+  new.search_text = lower(concat_ws(' ', new.name, new.brand, cat, array_to_string(new.tags, ' ')));
+  return new;
+end $$;
+
+
+--
+-- Name: protect_owner_admin(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.protect_owner_admin() RETURNS trigger
+    LANGUAGE plpgsql
+    SET search_path TO ''
+    AS $$
+begin
+  if old.email = 'premiumservice9366@gmail.com' and new.role <> 'admin' then
+    raise exception 'The store owner account must stay admin';
+  end if;
+  if new.email <> old.email then
+    raise exception 'Email cannot be changed here';
+  end if;
+  return new;
+end $$;
+
+
+--
+-- Name: quote_order(jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.quote_order(p jsonb) RETURNS jsonb
+    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+declare r jsonb; on_ boolean;
+begin
+  if public.uid() is null then raise exception 'Sign in required' using errcode = '28000'; end if;
+  r := public._price_order(public.uid(), p);
+  select scheduled_enabled and not orders_paused into on_ from public.settings where id = 1;
+  r := jsonb_set(r, '{availability,scheduled}', to_jsonb(coalesce(on_, false)), true);
+  if p->>'type' = 'scheduled' and not coalesce(on_, false) then
+    r := jsonb_set(r, '{errors}', coalesce(r->'errors', '[]'::jsonb) || '["Scheduled delivery is not available right now"]'::jsonb, true);
+  end if;
+  return r;
+end $$;
+
+
+--
+-- Name: request_return(uuid, jsonb, text, text[], text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.request_return(p_order uuid, p_items jsonb, p_reason text, p_photos text[], p_refund_upi text) RETURNS uuid
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
+    AS $_$
+declare
+  o public.orders; opts jsonb; it jsonb; opt jsonb; q int; total int := 0; snap jsonb := '[]'; rid uuid; ph text;
+  upi text := lower(trim(coalesce(p_refund_upi, '')));
+begin
+  perform public.require_active();
+  perform public.hit_rate_limit('request_return', 5, 3600);
+  select * into o from public.orders where id = p_order and user_id = public.uid() for update;
+  if not found then raise exception 'Order not found'; end if;
+  if o.status not in ('delivered', 'collected') or o.return_window_ends_at is null or o.return_window_ends_at <= now() then
+    raise exception 'The return window for this order has closed';
+  end if;
+  if length(trim(coalesce(p_reason, ''))) < 5 then raise exception 'Tell us what''s wrong (at least a few words)'; end if;
+  if coalesce(array_length(p_photos, 1), 0) not between 1 and 5 then raise exception 'Add 1 to 5 photos of the items'; end if;
+  foreach ph in array p_photos loop
+    if strpos(ph, public.uid()::text || '/') <> 1 or strpos(ph, '..') > 0 then raise exception 'Upload the photos again'; end if;
+  end loop;
+  if upi !~ '^[a-z0-9._-]{2,64}@[a-z]{2,64}$' then raise exception 'Enter a valid UPI ID for the refund, like name@okaxis'; end if;
+
+  opts := public.return_options(o.id)->'items';
+  for it in select * from jsonb_array_elements(coalesce(p_items, '[]'::jsonb)) loop
+    q := coalesce((it->>'qty')::int, 0);
+    if q < 1 then continue; end if;
+    opt := null;
+    select x into opt from jsonb_array_elements(opts) x where x->>'order_item_id' = it->>'order_item_id';
+    if opt is null then raise exception 'That item isn''t in this order'; end if;
+    if not (opt->>'returnable')::boolean then raise exception '% can''t be returned', opt->>'name'; end if;
+    if q > (opt->>'available')::int then raise exception 'You can return up to % of %', opt->>'available', opt->>'name'; end if;
+    total := total + q * (opt->>'unit_refund_paise')::int;
+    snap := snap || jsonb_build_object('order_item_id', opt->>'order_item_id', 'name', opt->>'name', 'variant_label', opt->>'variant_label',
+      'image_url', opt->>'image_url', 'qty', q, 'unit_refund_paise', (opt->>'unit_refund_paise')::int);
+  end loop;
+  if jsonb_array_length(snap) = 0 then raise exception 'Choose at least one item to return'; end if;
+
+  insert into public.returns (order_id, user_id, items, reason, photos, refund_upi_id, refund_amount_paise, pickup_address)
+  values (o.id, o.user_id, snap, left(trim(p_reason), 1000), p_photos, upi, total, o.address)
+  returning id into rid;
+  insert into public.order_events (order_id, status, actor_id, note) values (o.id, 'return_requested', public.uid(), public._inr(total));
+  perform public.notify_admins('return', 'Return requested on ' || o.order_no, public._inr(total) || ' · ' || left(trim(p_reason), 120), '/admin/returns/' || rid);
+  perform public.notify(o.user_id, 'return', 'Return request received',
+    'We''ll check it within a day. If approved, ' || public._inr(total) || ' goes to ' || upi || '.', '/orders/' || o.id);
+  return rid;
+end $_$;
+
+
+--
+-- Name: require_active(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.require_active() RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+begin
+  if public.uid() is null then raise exception 'Sign in required' using errcode = '28000'; end if;
+  if not public.is_active_user() then raise exception 'Your account is suspended. Please contact the store.' using errcode = '42501'; end if;
+end $$;
+
+
+--
+-- Name: return_options(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.return_options(p_order uuid) RETURNS jsonb
+    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+declare o public.orders; share numeric;
+begin
+  select * into o from public.orders where id = p_order and user_id = public.uid();
+  if not found then raise exception 'Order not found'; end if;
+  share := public._paid_share(o);
+  return jsonb_build_object(
+    'open', o.status in ('delivered', 'collected') and o.return_window_ends_at > now(),
+    'window_ends_at', o.return_window_ends_at,
+    'items', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'order_item_id', oi.id, 'name', oi.name, 'variant_label', oi.variant_label, 'image_url', oi.image_url,
+        'qty', oi.qty, 'returnable', oi.returnable, 'price_paise', oi.price_paise,
+        'available', greatest(0, oi.qty - coalesce(taken.n, 0)),
+        'unit_refund_paise', floor(oi.price_paise * share / 100) * 100) order by oi.name)
+      from public.order_items oi
+      left join lateral (
+        select sum((x->>'qty')::int) n from public.returns r, jsonb_array_elements(r.items) x
+         where r.order_id = o.id and r.status <> 'rejected' and (x->>'order_item_id')::uuid = oi.id) taken on true
+      where oi.order_id = o.id), '[]'::jsonb));
+end $$;
+
+
+--
+-- Name: search_products(text, integer); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.search_products(p_q text, p_limit integer DEFAULT 40) RETURNS TABLE(id uuid, group_id uuid, name text, slug text, brand text, variant_label text, colour text, images text[], mrp_paise integer, price_paise integer, discount_pct integer, stock integer, unit text, category_id uuid, category_name text, category_slug text, rating_avg numeric, rating_count integer, sold_count integer, score real)
+    LANGUAGE sql STABLE
+    SET search_path TO 'public', 'extensions'
+    AS $$
+  with q as (select lower(trim(p_q)) as t),
+  scored as (
+    select pc.*,
+      greatest(
+        case when strpos(g.search_text, q.t) > 0 then 1.0 else 0 end,
+        word_similarity(q.t, g.search_text),
+        (select coalesce(avg(greatest(word_similarity(w, g.search_text), case when strpos(g.search_text, w) > 0 then 1 else 0 end)), 0)
+           from unnest(string_to_array(q.t, ' ')) w where length(w) >= 2)
+      )
+      + coalesce((select max(similarity(w, lower(pc.colour))) * 0.3 from unnest(string_to_array(q.t, ' ')) w where pc.colour is not null and length(w) >= 3), 0)
+      as s
+    from product_cards pc join product_groups g on g.id = pc.group_id cross join q
+    where length(q.t) >= 2
+  )
+  select id, group_id, name, slug, brand, variant_label, colour, images, mrp_paise, price_paise, discount_pct, stock, unit,
+         category_id, category_name, category_slug, rating_avg, rating_count, sold_count, s::real
+  from scored
+  where s >= 0.42
+  order by s desc, sold_count desc, stock > 0 desc
+  limit least(p_limit, 100)
+$$;
+
+
+--
+-- Name: search_suggestions(text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.search_suggestions(p_q text) RETURNS TABLE(kind text, label text, slug text, group_id uuid, category_slug text, image text)
+    LANGUAGE sql STABLE
+    SET search_path TO 'public', 'extensions'
+    AS $$
+  (select 'product'::text, b.name, b.slug, b.group_id, b.category_slug, b.img
+     from (select distinct on (s.group_id) s.name, s.slug, s.group_id, s.category_slug, s.images[1] as img, s.score, s.sold_count
+             from public.search_products(p_q, 40) s order by s.group_id, s.score desc) b
+     order by b.score desc, b.sold_count desc limit 6)
+  union all
+  (select 'category', c.name, c.slug, null::uuid, c.slug, c.image_url from public.categories c
+     where c.active and length(trim(p_q)) >= 2 and (strpos(lower(c.name), lower(trim(p_q))) > 0 or lower(trim(p_q)) <% lower(c.name))
+     limit 3)
+$$;
+
+
+--
+-- Name: set_buddy(text, text, boolean); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.set_buddy(p_pet text DEFAULT NULL::text, p_name text DEFAULT NULL::text, p_hidden boolean DEFAULT NULL::boolean) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public'
+    AS $$
+begin
+  if public.uid() is null then raise exception 'Please sign in'; end if;
+  if p_pet is not null and p_pet not in ('mochi','pip','bun','hoot') then raise exception 'Unknown buddy'; end if;
+  if p_name is not null and (length(btrim(p_name)) < 1 or length(btrim(p_name)) > 20) then raise exception 'Name must be 1 to 20 characters'; end if;
+  update profiles set
+    pet = coalesce(p_pet, pet),
+    pet_name = coalesce(nullif(btrim(p_name), ''), pet_name),
+    pet_hidden = coalesce(p_hidden, pet_hidden)
+  where id = public.uid();
+end;
+$$;
+
+
+--
+-- Name: set_message_prefs(boolean, boolean); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.set_message_prefs(p_wa boolean DEFAULT NULL::boolean, p_email boolean DEFAULT NULL::boolean) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+begin
+  if public.uid() is null then raise exception 'Please sign in'; end if;
+  update public.profiles set
+    wa_opt_in = coalesce(p_wa, wa_opt_in),
+    email_offers = coalesce(p_email, email_offers)
+  where id = public.uid();
+end $$;
+
+
+--
+-- Name: set_updated_at(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.set_updated_at() RETURNS trigger
+    LANGUAGE plpgsql
+    SET search_path TO ''
+    AS $$
+begin new.updated_at = now(); return new; end $$;
+
+
+--
+-- Name: submit_review(uuid, integer, text, text[]); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.submit_review(p_item uuid, p_stars integer, p_comment text DEFAULT NULL::text, p_photos text[] DEFAULT '{}'::text[]) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+declare oi public.order_items; o public.orders; g uuid; ph text; nm text;
+begin
+  perform public.require_active();
+  perform public.hit_rate_limit('review', 20, 3600);
+  select * into oi from public.order_items where id = p_item;
+  select * into o from public.orders where id = oi.order_id;
+  if oi.id is null or o.user_id is distinct from public.uid() then raise exception 'You can only review items you bought'; end if;
+  if o.status not in ('delivered', 'collected', 'completed') then raise exception 'You can review once the order reaches you'; end if;
+  if p_stars is null or p_stars not between 1 and 5 then raise exception 'Pick 1 to 5 stars'; end if;
+  if length(coalesce(p_comment, '')) > 1000 then raise exception 'Keep the review under 1000 characters'; end if;
+  if coalesce(array_length(p_photos, 1), 0) > 3 then raise exception 'Add up to 3 photos'; end if;
+  foreach ph in array coalesce(p_photos, '{}') loop
+    if strpos(ph, public.uid()::text || '/') <> 1 or strpos(ph, '..') > 0 then raise exception 'Upload the photos again'; end if;
+  end loop;
+  select p.group_id into g from public.products p where p.id = oi.product_id;
+  select trim(split_part(coalesce(name, 'Customer'), ' ', 1) || ' ' || coalesce(left(nullif(split_part(name, ' ', 2), ''), 1) || '.', ''))
+    into nm from public.profiles where id = public.uid();
+  insert into public.reviews (group_id, product_id, order_item_id, user_id, stars, comment, photos, reviewer_name)
+  values (g, oi.product_id, oi.id, public.uid(), p_stars, nullif(trim(p_comment), ''), coalesce(p_photos, '{}'), nm)
+  on conflict (order_item_id) do update set stars = excluded.stars, comment = excluded.comment, photos = excluded.photos, reviewer_name = excluded.reviewer_name;
+  update public.order_items set reviewed = true where id = oi.id;
+  perform public._refresh_rating(g);
+end $$;
+
+
+--
+-- Name: submit_upi_utr(uuid, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.submit_upi_utr(p_order uuid, p_utr text) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
+    AS $_$
+declare o public.orders; u text := regexp_replace(coalesce(p_utr, ''), '\s', '', 'g');
+begin
+  perform public.require_active();
+  perform public.hit_rate_limit('submit_utr', 10, 3600);
+  select * into o from public.orders where id = p_order and user_id = public.uid();
+  if not found then raise exception 'Order not found'; end if;
+  if o.payment_method <> 'upi' or o.status <> 'placed' then raise exception 'This order isn''t waiting for a UPI payment'; end if;
+  if u !~ '^[0-9]{12}$' then raise exception 'The UPI reference (UTR) is the 12-digit number in your payment app'; end if;
+  if exists (select 1 from public.payments where utr = u and order_id <> o.id) then raise exception 'That reference was already used for another order'; end if;
+  update public.payments set utr = u, raw = coalesce(raw, '{}'::jsonb) || jsonb_build_object('submitted_at', now()), updated_at = now()
+   where order_id = o.id and method = 'upi';
+  perform public.notify_admins('payment', 'Check UPI payment for ' || o.order_no,
+    public._inr(o.payable_paise) || ', reference ' || u, '/admin/orders/' || o.id);
+end $_$;
+
+
+--
+-- Name: track_view(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.track_view(p_group uuid) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+begin
+  if public.uid() is null then return; end if;
+  perform public.hit_rate_limit('track_view', 120, 3600);
+  update public.product_groups set view_count = view_count + 1 where id = p_group;
+  insert into public.recently_viewed (user_id, group_id, viewed_at) values (public.uid(), p_group, now())
+  on conflict (user_id, group_id) do update set viewed_at = now();
+end $$;
+
+
+--
+-- Name: agent_locations; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.agent_locations (
+    order_id uuid NOT NULL,
+    agent_id uuid NOT NULL,
+    lat double precision NOT NULL,
+    lng double precision NOT NULL,
+    heading double precision,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+ALTER TABLE ONLY public.agent_locations FORCE ROW LEVEL SECURITY;
+
+
+--
+-- Name: audit_logs; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.audit_logs (
+    id bigint NOT NULL,
+    actor_id uuid,
+    action text NOT NULL,
+    target text,
+    before jsonb,
+    after jsonb,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+ALTER TABLE ONLY public.audit_logs FORCE ROW LEVEL SECURITY;
+
+
+--
+-- Name: audit_logs_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.audit_logs ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.audit_logs_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: banners; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.banners (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    title text,
+    subtitle text,
+    image_url text NOT NULL,
+    placement text DEFAULT 'hero'::text NOT NULL,
+    size text DEFAULT 'full'::text NOT NULL,
+    link_type text NOT NULL,
+    link_value text,
+    bg_color text,
+    "position" integer DEFAULT 0 NOT NULL,
+    start_at timestamp with time zone,
+    end_at timestamp with time zone,
+    active boolean DEFAULT true NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT banners_link_type_check CHECK ((link_type = ANY (ARRAY['product'::text, 'category'::text, 'search'::text, 'featured'::text, 'url'::text]))),
+    CONSTRAINT banners_placement_check CHECK ((placement = ANY (ARRAY['hero'::text, 'promo'::text, 'strip'::text]))),
+    CONSTRAINT banners_size_check CHECK ((size = ANY (ARRAY['full'::text, 'half'::text, 'compact'::text])))
+);
+
+ALTER TABLE ONLY public.banners FORCE ROW LEVEL SECURITY;
+
+
+--
+-- Name: campaigns; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.campaigns (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    title text NOT NULL,
+    body text NOT NULL,
+    link text,
+    channels text[] NOT NULL,
+    audience text NOT NULL,
+    inactive_days integer,
+    coupon_code text,
+    recipients integer DEFAULT 0 NOT NULL,
+    created_by uuid,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT campaigns_audience_check CHECK ((audience = ANY (ARRAY['all'::text, 'inactive'::text, 'never_ordered'::text]))),
+    CONSTRAINT campaigns_body_check CHECK (((length(body) >= 3) AND (length(body) <= 1000))),
+    CONSTRAINT campaigns_channels_check CHECK (((channels <@ ARRAY['inapp'::text, 'email'::text, 'whatsapp'::text]) AND (cardinality(channels) > 0))),
+    CONSTRAINT campaigns_inactive_days_check CHECK (((inactive_days IS NULL) OR ((inactive_days >= 3) AND (inactive_days <= 365)))),
+    CONSTRAINT campaigns_link_check CHECK (((link IS NULL) OR (link ~ '^/[^\s]*$'::text))),
+    CONSTRAINT campaigns_title_check CHECK (((length(title) >= 3) AND (length(title) <= 80)))
+);
+
+
+--
+-- Name: cart_items; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.cart_items (
+    user_id uuid DEFAULT public.uid() NOT NULL,
+    product_id uuid NOT NULL,
+    qty integer NOT NULL,
+    added_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT cart_items_qty_check CHECK (((qty >= 1) AND (qty <= 50)))
+);
+
+ALTER TABLE ONLY public.cart_items REPLICA IDENTITY FULL;
+
+ALTER TABLE ONLY public.cart_items FORCE ROW LEVEL SECURITY;
+
+
+--
+-- Name: categories; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.categories (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    name text NOT NULL,
+    slug text NOT NULL,
+    image_url text,
+    icon text,
+    parent_id uuid,
+    sort integer DEFAULT 0 NOT NULL,
+    active boolean DEFAULT true NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+ALTER TABLE ONLY public.categories FORCE ROW LEVEL SECURITY;
+
+
+--
+-- Name: coin_ledger; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.coin_ledger (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_id uuid NOT NULL,
+    entry public.coin_entry NOT NULL,
+    amount integer NOT NULL,
+    remaining integer DEFAULT 0 NOT NULL,
+    order_id uuid,
+    note text,
+    expires_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    alloc jsonb,
+    reminded boolean DEFAULT false NOT NULL
+);
+
+ALTER TABLE ONLY public.coin_ledger FORCE ROW LEVEL SECURITY;
+
+
+--
+-- Name: coupon_uses; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.coupon_uses (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    code text NOT NULL,
+    user_id uuid NOT NULL,
+    order_id uuid NOT NULL,
+    discount_paise integer NOT NULL,
+    reverted boolean DEFAULT false NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+ALTER TABLE ONLY public.coupon_uses FORCE ROW LEVEL SECURITY;
+
+
+--
+-- Name: coupons; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.coupons (
+    code text NOT NULL,
+    title text NOT NULL,
+    description text,
+    type public.coupon_type NOT NULL,
+    value integer DEFAULT 0 NOT NULL,
+    max_discount_paise integer,
+    min_order_paise integer DEFAULT 0 NOT NULL,
+    valid_from timestamp with time zone DEFAULT now() NOT NULL,
+    valid_to timestamp with time zone,
+    total_limit integer,
+    per_user_limit integer DEFAULT 1 NOT NULL,
+    used_count integer DEFAULT 0 NOT NULL,
+    audience text DEFAULT 'all'::text NOT NULL,
+    audience_user_ids uuid[] DEFAULT '{}'::uuid[] NOT NULL,
+    first_order_only boolean DEFAULT false NOT NULL,
+    category_ids uuid[] DEFAULT '{}'::uuid[] NOT NULL,
+    active boolean DEFAULT true NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT coupons_audience_check CHECK ((audience = ANY (ARRAY['all'::text, 'selected'::text]))),
+    CONSTRAINT coupons_check CHECK (((type <> 'percent'::public.coupon_type) OR ((value >= 1) AND (value <= 100)))),
+    CONSTRAINT coupons_code_check CHECK ((code ~ '^[A-Z0-9]{3,20}$'::text)),
+    CONSTRAINT coupons_value_check CHECK ((value >= 0))
+);
+
+ALTER TABLE ONLY public.coupons FORCE ROW LEVEL SECURITY;
+
+
+--
+-- Name: home_sections; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.home_sections (
+    key text NOT NULL,
+    title text NOT NULL,
+    "position" integer NOT NULL,
+    visible boolean DEFAULT true NOT NULL,
+    config jsonb DEFAULT '{}'::jsonb NOT NULL
+);
+
+ALTER TABLE ONLY public.home_sections FORCE ROW LEVEL SECURITY;
+
+
+--
+-- Name: messaging_settings; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.messaging_settings (
+    id integer DEFAULT 1 NOT NULL,
+    wa_enabled boolean DEFAULT false NOT NULL,
+    wa_base_url text,
+    wa_session text DEFAULT 'default'::text NOT NULL,
+    wa_per_minute integer DEFAULT 6 NOT NULL,
+    wa_daily_cap integer DEFAULT 200 NOT NULL,
+    email_per_minute integer DEFAULT 20 NOT NULL,
+    email_daily_cap integer DEFAULT 280 NOT NULL,
+    order_updates_wa boolean DEFAULT true NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT messaging_settings_email_daily_cap_check CHECK (((email_daily_cap >= 1) AND (email_daily_cap <= 300))),
+    CONSTRAINT messaging_settings_email_per_minute_check CHECK (((email_per_minute >= 1) AND (email_per_minute <= 60))),
+    CONSTRAINT messaging_settings_id_check CHECK ((id = 1)),
+    CONSTRAINT messaging_settings_wa_base_url_check CHECK (((wa_base_url IS NULL) OR (wa_base_url ~ '^https://[^\s/]+(/[^\s]*)?$'::text))),
+    CONSTRAINT messaging_settings_wa_daily_cap_check CHECK (((wa_daily_cap >= 1) AND (wa_daily_cap <= 1000))),
+    CONSTRAINT messaging_settings_wa_per_minute_check CHECK (((wa_per_minute >= 1) AND (wa_per_minute <= 30))),
+    CONSTRAINT messaging_settings_wa_session_check CHECK ((wa_session ~ '^[A-Za-z0-9_-]{1,64}$'::text))
+);
+
+
+--
+-- Name: notifications; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.notifications (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_id uuid NOT NULL,
+    type text NOT NULL,
+    title text NOT NULL,
+    body text,
+    link text,
+    read_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+ALTER TABLE ONLY public.notifications FORCE ROW LEVEL SECURITY;
+
+
+--
+-- Name: order_events; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.order_events (
+    id bigint NOT NULL,
+    order_id uuid NOT NULL,
+    status text NOT NULL,
+    actor_id uuid,
+    note text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+ALTER TABLE ONLY public.order_events FORCE ROW LEVEL SECURITY;
+
+
+--
+-- Name: order_events_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.order_events ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.order_events_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: order_items; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.order_items (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    order_id uuid NOT NULL,
+    product_id uuid NOT NULL,
+    name text NOT NULL,
+    variant_label text,
+    image_url text,
+    mrp_paise integer NOT NULL,
+    price_paise integer NOT NULL,
+    qty integer NOT NULL,
+    gst_rate numeric(4,2) NOT NULL,
+    hsn text,
+    returnable boolean DEFAULT true NOT NULL,
+    returned_qty integer DEFAULT 0 NOT NULL,
+    reviewed boolean DEFAULT false NOT NULL,
+    CONSTRAINT order_items_qty_check CHECK ((qty > 0))
+);
+
+ALTER TABLE ONLY public.order_items FORCE ROW LEVEL SECURITY;
+
+
+--
+-- Name: order_otps; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.order_otps (
+    order_id uuid NOT NULL,
+    code text NOT NULL,
+    emailed_count integer DEFAULT 0 NOT NULL,
+    last_emailed_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT order_otps_code_check CHECK ((code ~ '^[0-9]{4}$'::text))
+);
+
+
+--
+-- Name: outbox; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.outbox (
+    id bigint NOT NULL,
+    campaign_id uuid,
+    user_id uuid,
+    channel text NOT NULL,
+    to_addr text NOT NULL,
+    to_name text,
+    subject text,
+    body text NOT NULL,
+    html text,
+    status text DEFAULT 'queued'::text NOT NULL,
+    request_id bigint,
+    error text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    sent_at timestamp with time zone,
+    CONSTRAINT outbox_channel_check CHECK ((channel = ANY (ARRAY['email'::text, 'whatsapp'::text]))),
+    CONSTRAINT outbox_status_check CHECK ((status = ANY (ARRAY['queued'::text, 'sending'::text, 'sent'::text, 'failed'::text])))
+);
+
+
+--
+-- Name: outbox_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.outbox ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.outbox_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: payments; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.payments (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    order_id uuid NOT NULL,
+    method public.payment_method NOT NULL,
+    amount_paise integer NOT NULL,
+    gateway_ref text,
+    utr text,
+    status text DEFAULT 'pending'::text NOT NULL,
+    reconciled_by uuid,
+    raw jsonb,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT payments_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'success'::text, 'failed'::text, 'expired'::text, 'refunded'::text])))
+);
+
+ALTER TABLE ONLY public.payments FORCE ROW LEVEL SECURITY;
+
+
+--
+-- Name: product_groups; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.product_groups (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    name text NOT NULL,
+    slug text NOT NULL,
+    description text,
+    category_id uuid NOT NULL,
+    brand text,
+    tags text[] DEFAULT '{}'::text[] NOT NULL,
+    returnable boolean DEFAULT true NOT NULL,
+    seasonal_tag text,
+    rating_avg numeric(2,1) DEFAULT 0 NOT NULL,
+    rating_count integer DEFAULT 0 NOT NULL,
+    sold_count integer DEFAULT 0 NOT NULL,
+    view_count integer DEFAULT 0 NOT NULL,
+    search_text text DEFAULT ''::text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+ALTER TABLE ONLY public.product_groups FORCE ROW LEVEL SECURITY;
+
+
+--
+-- Name: products; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.products (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    group_id uuid NOT NULL,
+    sku text NOT NULL,
+    variant_label text,
+    colour text,
+    colour_hex text,
+    unit text DEFAULT 'piece'::text NOT NULL,
+    images text[] DEFAULT '{}'::text[] NOT NULL,
+    mrp_paise integer NOT NULL,
+    price_paise integer NOT NULL,
+    gst_rate numeric(4,2) DEFAULT 18 NOT NULL,
+    hsn text,
+    stock integer DEFAULT 0 NOT NULL,
+    low_stock_at integer DEFAULT 5 NOT NULL,
+    max_per_order integer DEFAULT 20 NOT NULL,
+    featured boolean DEFAULT false NOT NULL,
+    active boolean DEFAULT true NOT NULL,
+    sort integer DEFAULT 0 NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT products_check CHECK ((price_paise <= mrp_paise)),
+    CONSTRAINT products_mrp_paise_check CHECK ((mrp_paise > 0)),
+    CONSTRAINT products_price_paise_check CHECK ((price_paise > 0)),
+    CONSTRAINT products_stock_check CHECK ((stock >= 0))
+);
+
+ALTER TABLE ONLY public.products FORCE ROW LEVEL SECURITY;
+
+
+--
+-- Name: product_cards; Type: VIEW; Schema: public; Owner: -
+--
+
+CREATE VIEW public.product_cards WITH (security_invoker='true') AS
+ SELECT p.id,
+    p.group_id,
+    p.sku,
+    p.variant_label,
+    p.colour,
+    p.colour_hex,
+    p.unit,
+    p.images,
+    p.mrp_paise,
+    p.price_paise,
+    p.stock,
+    p.max_per_order,
+    p.featured,
+    (round(((100.0 * ((p.mrp_paise - p.price_paise))::numeric) / (p.mrp_paise)::numeric)))::integer AS discount_pct,
+    g.name,
+    g.slug,
+    g.brand,
+    g.tags,
+    g.category_id,
+    g.seasonal_tag,
+    g.returnable,
+    g.rating_avg,
+    g.rating_count,
+    g.sold_count,
+    g.view_count,
+    g.created_at,
+    c.name AS category_name,
+    c.slug AS category_slug,
+    p.sort AS variant_sort
+   FROM ((public.products p
+     JOIN public.product_groups g ON ((g.id = p.group_id)))
+     JOIN public.categories c ON ((c.id = g.category_id)))
+  WHERE (p.active AND c.active);
+
+
+--
+-- Name: profiles; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.profiles (
+    id uuid NOT NULL,
+    email text NOT NULL,
+    name text,
+    phone text,
+    avatar_url text,
+    role public.user_role DEFAULT 'customer'::public.user_role NOT NULL,
+    referral_code text NOT NULL,
+    referred_by uuid,
+    referral_prompt_done boolean DEFAULT false NOT NULL,
+    welcome_seen boolean DEFAULT false NOT NULL,
+    terms_accepted_at timestamp with time zone,
+    blocked_reason text,
+    agent_online boolean DEFAULT false NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    pet text,
+    pet_name text,
+    pet_hidden boolean DEFAULT false NOT NULL,
+    wa_opt_in boolean DEFAULT false NOT NULL,
+    email_offers boolean DEFAULT true NOT NULL,
+    CONSTRAINT profiles_pet_check CHECK ((pet = ANY (ARRAY['mochi'::text, 'pip'::text, 'bun'::text, 'hoot'::text]))),
+    CONSTRAINT profiles_pet_name_check CHECK (((char_length(pet_name) >= 1) AND (char_length(pet_name) <= 20))),
+    CONSTRAINT profiles_phone_check CHECK (((phone IS NULL) OR (phone ~ '^[6-9][0-9]{9}$'::text)))
+);
+
+ALTER TABLE ONLY public.profiles FORCE ROW LEVEL SECURITY;
+
+
+--
+-- Name: push_subscriptions; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.push_subscriptions (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_id uuid DEFAULT public.uid() NOT NULL,
+    endpoint text NOT NULL,
+    p256dh text NOT NULL,
+    auth text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+ALTER TABLE ONLY public.push_subscriptions FORCE ROW LEVEL SECURITY;
+
+
+--
+-- Name: rate_limits; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.rate_limits (
+    user_id uuid NOT NULL,
+    bucket text NOT NULL,
+    window_start timestamp with time zone NOT NULL,
+    hits integer DEFAULT 0 NOT NULL
+);
+
+ALTER TABLE ONLY public.rate_limits FORCE ROW LEVEL SECURITY;
+
+
+--
+-- Name: recently_viewed; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.recently_viewed (
+    user_id uuid DEFAULT public.uid() NOT NULL,
+    group_id uuid NOT NULL,
+    viewed_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+ALTER TABLE ONLY public.recently_viewed FORCE ROW LEVEL SECURITY;
+
+
+--
+-- Name: referrals; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.referrals (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    referrer_id uuid NOT NULL,
+    referee_id uuid NOT NULL,
+    status text DEFAULT 'pending'::text NOT NULL,
+    first_order_id uuid,
+    rewarded_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT referrals_check CHECK ((referrer_id <> referee_id)),
+    CONSTRAINT referrals_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'rewarded'::text, 'void'::text])))
+);
+
+ALTER TABLE ONLY public.referrals FORCE ROW LEVEL SECURITY;
+
+
+--
+-- Name: reviews; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.reviews (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    group_id uuid NOT NULL,
+    product_id uuid NOT NULL,
+    order_item_id uuid NOT NULL,
+    user_id uuid NOT NULL,
+    stars integer NOT NULL,
+    comment text,
+    photos text[] DEFAULT '{}'::text[] NOT NULL,
+    hidden boolean DEFAULT false NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    reviewer_name text,
+    CONSTRAINT reviews_comment_check CHECK (((comment IS NULL) OR (length(comment) <= 1000))),
+    CONSTRAINT reviews_photos_check CHECK ((COALESCE(array_length(photos, 1), 0) <= 3)),
+    CONSTRAINT reviews_stars_check CHECK (((stars >= 1) AND (stars <= 5)))
+);
+
+ALTER TABLE ONLY public.reviews REPLICA IDENTITY FULL;
+
+ALTER TABLE ONLY public.reviews FORCE ROW LEVEL SECURITY;
+
+
+--
+-- Name: search_logs; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.search_logs (
+    id bigint NOT NULL,
+    term text NOT NULL,
+    results_count integer NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    user_id uuid
+);
+
+ALTER TABLE ONLY public.search_logs FORCE ROW LEVEL SECURITY;
+
+
+--
+-- Name: search_logs_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.search_logs ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.search_logs_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: settings; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.settings (
+    id integer DEFAULT 1 NOT NULL,
+    store_name text DEFAULT 'Gupta Enterprises'::text NOT NULL,
+    legal_name text DEFAULT 'Gupta Enterprises'::text NOT NULL,
+    gstin text DEFAULT '13CNAPG5572Q1ZP'::text NOT NULL,
+    store_address text DEFAULT 'Khedi Market, New NST, opposite Hotel Galaxy, Kohima, Nagaland 797001'::text NOT NULL,
+    store_phone text DEFAULT '7905529544'::text NOT NULL,
+    support_email text DEFAULT 'guptaenterpriseskohima@gmail.com'::text NOT NULL,
+    store_lat double precision DEFAULT 25.6680 NOT NULL,
+    store_lng double precision DEFAULT 94.1085 NOT NULL,
+    store_upi_id text DEFAULT 'himanshugupta123456@ybl'::text NOT NULL,
+    delivery_radius_km numeric DEFAULT 15 NOT NULL,
+    min_order_paise integer DEFAULT 9900 NOT NULL,
+    delivery_fee_paise integer DEFAULT 4900 NOT NULL,
+    free_delivery_min_paise integer DEFAULT 49900 NOT NULL,
+    quick_eta_min integer DEFAULT 45 NOT NULL,
+    quick_eta_max integer DEFAULT 60 NOT NULL,
+    store_open time without time zone DEFAULT '10:00:00'::time without time zone NOT NULL,
+    store_close time without time zone DEFAULT '17:30:00'::time without time zone NOT NULL,
+    delivery_start time without time zone DEFAULT '11:00:00'::time without time zone NOT NULL,
+    delivery_end time without time zone DEFAULT '16:00:00'::time without time zone NOT NULL,
+    quick_last_order time without time zone DEFAULT '15:00:00'::time without time zone NOT NULL,
+    slot_windows jsonb DEFAULT '[{"end": "13:00", "start": "11:00"}, {"end": "15:00", "start": "13:00"}, {"end": "16:00", "start": "15:00"}]'::jsonb NOT NULL,
+    slot_capacity integer DEFAULT 10 NOT NULL,
+    slot_days_ahead integer DEFAULT 7 NOT NULL,
+    coin_rate_bp integer DEFAULT 200 NOT NULL,
+    coin_expiry_days integer DEFAULT 10 NOT NULL,
+    referral_reward_coins integer DEFAULT 50 NOT NULL,
+    free_cancels_per_week integer DEFAULT 3 NOT NULL,
+    cancel_fine_paise integer DEFAULT 3000 NOT NULL,
+    return_window_days integer DEFAULT 3 NOT NULL,
+    pickup_hold_hours integer DEFAULT 48 NOT NULL,
+    upi_daily_cap integer DEFAULT 20 NOT NULL,
+    cod_limit_paise integer DEFAULT 200000 NOT NULL,
+    orders_paused boolean DEFAULT false NOT NULL,
+    holidays date[] DEFAULT '{}'::date[] NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    scheduled_enabled boolean DEFAULT true NOT NULL,
+    CONSTRAINT settings_id_check CHECK ((id = 1))
+);
+
+ALTER TABLE ONLY public.settings FORCE ROW LEVEL SECURITY;
+
+
+--
+-- Name: slot_bookings; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.slot_bookings (
+    slot_date date NOT NULL,
+    window_start time without time zone NOT NULL,
+    window_end time without time zone NOT NULL,
+    booked integer DEFAULT 0 NOT NULL
+);
+
+ALTER TABLE ONLY public.slot_bookings FORCE ROW LEVEL SECURITY;
+
+
+--
+-- Name: wallets; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.wallets (
+    user_id uuid NOT NULL,
+    coin_balance integer DEFAULT 0 NOT NULL,
+    pending_fine_paise integer DEFAULT 0 NOT NULL,
+    week_start date DEFAULT (date_trunc('week'::text, (now() AT TIME ZONE 'Asia/Kolkata'::text)))::date NOT NULL,
+    week_cancels integer DEFAULT 0 NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT wallets_coin_balance_check CHECK ((coin_balance >= 0)),
+    CONSTRAINT wallets_pending_fine_paise_check CHECK ((pending_fine_paise >= 0))
+);
+
+ALTER TABLE ONLY public.wallets FORCE ROW LEVEL SECURITY;
+
+
+--
+-- Name: wishlist; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.wishlist (
+    user_id uuid DEFAULT public.uid() NOT NULL,
+    product_id uuid NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+ALTER TABLE ONLY public.wishlist FORCE ROW LEVEL SECURITY;
+
+
+--
+-- Name: addresses addresses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.addresses
+    ADD CONSTRAINT addresses_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: agent_locations agent_locations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.agent_locations
+    ADD CONSTRAINT agent_locations_pkey PRIMARY KEY (order_id);
+
+
+--
+-- Name: audit_logs audit_logs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.audit_logs
+    ADD CONSTRAINT audit_logs_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: banners banners_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.banners
+    ADD CONSTRAINT banners_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: campaigns campaigns_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.campaigns
+    ADD CONSTRAINT campaigns_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: cart_items cart_items_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.cart_items
+    ADD CONSTRAINT cart_items_pkey PRIMARY KEY (user_id, product_id);
+
+
+--
+-- Name: categories categories_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.categories
+    ADD CONSTRAINT categories_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: categories categories_slug_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.categories
+    ADD CONSTRAINT categories_slug_key UNIQUE (slug);
+
+
+--
+-- Name: coin_ledger coin_ledger_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.coin_ledger
+    ADD CONSTRAINT coin_ledger_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: coupon_uses coupon_uses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.coupon_uses
+    ADD CONSTRAINT coupon_uses_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: coupons coupons_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.coupons
+    ADD CONSTRAINT coupons_pkey PRIMARY KEY (code);
+
+
+--
+-- Name: home_sections home_sections_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.home_sections
+    ADD CONSTRAINT home_sections_pkey PRIMARY KEY (key);
+
+
+--
+-- Name: messaging_settings messaging_settings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.messaging_settings
+    ADD CONSTRAINT messaging_settings_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: notifications notifications_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.notifications
+    ADD CONSTRAINT notifications_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: order_events order_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.order_events
+    ADD CONSTRAINT order_events_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: order_items order_items_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.order_items
+    ADD CONSTRAINT order_items_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: order_otps order_otps_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.order_otps
+    ADD CONSTRAINT order_otps_pkey PRIMARY KEY (order_id);
+
+
+--
+-- Name: orders orders_idempotency_key_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.orders
+    ADD CONSTRAINT orders_idempotency_key_key UNIQUE (idempotency_key);
+
+
+--
+-- Name: orders orders_order_no_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.orders
+    ADD CONSTRAINT orders_order_no_key UNIQUE (order_no);
+
+
+--
+-- Name: orders orders_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.orders
+    ADD CONSTRAINT orders_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: outbox outbox_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.outbox
+    ADD CONSTRAINT outbox_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: payments payments_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.payments
+    ADD CONSTRAINT payments_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: product_groups product_groups_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.product_groups
+    ADD CONSTRAINT product_groups_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: product_groups product_groups_slug_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.product_groups
+    ADD CONSTRAINT product_groups_slug_key UNIQUE (slug);
+
+
+--
+-- Name: products products_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.products
+    ADD CONSTRAINT products_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: products products_sku_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.products
+    ADD CONSTRAINT products_sku_key UNIQUE (sku);
+
+
+--
+-- Name: profiles profiles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.profiles
+    ADD CONSTRAINT profiles_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: profiles profiles_referral_code_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.profiles
+    ADD CONSTRAINT profiles_referral_code_key UNIQUE (referral_code);
+
+
+--
+-- Name: push_subscriptions push_subscriptions_endpoint_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.push_subscriptions
+    ADD CONSTRAINT push_subscriptions_endpoint_key UNIQUE (endpoint);
+
+
+--
+-- Name: push_subscriptions push_subscriptions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.push_subscriptions
+    ADD CONSTRAINT push_subscriptions_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: rate_limits rate_limits_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.rate_limits
+    ADD CONSTRAINT rate_limits_pkey PRIMARY KEY (user_id, bucket, window_start);
+
+
+--
+-- Name: recently_viewed recently_viewed_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.recently_viewed
+    ADD CONSTRAINT recently_viewed_pkey PRIMARY KEY (user_id, group_id);
+
+
+--
+-- Name: referrals referrals_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.referrals
+    ADD CONSTRAINT referrals_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: referrals referrals_referee_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.referrals
+    ADD CONSTRAINT referrals_referee_id_key UNIQUE (referee_id);
+
+
+--
+-- Name: returns returns_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.returns
+    ADD CONSTRAINT returns_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: reviews reviews_order_item_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.reviews
+    ADD CONSTRAINT reviews_order_item_id_key UNIQUE (order_item_id);
+
+
+--
+-- Name: reviews reviews_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.reviews
+    ADD CONSTRAINT reviews_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: search_logs search_logs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.search_logs
+    ADD CONSTRAINT search_logs_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: settings settings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.settings
+    ADD CONSTRAINT settings_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: slot_bookings slot_bookings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.slot_bookings
+    ADD CONSTRAINT slot_bookings_pkey PRIMARY KEY (slot_date, window_start);
+
+
+--
+-- Name: wallets wallets_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.wallets
+    ADD CONSTRAINT wallets_pkey PRIMARY KEY (user_id);
+
+
+--
+-- Name: wishlist wishlist_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.wishlist
+    ADD CONSTRAINT wishlist_pkey PRIMARY KEY (user_id, product_id);
+
+
+--
+-- Name: addresses_user_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX addresses_user_id_idx ON public.addresses USING btree (user_id);
+
+
+--
+-- Name: coin_ledger_expires_at_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX coin_ledger_expires_at_idx ON public.coin_ledger USING btree (expires_at) WHERE (remaining > 0);
+
+
+--
+-- Name: coin_ledger_open_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX coin_ledger_open_idx ON public.coin_ledger USING btree (expires_at) WHERE (remaining > 0);
+
+
+--
+-- Name: coin_ledger_user_id_created_at_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX coin_ledger_user_id_created_at_idx ON public.coin_ledger USING btree (user_id, created_at DESC);
+
+
+--
+-- Name: coupon_uses_code_user_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX coupon_uses_code_user_id_idx ON public.coupon_uses USING btree (code, user_id);
+
+
+--
+-- Name: notifications_user_id_created_at_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX notifications_user_id_created_at_idx ON public.notifications USING btree (user_id, created_at DESC);
+
+
+--
+-- Name: order_events_order_id_created_at_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX order_events_order_id_created_at_idx ON public.order_events USING btree (order_id, created_at);
+
+
+--
+-- Name: order_items_order_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX order_items_order_id_idx ON public.order_items USING btree (order_id);
+
+
+--
+-- Name: orders_agent_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX orders_agent_id_idx ON public.orders USING btree (agent_id) WHERE (agent_id IS NOT NULL);
+
+
+--
+-- Name: orders_status_created; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX orders_status_created ON public.orders USING btree (status, created_at);
+
+
+--
+-- Name: orders_status_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX orders_status_idx ON public.orders USING btree (status);
+
+
+--
+-- Name: orders_user_id_created_at_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX orders_user_id_created_at_idx ON public.orders USING btree (user_id, created_at DESC);
+
+
+--
+-- Name: outbox_campaign; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX outbox_campaign ON public.outbox USING btree (campaign_id, status);
+
+
+--
+-- Name: outbox_queue; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX outbox_queue ON public.outbox USING btree (channel, id) WHERE (status = 'queued'::text);
+
+
+--
+-- Name: outbox_sending; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX outbox_sending ON public.outbox USING btree (id) WHERE (status = 'sending'::text);
+
+
+--
+-- Name: payments_method_day; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX payments_method_day ON public.payments USING btree (method, created_at);
+
+
+--
+-- Name: payments_utr_unique; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX payments_utr_unique ON public.payments USING btree (utr) WHERE (utr IS NOT NULL);
+
+
+--
+-- Name: product_groups_category_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX product_groups_category_id_idx ON public.product_groups USING btree (category_id);
+
+
+--
+-- Name: product_groups_trgm; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX product_groups_trgm ON public.product_groups USING gin (search_text extensions.gin_trgm_ops);
+
+
+--
+-- Name: products_featured_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX products_featured_idx ON public.products USING btree (featured) WHERE featured;
+
+
+--
+-- Name: products_group_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX products_group_id_idx ON public.products USING btree (group_id);
+
+
+--
+-- Name: profiles_role_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX profiles_role_idx ON public.profiles USING btree (role);
+
+
+--
+-- Name: returns_order_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX returns_order_idx ON public.returns USING btree (order_id);
+
+
+--
+-- Name: returns_status_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX returns_status_idx ON public.returns USING btree (status);
+
+
+--
+-- Name: returns_user_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX returns_user_id_idx ON public.returns USING btree (user_id);
+
+
+--
+-- Name: reviews_group_id_created_at_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX reviews_group_id_created_at_idx ON public.reviews USING btree (group_id, created_at DESC);
+
+
+--
+-- Name: search_logs_created_at_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX search_logs_created_at_idx ON public.search_logs USING btree (created_at);
+
+
+--
+-- Name: search_logs_user_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX search_logs_user_idx ON public.search_logs USING btree (user_id, created_at DESC) WHERE (user_id IS NOT NULL);
+
+
+--
+-- Name: notifications notifications_forward; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER notifications_forward AFTER INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION public._forward_notification();
+
+
+--
+-- Name: order_items order_items_clear_cart; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER order_items_clear_cart AFTER INSERT ON public.order_items FOR EACH ROW EXECUTE FUNCTION public._order_item_clears_cart();
+
+
+--
+-- Name: orders orders_guard_scheduled; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER orders_guard_scheduled BEFORE INSERT ON public.orders FOR EACH ROW EXECUTE FUNCTION public._guard_scheduled();
+
+
+--
+-- Name: orders orders_out_for_delivery; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER orders_out_for_delivery BEFORE UPDATE OF status ON public.orders FOR EACH ROW WHEN (((new.status = 'out_for_delivery'::public.order_status) AND (old.status IS DISTINCT FROM 'out_for_delivery'::public.order_status))) EXECUTE FUNCTION public._on_out_for_delivery();
+
+
+--
+-- Name: orders orders_updated; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER orders_updated BEFORE UPDATE ON public.orders FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+
+--
+-- Name: product_groups product_groups_search; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER product_groups_search BEFORE INSERT OR UPDATE OF name, brand, tags, category_id ON public.product_groups FOR EACH ROW EXECUTE FUNCTION public.product_groups_search_text();
+
+
+--
+-- Name: product_groups product_groups_updated; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER product_groups_updated BEFORE UPDATE ON public.product_groups FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+
+--
+-- Name: products products_updated; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER products_updated BEFORE UPDATE ON public.products FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+
+--
+-- Name: profiles profiles_protect; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER profiles_protect BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION public.protect_owner_admin();
+
+
+--
+-- Name: profiles profiles_updated; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER profiles_updated BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+
+--
+-- Name: returns returns_updated; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER returns_updated BEFORE UPDATE ON public.returns FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+
+--
+-- Name: settings settings_updated; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER settings_updated BEFORE UPDATE ON public.settings FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+
+--
+-- Name: addresses addresses_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.addresses
+    ADD CONSTRAINT addresses_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+
+
+--
+-- Name: agent_locations agent_locations_agent_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.agent_locations
+    ADD CONSTRAINT agent_locations_agent_id_fkey FOREIGN KEY (agent_id) REFERENCES public.profiles(id);
+
+
+--
+-- Name: agent_locations agent_locations_order_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.agent_locations
+    ADD CONSTRAINT agent_locations_order_id_fkey FOREIGN KEY (order_id) REFERENCES public.orders(id) ON DELETE CASCADE;
+
+
+--
+-- Name: audit_logs audit_logs_actor_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.audit_logs
+    ADD CONSTRAINT audit_logs_actor_id_fkey FOREIGN KEY (actor_id) REFERENCES public.profiles(id);
+
+
+--
+-- Name: campaigns campaigns_coupon_code_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.campaigns
+    ADD CONSTRAINT campaigns_coupon_code_fkey FOREIGN KEY (coupon_code) REFERENCES public.coupons(code) ON DELETE SET NULL;
+
+
+--
+-- Name: campaigns campaigns_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.campaigns
+    ADD CONSTRAINT campaigns_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.profiles(id);
+
+
+--
+-- Name: cart_items cart_items_product_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.cart_items
+    ADD CONSTRAINT cart_items_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id) ON DELETE CASCADE;
+
+
+--
+-- Name: cart_items cart_items_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.cart_items
+    ADD CONSTRAINT cart_items_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+
+
+--
+-- Name: categories categories_parent_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.categories
+    ADD CONSTRAINT categories_parent_id_fkey FOREIGN KEY (parent_id) REFERENCES public.categories(id) ON DELETE SET NULL;
+
+
+--
+-- Name: coin_ledger coin_ledger_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.coin_ledger
+    ADD CONSTRAINT coin_ledger_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+
+
+--
+-- Name: coupon_uses coupon_uses_code_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.coupon_uses
+    ADD CONSTRAINT coupon_uses_code_fkey FOREIGN KEY (code) REFERENCES public.coupons(code);
+
+
+--
+-- Name: coupon_uses coupon_uses_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.coupon_uses
+    ADD CONSTRAINT coupon_uses_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+
+
+--
+-- Name: notifications notifications_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.notifications
+    ADD CONSTRAINT notifications_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+
+
+--
+-- Name: order_events order_events_actor_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.order_events
+    ADD CONSTRAINT order_events_actor_id_fkey FOREIGN KEY (actor_id) REFERENCES public.profiles(id);
+
+
+--
+-- Name: order_events order_events_order_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.order_events
+    ADD CONSTRAINT order_events_order_id_fkey FOREIGN KEY (order_id) REFERENCES public.orders(id) ON DELETE CASCADE;
+
+
+--
+-- Name: order_items order_items_order_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.order_items
+    ADD CONSTRAINT order_items_order_id_fkey FOREIGN KEY (order_id) REFERENCES public.orders(id) ON DELETE CASCADE;
+
+
+--
+-- Name: order_items order_items_product_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.order_items
+    ADD CONSTRAINT order_items_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id);
+
+
+--
+-- Name: order_otps order_otps_order_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.order_otps
+    ADD CONSTRAINT order_otps_order_id_fkey FOREIGN KEY (order_id) REFERENCES public.orders(id) ON DELETE CASCADE;
+
+
+--
+-- Name: orders orders_agent_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.orders
+    ADD CONSTRAINT orders_agent_id_fkey FOREIGN KEY (agent_id) REFERENCES public.profiles(id);
+
+
+--
+-- Name: orders orders_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.orders
+    ADD CONSTRAINT orders_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id);
+
+
+--
+-- Name: outbox outbox_campaign_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.outbox
+    ADD CONSTRAINT outbox_campaign_id_fkey FOREIGN KEY (campaign_id) REFERENCES public.campaigns(id) ON DELETE CASCADE;
+
+
+--
+-- Name: outbox outbox_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.outbox
+    ADD CONSTRAINT outbox_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+
+
+--
+-- Name: payments payments_order_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.payments
+    ADD CONSTRAINT payments_order_id_fkey FOREIGN KEY (order_id) REFERENCES public.orders(id) ON DELETE CASCADE;
+
+
+--
+-- Name: payments payments_reconciled_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.payments
+    ADD CONSTRAINT payments_reconciled_by_fkey FOREIGN KEY (reconciled_by) REFERENCES public.profiles(id);
+
+
+--
+-- Name: product_groups product_groups_category_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.product_groups
+    ADD CONSTRAINT product_groups_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.categories(id);
+
+
+--
+-- Name: products products_group_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.products
+    ADD CONSTRAINT products_group_id_fkey FOREIGN KEY (group_id) REFERENCES public.product_groups(id) ON DELETE CASCADE;
+
+
+--
+-- Name: profiles profiles_referred_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.profiles
+    ADD CONSTRAINT profiles_referred_by_fkey FOREIGN KEY (referred_by) REFERENCES public.profiles(id) ON DELETE SET NULL;
+
+
+--
+-- Name: push_subscriptions push_subscriptions_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.push_subscriptions
+    ADD CONSTRAINT push_subscriptions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+
+
+--
+-- Name: recently_viewed recently_viewed_group_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.recently_viewed
+    ADD CONSTRAINT recently_viewed_group_id_fkey FOREIGN KEY (group_id) REFERENCES public.product_groups(id) ON DELETE CASCADE;
+
+
+--
+-- Name: recently_viewed recently_viewed_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.recently_viewed
+    ADD CONSTRAINT recently_viewed_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+
+
+--
+-- Name: referrals referrals_referee_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.referrals
+    ADD CONSTRAINT referrals_referee_id_fkey FOREIGN KEY (referee_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+
+
+--
+-- Name: referrals referrals_referrer_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.referrals
+    ADD CONSTRAINT referrals_referrer_id_fkey FOREIGN KEY (referrer_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+
+
+--
+-- Name: returns returns_agent_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.returns
+    ADD CONSTRAINT returns_agent_id_fkey FOREIGN KEY (agent_id) REFERENCES public.profiles(id);
+
+
+--
+-- Name: returns returns_order_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.returns
+    ADD CONSTRAINT returns_order_id_fkey FOREIGN KEY (order_id) REFERENCES public.orders(id);
+
+
+--
+-- Name: returns returns_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.returns
+    ADD CONSTRAINT returns_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id);
+
+
+--
+-- Name: reviews reviews_group_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.reviews
+    ADD CONSTRAINT reviews_group_id_fkey FOREIGN KEY (group_id) REFERENCES public.product_groups(id) ON DELETE CASCADE;
+
+
+--
+-- Name: reviews reviews_order_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.reviews
+    ADD CONSTRAINT reviews_order_item_id_fkey FOREIGN KEY (order_item_id) REFERENCES public.order_items(id);
+
+
+--
+-- Name: reviews reviews_product_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.reviews
+    ADD CONSTRAINT reviews_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id) ON DELETE CASCADE;
+
+
+--
+-- Name: reviews reviews_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.reviews
+    ADD CONSTRAINT reviews_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+
+
+--
+-- Name: search_logs search_logs_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.search_logs
+    ADD CONSTRAINT search_logs_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE SET NULL;
+
+
+--
+-- Name: wallets wallets_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.wallets
+    ADD CONSTRAINT wallets_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+
+
+--
+-- Name: wishlist wishlist_product_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.wishlist
+    ADD CONSTRAINT wishlist_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id) ON DELETE CASCADE;
+
+
+--
+-- Name: wishlist wishlist_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.wishlist
+    ADD CONSTRAINT wishlist_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+
+
+--
+-- Name: addresses; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.addresses ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: addresses addresses_own; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY addresses_own ON public.addresses TO authenticated USING ((user_id = public.uid())) WITH CHECK (((user_id = public.uid()) AND public.is_active_user()));
+
+
+--
+-- Name: agent_locations agent_loc_insert; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY agent_loc_insert ON public.agent_locations FOR INSERT TO authenticated WITH CHECK (((agent_id = public.uid()) AND public.is_agent() AND (EXISTS ( SELECT 1
+   FROM public.orders o
+  WHERE ((o.id = agent_locations.order_id) AND (o.agent_id = public.uid()) AND (o.status = ANY (ARRAY['agent_accepted'::public.order_status, 'out_for_delivery'::public.order_status])))))));
+
+
+--
+-- Name: agent_locations agent_loc_read; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY agent_loc_read ON public.agent_locations FOR SELECT TO authenticated USING ((public.is_admin() OR (public.can_see_order(order_id) AND (EXISTS ( SELECT 1
+   FROM public.orders o
+  WHERE ((o.id = agent_locations.order_id) AND (o.status = ANY (ARRAY['agent_accepted'::public.order_status, 'out_for_delivery'::public.order_status]))))))));
+
+
+--
+-- Name: agent_locations agent_loc_update; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY agent_loc_update ON public.agent_locations FOR UPDATE TO authenticated USING ((agent_id = public.uid())) WITH CHECK (((agent_id = public.uid()) AND public.is_agent() AND (EXISTS ( SELECT 1
+   FROM public.orders o
+  WHERE ((o.id = agent_locations.order_id) AND (o.agent_id = public.uid()) AND (o.status = ANY (ARRAY['agent_accepted'::public.order_status, 'out_for_delivery'::public.order_status])))))));
+
+
+--
+-- Name: agent_locations; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.agent_locations ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: audit_logs audit_admin; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY audit_admin ON public.audit_logs FOR SELECT TO authenticated USING (public.is_admin());
+
+
+--
+-- Name: audit_logs; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: banners; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.banners ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: banners banners_admin; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY banners_admin ON public.banners TO authenticated USING (public.is_admin()) WITH CHECK (public.is_admin());
+
+
+--
+-- Name: banners banners_read; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY banners_read ON public.banners FOR SELECT TO anon, authenticated USING (((active AND ((start_at IS NULL) OR (start_at <= now())) AND ((end_at IS NULL) OR (end_at > now()))) OR public.is_admin()));
+
+
+--
+-- Name: campaigns; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.campaigns ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: campaigns campaigns_admin; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY campaigns_admin ON public.campaigns FOR SELECT USING (public.is_admin());
+
+
+--
+-- Name: cart_items; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.cart_items ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: cart_items cart_own; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY cart_own ON public.cart_items TO authenticated USING ((user_id = public.uid())) WITH CHECK (((user_id = public.uid()) AND public.is_active_user()));
+
+
+--
+-- Name: categories; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: categories categories_admin; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY categories_admin ON public.categories TO authenticated USING (public.is_admin()) WITH CHECK (public.is_admin());
+
+
+--
+-- Name: categories categories_read; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY categories_read ON public.categories FOR SELECT TO anon, authenticated USING ((active OR public.is_admin()));
+
+
+--
+-- Name: coin_ledger; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.coin_ledger ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: coupon_uses; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.coupon_uses ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: coupon_uses coupon_uses_read; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY coupon_uses_read ON public.coupon_uses FOR SELECT TO authenticated USING (((user_id = public.uid()) OR public.is_admin()));
+
+
+--
+-- Name: coupons; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.coupons ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: coupons coupons_admin; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY coupons_admin ON public.coupons TO authenticated USING (public.is_admin()) WITH CHECK (public.is_admin());
+
+
+--
+-- Name: coupons coupons_read; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY coupons_read ON public.coupons FOR SELECT TO authenticated USING ((public.is_admin() OR (active AND (valid_from <= now()) AND ((valid_to IS NULL) OR (valid_to > now())) AND ((audience = 'all'::text) OR (public.uid() = ANY (audience_user_ids))))));
+
+
+--
+-- Name: product_groups groups_admin; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY groups_admin ON public.product_groups TO authenticated USING (public.is_admin()) WITH CHECK (public.is_admin());
+
+
+--
+-- Name: product_groups groups_read; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY groups_read ON public.product_groups FOR SELECT TO anon, authenticated USING (true);
+
+
+--
+-- Name: home_sections; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.home_sections ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: coin_ledger ledger_read; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY ledger_read ON public.coin_ledger FOR SELECT TO authenticated USING (((user_id = public.uid()) OR public.is_admin()));
+
+
+--
+-- Name: messaging_settings; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.messaging_settings ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: messaging_settings messaging_settings_admin; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY messaging_settings_admin ON public.messaging_settings USING (public.is_admin()) WITH CHECK (public.is_admin());
+
+
+--
+-- Name: notifications; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: notifications notifications_mark_read; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY notifications_mark_read ON public.notifications FOR UPDATE TO authenticated USING ((user_id = public.uid())) WITH CHECK ((user_id = public.uid()));
+
+
+--
+-- Name: notifications notifications_own; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY notifications_own ON public.notifications FOR SELECT TO authenticated USING ((user_id = public.uid()));
+
+
+--
+-- Name: order_events; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.order_events ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: order_events order_events_read; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY order_events_read ON public.order_events FOR SELECT TO authenticated USING (public.can_see_order(order_id));
+
+
+--
+-- Name: order_items; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.order_items ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: order_items order_items_read; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY order_items_read ON public.order_items FOR SELECT TO authenticated USING (public.can_see_order(order_id));
+
+
+--
+-- Name: order_otps; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.order_otps ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: orders; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: orders orders_read; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY orders_read ON public.orders FOR SELECT TO authenticated USING (((user_id = public.uid()) OR (agent_id = public.uid()) OR public.is_admin()));
+
+
+--
+-- Name: outbox; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.outbox ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: outbox outbox_admin; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY outbox_admin ON public.outbox FOR SELECT USING (public.is_admin());
+
+
+--
+-- Name: payments; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.payments ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: payments payments_read; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY payments_read ON public.payments FOR SELECT TO authenticated USING (public.can_see_order(order_id));
+
+
+--
+-- Name: product_groups; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.product_groups ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: products; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: products products_admin; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY products_admin ON public.products TO authenticated USING (public.is_admin()) WITH CHECK (public.is_admin());
+
+
+--
+-- Name: products products_read; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY products_read ON public.products FOR SELECT TO anon, authenticated USING ((active OR public.is_admin()));
+
+
+--
+-- Name: profiles; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: profiles profiles_select; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY profiles_select ON public.profiles FOR SELECT TO authenticated USING (((id = public.uid()) OR public.is_admin()));
+
+
+--
+-- Name: profiles profiles_update_own; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY profiles_update_own ON public.profiles FOR UPDATE TO authenticated USING (((id = public.uid()) AND public.is_active_user())) WITH CHECK ((id = public.uid()));
+
+
+--
+-- Name: push_subscriptions push_own; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY push_own ON public.push_subscriptions TO authenticated USING ((user_id = public.uid())) WITH CHECK ((user_id = public.uid()));
+
+
+--
+-- Name: push_subscriptions; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.push_subscriptions ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: rate_limits; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.rate_limits ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: recently_viewed recent_own; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY recent_own ON public.recently_viewed TO authenticated USING ((user_id = public.uid())) WITH CHECK ((user_id = public.uid()));
+
+
+--
+-- Name: recently_viewed; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.recently_viewed ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: referrals; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.referrals ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: referrals referrals_read; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY referrals_read ON public.referrals FOR SELECT TO authenticated USING (((referrer_id = public.uid()) OR (referee_id = public.uid()) OR public.is_admin()));
+
+
+--
+-- Name: returns; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.returns ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: returns returns_read; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY returns_read ON public.returns FOR SELECT TO authenticated USING (((user_id = public.uid()) OR (agent_id = public.uid()) OR public.is_admin()));
+
+
+--
+-- Name: reviews; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.reviews ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: reviews reviews_read; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY reviews_read ON public.reviews FOR SELECT TO anon, authenticated USING (((NOT hidden) OR (user_id = public.uid()) OR public.is_admin()));
+
+
+--
+-- Name: search_logs; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.search_logs ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: search_logs search_logs_admin; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY search_logs_admin ON public.search_logs FOR SELECT TO authenticated USING (public.is_admin());
+
+
+--
+-- Name: home_sections sections_admin; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY sections_admin ON public.home_sections TO authenticated USING (public.is_admin()) WITH CHECK (public.is_admin());
+
+
+--
+-- Name: home_sections sections_read; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY sections_read ON public.home_sections FOR SELECT TO anon, authenticated USING (true);
+
+
+--
+-- Name: settings; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.settings ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: settings settings_admin; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY settings_admin ON public.settings FOR UPDATE TO authenticated USING (public.is_admin()) WITH CHECK (public.is_admin());
+
+
+--
+-- Name: settings settings_read; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY settings_read ON public.settings FOR SELECT TO anon, authenticated USING (true);
+
+
+--
+-- Name: slot_bookings; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.slot_bookings ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: slot_bookings slots_read; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY slots_read ON public.slot_bookings FOR SELECT TO anon, authenticated USING (true);
+
+
+--
+-- Name: wallets; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.wallets ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: wallets wallets_read; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY wallets_read ON public.wallets FOR SELECT TO authenticated USING (((user_id = public.uid()) OR public.is_admin()));
+
+
+--
+-- Name: wishlist; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.wishlist ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: wishlist wishlist_own; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY wishlist_own ON public.wishlist TO authenticated USING ((user_id = public.uid())) WITH CHECK (((user_id = public.uid()) AND public.is_active_user()));
+
+
+--
+-- Name: SCHEMA public; Type: ACL; Schema: -; Owner: -
+--
+
+GRANT USAGE ON SCHEMA public TO anon;
+GRANT USAGE ON SCHEMA public TO authenticated;
+GRANT USAGE ON SCHEMA public TO service_role;
+
+
+--
+-- Name: SEQUENCE order_no_seq; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON SEQUENCE public.order_no_seq TO service_role;
+
+
+--
+-- Name: TABLE orders; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE ON TABLE public.orders TO anon;
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE ON TABLE public.orders TO authenticated;
+GRANT ALL ON TABLE public.orders TO service_role;
+
+
+--
+-- Name: FUNCTION _agent_order(p_order uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public._agent_order(p_order uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public._agent_order(p_order uuid) TO service_role;
+
+
+--
+-- Name: FUNCTION _audience(p_audience text, p_days integer); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public._audience(p_audience text, p_days integer) FROM PUBLIC;
+GRANT ALL ON FUNCTION public._audience(p_audience text, p_days integer) TO service_role;
+
+
+--
+-- Name: FUNCTION _cancel_order(p_order uuid, p_by text, p_reason text, p_customer boolean, p_refund_upi text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public._cancel_order(p_order uuid, p_by text, p_reason text, p_customer boolean, p_refund_upi text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public._cancel_order(p_order uuid, p_by text, p_reason text, p_customer boolean, p_refund_upi text) TO service_role;
+
+
+--
+-- Name: FUNCTION _cleanup_ordered_carts(); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public._cleanup_ordered_carts() FROM PUBLIC;
+GRANT ALL ON FUNCTION public._cleanup_ordered_carts() TO service_role;
+
+
+--
+-- Name: TABLE addresses; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.addresses TO anon;
+GRANT ALL ON TABLE public.addresses TO authenticated;
+GRANT ALL ON TABLE public.addresses TO service_role;
+
+
+--
+-- Name: FUNCTION _distance_sig_ok(a public.addresses); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public._distance_sig_ok(a public.addresses) FROM PUBLIC;
+GRANT ALL ON FUNCTION public._distance_sig_ok(a public.addresses) TO service_role;
+
+
+--
+-- Name: FUNCTION _email_delivery_code(p_order uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public._email_delivery_code(p_order uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public._email_delivery_code(p_order uuid) TO service_role;
+
+
+--
+-- Name: FUNCTION _email_wrap(p_title text, p_body text, p_link text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public._email_wrap(p_title text, p_body text, p_link text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public._email_wrap(p_title text, p_body text, p_link text) TO service_role;
+
+
+--
+-- Name: FUNCTION _expire_coins(); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public._expire_coins() FROM PUBLIC;
+GRANT ALL ON FUNCTION public._expire_coins() TO service_role;
+
+
+--
+-- Name: FUNCTION _expire_pickups(); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public._expire_pickups() FROM PUBLIC;
+GRANT ALL ON FUNCTION public._expire_pickups() TO service_role;
+
+
+--
+-- Name: FUNCTION _expire_unpaid_upi(); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public._expire_unpaid_upi() FROM PUBLIC;
+GRANT ALL ON FUNCTION public._expire_unpaid_upi() TO service_role;
+
+
+--
+-- Name: FUNCTION _forward_notification(); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public._forward_notification() FROM PUBLIC;
+GRANT ALL ON FUNCTION public._forward_notification() TO service_role;
+
+
+--
+-- Name: FUNCTION _guard_scheduled(); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public._guard_scheduled() FROM PUBLIC;
+GRANT ALL ON FUNCTION public._guard_scheduled() TO service_role;
+
+
+--
+-- Name: FUNCTION _html(t text); Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON FUNCTION public._html(t text) TO anon;
+GRANT ALL ON FUNCTION public._html(t text) TO authenticated;
+GRANT ALL ON FUNCTION public._html(t text) TO service_role;
+
+
+--
+-- Name: FUNCTION _inr(p integer); Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON FUNCTION public._inr(p integer) TO anon;
+GRANT ALL ON FUNCTION public._inr(p integer) TO authenticated;
+GRANT ALL ON FUNCTION public._inr(p integer) TO service_role;
+
+
+--
+-- Name: FUNCTION _ist_now(); Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON FUNCTION public._ist_now() TO anon;
+GRANT ALL ON FUNCTION public._ist_now() TO authenticated;
+GRANT ALL ON FUNCTION public._ist_now() TO service_role;
+
+
+--
+-- Name: TABLE returns; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE ON TABLE public.returns TO anon;
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE ON TABLE public.returns TO authenticated;
+GRANT ALL ON TABLE public.returns TO service_role;
+
+
+--
+-- Name: FUNCTION _lock_return(p_return uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public._lock_return(p_return uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public._lock_return(p_return uuid) TO service_role;
+
+
+--
+-- Name: FUNCTION _on_out_for_delivery(); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public._on_out_for_delivery() FROM PUBLIC;
+GRANT ALL ON FUNCTION public._on_out_for_delivery() TO service_role;
+
+
+--
+-- Name: FUNCTION _order_item_clears_cart(); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public._order_item_clears_cart() FROM PUBLIC;
+GRANT ALL ON FUNCTION public._order_item_clears_cart() TO service_role;
+
+
+--
+-- Name: FUNCTION _paid_share(o public.orders); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public._paid_share(o public.orders) FROM PUBLIC;
+GRANT ALL ON FUNCTION public._paid_share(o public.orders) TO service_role;
+
+
+--
+-- Name: FUNCTION _price_order(p_user uuid, p jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public._price_order(p_user uuid, p jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public._price_order(p_user uuid, p jsonb) TO service_role;
+
+
+--
+-- Name: FUNCTION _refresh_rating(p_group uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public._refresh_rating(p_group uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public._refresh_rating(p_group uuid) TO service_role;
+
+
+--
+-- Name: FUNCTION _remind_expiring_coins(); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public._remind_expiring_coins() FROM PUBLIC;
+GRANT ALL ON FUNCTION public._remind_expiring_coins() TO service_role;
+
+
+--
+-- Name: FUNCTION _send_email(p_to text, p_name text, p_subject text, p_html text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public._send_email(p_to text, p_name text, p_subject text, p_html text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public._send_email(p_to text, p_name text, p_subject text, p_html text) TO service_role;
+
+
+--
+-- Name: FUNCTION _settle_orders(); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public._settle_orders() FROM PUBLIC;
+GRANT ALL ON FUNCTION public._settle_orders() TO service_role;
+
+
+--
+-- Name: FUNCTION _status_message(st public.order_status, o public.orders); Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON FUNCTION public._status_message(st public.order_status, o public.orders) TO anon;
+GRANT ALL ON FUNCTION public._status_message(st public.order_status, o public.orders) TO authenticated;
+GRANT ALL ON FUNCTION public._status_message(st public.order_status, o public.orders) TO service_role;
+
+
+--
+-- Name: FUNCTION _wa_chat(p_phone text); Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON FUNCTION public._wa_chat(p_phone text) TO anon;
+GRANT ALL ON FUNCTION public._wa_chat(p_phone text) TO authenticated;
+GRANT ALL ON FUNCTION public._wa_chat(p_phone text) TO service_role;
+
+
+--
+-- Name: FUNCTION admin_assign_agent(p_order uuid, p_agent uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.admin_assign_agent(p_order uuid, p_agent uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.admin_assign_agent(p_order uuid, p_agent uuid) TO authenticated;
+GRANT ALL ON FUNCTION public.admin_assign_agent(p_order uuid, p_agent uuid) TO service_role;
+
+
+--
+-- Name: FUNCTION admin_assign_return_agent(p_return uuid, p_agent uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.admin_assign_return_agent(p_return uuid, p_agent uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.admin_assign_return_agent(p_return uuid, p_agent uuid) TO authenticated;
+GRANT ALL ON FUNCTION public.admin_assign_return_agent(p_return uuid, p_agent uuid) TO service_role;
+
+
+--
+-- Name: FUNCTION admin_audience_count(p_audience text, p_days integer); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.admin_audience_count(p_audience text, p_days integer) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.admin_audience_count(p_audience text, p_days integer) TO authenticated;
+GRANT ALL ON FUNCTION public.admin_audience_count(p_audience text, p_days integer) TO service_role;
+
+
+--
+-- Name: FUNCTION admin_hide_review(p_review uuid, p_hidden boolean); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.admin_hide_review(p_review uuid, p_hidden boolean) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.admin_hide_review(p_review uuid, p_hidden boolean) TO authenticated;
+GRANT ALL ON FUNCTION public.admin_hide_review(p_review uuid, p_hidden boolean) TO service_role;
+
+
+--
+-- Name: FUNCTION admin_mark_paid(p_order uuid, p_utr text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.admin_mark_paid(p_order uuid, p_utr text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.admin_mark_paid(p_order uuid, p_utr text) TO authenticated;
+GRANT ALL ON FUNCTION public.admin_mark_paid(p_order uuid, p_utr text) TO service_role;
+
+
+--
+-- Name: FUNCTION admin_mark_refund_paid(p_order uuid, p_proof_path text, p_utr text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.admin_mark_refund_paid(p_order uuid, p_proof_path text, p_utr text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.admin_mark_refund_paid(p_order uuid, p_proof_path text, p_utr text) TO authenticated;
+GRANT ALL ON FUNCTION public.admin_mark_refund_paid(p_order uuid, p_proof_path text, p_utr text) TO service_role;
+
+
+--
+-- Name: FUNCTION admin_messaging_status(); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.admin_messaging_status() FROM PUBLIC;
+GRANT ALL ON FUNCTION public.admin_messaging_status() TO authenticated;
+GRANT ALL ON FUNCTION public.admin_messaging_status() TO service_role;
+
+
+--
+-- Name: FUNCTION admin_receive_return(p_return uuid, p_restock boolean); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.admin_receive_return(p_return uuid, p_restock boolean) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.admin_receive_return(p_return uuid, p_restock boolean) TO authenticated;
+GRANT ALL ON FUNCTION public.admin_receive_return(p_return uuid, p_restock boolean) TO service_role;
+
+
+--
+-- Name: FUNCTION admin_refund_return(p_return uuid, p_proof_path text, p_utr text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.admin_refund_return(p_return uuid, p_proof_path text, p_utr text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.admin_refund_return(p_return uuid, p_proof_path text, p_utr text) TO authenticated;
+GRANT ALL ON FUNCTION public.admin_refund_return(p_return uuid, p_proof_path text, p_utr text) TO service_role;
+
+
+--
+-- Name: FUNCTION admin_report(p_from date, p_to date); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.admin_report(p_from date, p_to date) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.admin_report(p_from date, p_to date) TO authenticated;
+GRANT ALL ON FUNCTION public.admin_report(p_from date, p_to date) TO service_role;
+
+
+--
+-- Name: FUNCTION admin_review_return(p_return uuid, p_approve boolean, p_note text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.admin_review_return(p_return uuid, p_approve boolean, p_note text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.admin_review_return(p_return uuid, p_approve boolean, p_note text) TO authenticated;
+GRANT ALL ON FUNCTION public.admin_review_return(p_return uuid, p_approve boolean, p_note text) TO service_role;
+
+
+--
+-- Name: FUNCTION admin_send_campaign(p jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.admin_send_campaign(p jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.admin_send_campaign(p jsonb) TO authenticated;
+GRANT ALL ON FUNCTION public.admin_send_campaign(p jsonb) TO service_role;
+
+
+--
+-- Name: FUNCTION admin_set_order_status(p_order uuid, p_status public.order_status, p_note text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.admin_set_order_status(p_order uuid, p_status public.order_status, p_note text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.admin_set_order_status(p_order uuid, p_status public.order_status, p_note text) TO authenticated;
+GRANT ALL ON FUNCTION public.admin_set_order_status(p_order uuid, p_status public.order_status, p_note text) TO service_role;
+
+
+--
+-- Name: FUNCTION admin_set_role(p_user uuid, p_role public.user_role, p_reason text); Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON FUNCTION public.admin_set_role(p_user uuid, p_role public.user_role, p_reason text) TO anon;
+GRANT ALL ON FUNCTION public.admin_set_role(p_user uuid, p_role public.user_role, p_reason text) TO authenticated;
+GRANT ALL ON FUNCTION public.admin_set_role(p_user uuid, p_role public.user_role, p_reason text) TO service_role;
+
+
+--
+-- Name: FUNCTION admin_set_secret(p_name text, p_value text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.admin_set_secret(p_name text, p_value text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.admin_set_secret(p_name text, p_value text) TO authenticated;
+GRANT ALL ON FUNCTION public.admin_set_secret(p_name text, p_value text) TO service_role;
+
+
+--
+-- Name: FUNCTION admin_test_message(p_channel text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.admin_test_message(p_channel text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.admin_test_message(p_channel text) TO authenticated;
+GRANT ALL ON FUNCTION public.admin_test_message(p_channel text) TO service_role;
+
+
+--
+-- Name: FUNCTION agent_accept(p_order uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.agent_accept(p_order uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.agent_accept(p_order uuid) TO authenticated;
+GRANT ALL ON FUNCTION public.agent_accept(p_order uuid) TO service_role;
+
+
+--
+-- Name: FUNCTION agent_complete(p_order uuid, p_code text, p_cash_collected boolean); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.agent_complete(p_order uuid, p_code text, p_cash_collected boolean) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.agent_complete(p_order uuid, p_code text, p_cash_collected boolean) TO authenticated;
+GRANT ALL ON FUNCTION public.agent_complete(p_order uuid, p_code text, p_cash_collected boolean) TO service_role;
+
+
+--
+-- Name: FUNCTION agent_decline(p_order uuid, p_reason text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.agent_decline(p_order uuid, p_reason text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.agent_decline(p_order uuid, p_reason text) TO authenticated;
+GRANT ALL ON FUNCTION public.agent_decline(p_order uuid, p_reason text) TO service_role;
+
+
+--
+-- Name: FUNCTION agent_report_issue(p_order uuid, p_note text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.agent_report_issue(p_order uuid, p_note text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.agent_report_issue(p_order uuid, p_note text) TO authenticated;
+GRANT ALL ON FUNCTION public.agent_report_issue(p_order uuid, p_note text) TO service_role;
+
+
+--
+-- Name: FUNCTION agent_resend_code(p_order uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.agent_resend_code(p_order uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.agent_resend_code(p_order uuid) TO authenticated;
+GRANT ALL ON FUNCTION public.agent_resend_code(p_order uuid) TO service_role;
+
+
+--
+-- Name: FUNCTION agent_return_picked_up(p_return uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.agent_return_picked_up(p_return uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.agent_return_picked_up(p_return uuid) TO authenticated;
+GRANT ALL ON FUNCTION public.agent_return_picked_up(p_return uuid) TO service_role;
+
+
+--
+-- Name: FUNCTION agent_set_online(p_online boolean); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.agent_set_online(p_online boolean) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.agent_set_online(p_online boolean) TO authenticated;
+GRANT ALL ON FUNCTION public.agent_set_online(p_online boolean) TO service_role;
+
+
+--
+-- Name: FUNCTION agent_start_delivery(p_order uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.agent_start_delivery(p_order uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.agent_start_delivery(p_order uuid) TO authenticated;
+GRANT ALL ON FUNCTION public.agent_start_delivery(p_order uuid) TO service_role;
+
+
+--
+-- Name: FUNCTION apply_referral(p_code text); Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON FUNCTION public.apply_referral(p_code text) TO anon;
+GRANT ALL ON FUNCTION public.apply_referral(p_code text) TO authenticated;
+GRANT ALL ON FUNCTION public.apply_referral(p_code text) TO service_role;
+
+
+--
+-- Name: FUNCTION audit(p_action text, p_target text, p_before jsonb, p_after jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.audit(p_action text, p_target text, p_before jsonb, p_after jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.audit(p_action text, p_target text, p_before jsonb, p_after jsonb) TO service_role;
+
+
+--
+-- Name: FUNCTION can_see_order(o uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.can_see_order(o uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.can_see_order(o uuid) TO authenticated;
+GRANT ALL ON FUNCTION public.can_see_order(o uuid) TO service_role;
+
+
+--
+-- Name: FUNCTION cancel_order(p_order uuid, p_reason text, p_refund_upi text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.cancel_order(p_order uuid, p_reason text, p_refund_upi text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.cancel_order(p_order uuid, p_reason text, p_refund_upi text) TO authenticated;
+GRANT ALL ON FUNCTION public.cancel_order(p_order uuid, p_reason text, p_refund_upi text) TO service_role;
+
+
+--
+-- Name: FUNCTION cancel_preview(); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.cancel_preview() FROM PUBLIC;
+GRANT ALL ON FUNCTION public.cancel_preview() TO authenticated;
+GRANT ALL ON FUNCTION public.cancel_preview() TO service_role;
+
+
+--
+-- Name: FUNCTION checkout_slots(); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.checkout_slots() FROM PUBLIC;
+GRANT ALL ON FUNCTION public.checkout_slots() TO authenticated;
+GRANT ALL ON FUNCTION public.checkout_slots() TO service_role;
+
+
+--
+-- Name: FUNCTION finish_onboarding(p_skip_referral boolean, p_welcome_seen boolean); Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON FUNCTION public.finish_onboarding(p_skip_referral boolean, p_welcome_seen boolean) TO anon;
+GRANT ALL ON FUNCTION public.finish_onboarding(p_skip_referral boolean, p_welcome_seen boolean) TO authenticated;
+GRANT ALL ON FUNCTION public.finish_onboarding(p_skip_referral boolean, p_welcome_seen boolean) TO service_role;
+
+
+--
+-- Name: FUNCTION gen_referral_code(); Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON FUNCTION public.gen_referral_code() TO anon;
+GRANT ALL ON FUNCTION public.gen_referral_code() TO authenticated;
+GRANT ALL ON FUNCTION public.gen_referral_code() TO service_role;
+
+
+--
+-- Name: FUNCTION hit_rate_limit(p_bucket text, p_max integer, p_window_seconds integer); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.hit_rate_limit(p_bucket text, p_max integer, p_window_seconds integer) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.hit_rate_limit(p_bucket text, p_max integer, p_window_seconds integer) TO service_role;
+
+
+--
+-- Name: FUNCTION is_active_user(); Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON FUNCTION public.is_active_user() TO anon;
+GRANT ALL ON FUNCTION public.is_active_user() TO authenticated;
+GRANT ALL ON FUNCTION public.is_active_user() TO service_role;
+
+
+--
+-- Name: FUNCTION is_admin(); Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON FUNCTION public.is_admin() TO anon;
+GRANT ALL ON FUNCTION public.is_admin() TO authenticated;
+GRANT ALL ON FUNCTION public.is_admin() TO service_role;
+
+
+--
+-- Name: FUNCTION is_agent(); Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON FUNCTION public.is_agent() TO anon;
+GRANT ALL ON FUNCTION public.is_agent() TO authenticated;
+GRANT ALL ON FUNCTION public.is_agent() TO service_role;
+
+
+--
+-- Name: FUNCTION log_search(p_term text, p_results integer); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.log_search(p_term text, p_results integer) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.log_search(p_term text, p_results integer) TO authenticated;
+GRANT ALL ON FUNCTION public.log_search(p_term text, p_results integer) TO service_role;
+
+
+--
+-- Name: FUNCTION my_delivery_code(p_order uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.my_delivery_code(p_order uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.my_delivery_code(p_order uuid) TO authenticated;
+GRANT ALL ON FUNCTION public.my_delivery_code(p_order uuid) TO service_role;
+
+
+--
+-- Name: FUNCTION my_role(); Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON FUNCTION public.my_role() TO anon;
+GRANT ALL ON FUNCTION public.my_role() TO authenticated;
+GRANT ALL ON FUNCTION public.my_role() TO service_role;
+
+
+--
+-- Name: FUNCTION my_spending(); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.my_spending() FROM PUBLIC;
+GRANT ALL ON FUNCTION public.my_spending() TO authenticated;
+GRANT ALL ON FUNCTION public.my_spending() TO service_role;
+
+
+--
+-- Name: FUNCTION notify(p_user uuid, p_type text, p_title text, p_body text, p_link text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.notify(p_user uuid, p_type text, p_title text, p_body text, p_link text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.notify(p_user uuid, p_type text, p_title text, p_body text, p_link text) TO service_role;
+
+
+--
+-- Name: FUNCTION notify_admins(p_type text, p_title text, p_body text, p_link text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.notify_admins(p_type text, p_title text, p_body text, p_link text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.notify_admins(p_type text, p_title text, p_body text, p_link text) TO service_role;
+
+
+--
+-- Name: FUNCTION picked_for_you(p_limit integer); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.picked_for_you(p_limit integer) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.picked_for_you(p_limit integer) TO anon;
+GRANT ALL ON FUNCTION public.picked_for_you(p_limit integer) TO authenticated;
+GRANT ALL ON FUNCTION public.picked_for_you(p_limit integer) TO service_role;
+
+
+--
+-- Name: FUNCTION place_order(p jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.place_order(p jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.place_order(p jsonb) TO authenticated;
+GRANT ALL ON FUNCTION public.place_order(p jsonb) TO service_role;
+
+
+--
+-- Name: FUNCTION product_groups_search_text(); Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON FUNCTION public.product_groups_search_text() TO anon;
+GRANT ALL ON FUNCTION public.product_groups_search_text() TO authenticated;
+GRANT ALL ON FUNCTION public.product_groups_search_text() TO service_role;
+
+
+--
+-- Name: FUNCTION protect_owner_admin(); Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON FUNCTION public.protect_owner_admin() TO anon;
+GRANT ALL ON FUNCTION public.protect_owner_admin() TO authenticated;
+GRANT ALL ON FUNCTION public.protect_owner_admin() TO service_role;
+
+
+--
+-- Name: FUNCTION quote_order(p jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.quote_order(p jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.quote_order(p jsonb) TO authenticated;
+GRANT ALL ON FUNCTION public.quote_order(p jsonb) TO service_role;
+
+
+--
+-- Name: FUNCTION request_return(p_order uuid, p_items jsonb, p_reason text, p_photos text[], p_refund_upi text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.request_return(p_order uuid, p_items jsonb, p_reason text, p_photos text[], p_refund_upi text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.request_return(p_order uuid, p_items jsonb, p_reason text, p_photos text[], p_refund_upi text) TO authenticated;
+GRANT ALL ON FUNCTION public.request_return(p_order uuid, p_items jsonb, p_reason text, p_photos text[], p_refund_upi text) TO service_role;
+
+
+--
+-- Name: FUNCTION require_active(); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.require_active() FROM PUBLIC;
+GRANT ALL ON FUNCTION public.require_active() TO service_role;
+
+
+--
+-- Name: FUNCTION return_options(p_order uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.return_options(p_order uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.return_options(p_order uuid) TO authenticated;
+GRANT ALL ON FUNCTION public.return_options(p_order uuid) TO service_role;
+
+
+--
+-- Name: FUNCTION search_products(p_q text, p_limit integer); Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON FUNCTION public.search_products(p_q text, p_limit integer) TO anon;
+GRANT ALL ON FUNCTION public.search_products(p_q text, p_limit integer) TO authenticated;
+GRANT ALL ON FUNCTION public.search_products(p_q text, p_limit integer) TO service_role;
+
+
+--
+-- Name: FUNCTION search_suggestions(p_q text); Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON FUNCTION public.search_suggestions(p_q text) TO anon;
+GRANT ALL ON FUNCTION public.search_suggestions(p_q text) TO authenticated;
+GRANT ALL ON FUNCTION public.search_suggestions(p_q text) TO service_role;
+
+
+--
+-- Name: FUNCTION set_buddy(p_pet text, p_name text, p_hidden boolean); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.set_buddy(p_pet text, p_name text, p_hidden boolean) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.set_buddy(p_pet text, p_name text, p_hidden boolean) TO authenticated;
+GRANT ALL ON FUNCTION public.set_buddy(p_pet text, p_name text, p_hidden boolean) TO service_role;
+
+
+--
+-- Name: FUNCTION set_message_prefs(p_wa boolean, p_email boolean); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.set_message_prefs(p_wa boolean, p_email boolean) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.set_message_prefs(p_wa boolean, p_email boolean) TO authenticated;
+GRANT ALL ON FUNCTION public.set_message_prefs(p_wa boolean, p_email boolean) TO service_role;
+
+
+--
+-- Name: FUNCTION set_updated_at(); Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON FUNCTION public.set_updated_at() TO anon;
+GRANT ALL ON FUNCTION public.set_updated_at() TO authenticated;
+GRANT ALL ON FUNCTION public.set_updated_at() TO service_role;
+
+
+--
+-- Name: FUNCTION submit_review(p_item uuid, p_stars integer, p_comment text, p_photos text[]); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.submit_review(p_item uuid, p_stars integer, p_comment text, p_photos text[]) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.submit_review(p_item uuid, p_stars integer, p_comment text, p_photos text[]) TO authenticated;
+GRANT ALL ON FUNCTION public.submit_review(p_item uuid, p_stars integer, p_comment text, p_photos text[]) TO service_role;
+
+
+--
+-- Name: FUNCTION submit_upi_utr(p_order uuid, p_utr text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.submit_upi_utr(p_order uuid, p_utr text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.submit_upi_utr(p_order uuid, p_utr text) TO authenticated;
+GRANT ALL ON FUNCTION public.submit_upi_utr(p_order uuid, p_utr text) TO service_role;
+
+
+--
+-- Name: FUNCTION track_view(p_group uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.track_view(p_group uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.track_view(p_group uuid) TO authenticated;
+GRANT ALL ON FUNCTION public.track_view(p_group uuid) TO service_role;
+
+
+--
+-- Name: TABLE agent_locations; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.agent_locations TO anon;
+GRANT ALL ON TABLE public.agent_locations TO authenticated;
+GRANT ALL ON TABLE public.agent_locations TO service_role;
+
+
+--
+-- Name: TABLE audit_logs; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE ON TABLE public.audit_logs TO authenticated;
+GRANT ALL ON TABLE public.audit_logs TO service_role;
+
+
+--
+-- Name: SEQUENCE audit_logs_id_seq; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON SEQUENCE public.audit_logs_id_seq TO anon;
+GRANT ALL ON SEQUENCE public.audit_logs_id_seq TO authenticated;
+GRANT ALL ON SEQUENCE public.audit_logs_id_seq TO service_role;
+
+
+--
+-- Name: TABLE banners; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.banners TO anon;
+GRANT ALL ON TABLE public.banners TO authenticated;
+GRANT ALL ON TABLE public.banners TO service_role;
+
+
+--
+-- Name: TABLE campaigns; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.campaigns TO service_role;
+GRANT SELECT ON TABLE public.campaigns TO authenticated;
+
+
+--
+-- Name: TABLE cart_items; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.cart_items TO anon;
+GRANT ALL ON TABLE public.cart_items TO authenticated;
+GRANT ALL ON TABLE public.cart_items TO service_role;
+
+
+--
+-- Name: TABLE categories; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.categories TO anon;
+GRANT ALL ON TABLE public.categories TO authenticated;
+GRANT ALL ON TABLE public.categories TO service_role;
+
+
+--
+-- Name: TABLE coin_ledger; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE ON TABLE public.coin_ledger TO anon;
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE ON TABLE public.coin_ledger TO authenticated;
+GRANT ALL ON TABLE public.coin_ledger TO service_role;
+
+
+--
+-- Name: TABLE coupon_uses; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE ON TABLE public.coupon_uses TO anon;
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE ON TABLE public.coupon_uses TO authenticated;
+GRANT ALL ON TABLE public.coupon_uses TO service_role;
+
+
+--
+-- Name: TABLE coupons; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.coupons TO anon;
+GRANT ALL ON TABLE public.coupons TO authenticated;
+GRANT ALL ON TABLE public.coupons TO service_role;
+
+
+--
+-- Name: TABLE home_sections; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.home_sections TO anon;
+GRANT ALL ON TABLE public.home_sections TO authenticated;
+GRANT ALL ON TABLE public.home_sections TO service_role;
+
+
+--
+-- Name: TABLE messaging_settings; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.messaging_settings TO service_role;
+GRANT SELECT ON TABLE public.messaging_settings TO authenticated;
+
+
+--
+-- Name: COLUMN messaging_settings.wa_enabled; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT UPDATE(wa_enabled) ON TABLE public.messaging_settings TO authenticated;
+
+
+--
+-- Name: COLUMN messaging_settings.wa_base_url; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT UPDATE(wa_base_url) ON TABLE public.messaging_settings TO authenticated;
+
+
+--
+-- Name: COLUMN messaging_settings.wa_session; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT UPDATE(wa_session) ON TABLE public.messaging_settings TO authenticated;
+
+
+--
+-- Name: COLUMN messaging_settings.wa_per_minute; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT UPDATE(wa_per_minute) ON TABLE public.messaging_settings TO authenticated;
+
+
+--
+-- Name: COLUMN messaging_settings.wa_daily_cap; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT UPDATE(wa_daily_cap) ON TABLE public.messaging_settings TO authenticated;
+
+
+--
+-- Name: COLUMN messaging_settings.email_per_minute; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT UPDATE(email_per_minute) ON TABLE public.messaging_settings TO authenticated;
+
+
+--
+-- Name: COLUMN messaging_settings.email_daily_cap; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT UPDATE(email_daily_cap) ON TABLE public.messaging_settings TO authenticated;
+
+
+--
+-- Name: COLUMN messaging_settings.order_updates_wa; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT UPDATE(order_updates_wa) ON TABLE public.messaging_settings TO authenticated;
+
+
+--
+-- Name: COLUMN messaging_settings.updated_at; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT UPDATE(updated_at) ON TABLE public.messaging_settings TO authenticated;
+
+
+--
+-- Name: TABLE notifications; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE ON TABLE public.notifications TO anon;
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE ON TABLE public.notifications TO authenticated;
+GRANT ALL ON TABLE public.notifications TO service_role;
+
+
+--
+-- Name: COLUMN notifications.read_at; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT UPDATE(read_at) ON TABLE public.notifications TO authenticated;
+
+
+--
+-- Name: TABLE order_events; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE ON TABLE public.order_events TO anon;
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE ON TABLE public.order_events TO authenticated;
+GRANT ALL ON TABLE public.order_events TO service_role;
+
+
+--
+-- Name: SEQUENCE order_events_id_seq; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON SEQUENCE public.order_events_id_seq TO anon;
+GRANT ALL ON SEQUENCE public.order_events_id_seq TO authenticated;
+GRANT ALL ON SEQUENCE public.order_events_id_seq TO service_role;
+
+
+--
+-- Name: TABLE order_items; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE ON TABLE public.order_items TO anon;
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE ON TABLE public.order_items TO authenticated;
+GRANT ALL ON TABLE public.order_items TO service_role;
+
+
+--
+-- Name: TABLE order_otps; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.order_otps TO service_role;
+
+
+--
+-- Name: TABLE outbox; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.outbox TO service_role;
+GRANT SELECT ON TABLE public.outbox TO authenticated;
+
+
+--
+-- Name: SEQUENCE outbox_id_seq; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON SEQUENCE public.outbox_id_seq TO anon;
+GRANT ALL ON SEQUENCE public.outbox_id_seq TO authenticated;
+GRANT ALL ON SEQUENCE public.outbox_id_seq TO service_role;
+
+
+--
+-- Name: TABLE payments; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE ON TABLE public.payments TO anon;
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE ON TABLE public.payments TO authenticated;
+GRANT ALL ON TABLE public.payments TO service_role;
+
+
+--
+-- Name: TABLE product_groups; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.product_groups TO anon;
+GRANT ALL ON TABLE public.product_groups TO authenticated;
+GRANT ALL ON TABLE public.product_groups TO service_role;
+
+
+--
+-- Name: TABLE products; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.products TO anon;
+GRANT ALL ON TABLE public.products TO authenticated;
+GRANT ALL ON TABLE public.products TO service_role;
+
+
+--
+-- Name: TABLE product_cards; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.product_cards TO anon;
+GRANT ALL ON TABLE public.product_cards TO authenticated;
+GRANT ALL ON TABLE public.product_cards TO service_role;
+
+
+--
+-- Name: TABLE profiles; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE ON TABLE public.profiles TO anon;
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE ON TABLE public.profiles TO authenticated;
+GRANT ALL ON TABLE public.profiles TO service_role;
+
+
+--
+-- Name: COLUMN profiles.name; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT UPDATE(name) ON TABLE public.profiles TO authenticated;
+
+
+--
+-- Name: COLUMN profiles.phone; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT UPDATE(phone) ON TABLE public.profiles TO authenticated;
+
+
+--
+-- Name: COLUMN profiles.avatar_url; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT UPDATE(avatar_url) ON TABLE public.profiles TO authenticated;
+
+
+--
+-- Name: COLUMN profiles.referral_prompt_done; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT UPDATE(referral_prompt_done) ON TABLE public.profiles TO authenticated;
+
+
+--
+-- Name: COLUMN profiles.welcome_seen; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT UPDATE(welcome_seen) ON TABLE public.profiles TO authenticated;
+
+
+--
+-- Name: COLUMN profiles.terms_accepted_at; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT UPDATE(terms_accepted_at) ON TABLE public.profiles TO authenticated;
+
+
+--
+-- Name: TABLE push_subscriptions; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.push_subscriptions TO anon;
+GRANT ALL ON TABLE public.push_subscriptions TO authenticated;
+GRANT ALL ON TABLE public.push_subscriptions TO service_role;
+
+
+--
+-- Name: TABLE rate_limits; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE ON TABLE public.rate_limits TO authenticated;
+GRANT ALL ON TABLE public.rate_limits TO service_role;
+
+
+--
+-- Name: TABLE recently_viewed; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.recently_viewed TO anon;
+GRANT ALL ON TABLE public.recently_viewed TO authenticated;
+GRANT ALL ON TABLE public.recently_viewed TO service_role;
+
+
+--
+-- Name: TABLE referrals; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE ON TABLE public.referrals TO anon;
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE ON TABLE public.referrals TO authenticated;
+GRANT ALL ON TABLE public.referrals TO service_role;
+
+
+--
+-- Name: TABLE reviews; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE ON TABLE public.reviews TO anon;
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE ON TABLE public.reviews TO authenticated;
+GRANT ALL ON TABLE public.reviews TO service_role;
+
+
+--
+-- Name: TABLE search_logs; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE ON TABLE public.search_logs TO anon;
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE ON TABLE public.search_logs TO authenticated;
+GRANT ALL ON TABLE public.search_logs TO service_role;
+
+
+--
+-- Name: SEQUENCE search_logs_id_seq; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON SEQUENCE public.search_logs_id_seq TO anon;
+GRANT ALL ON SEQUENCE public.search_logs_id_seq TO authenticated;
+GRANT ALL ON SEQUENCE public.search_logs_id_seq TO service_role;
+
+
+--
+-- Name: TABLE settings; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE ON TABLE public.settings TO anon;
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,UPDATE ON TABLE public.settings TO authenticated;
+GRANT ALL ON TABLE public.settings TO service_role;
+
+
+--
+-- Name: COLUMN settings.scheduled_enabled; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT UPDATE(scheduled_enabled) ON TABLE public.settings TO authenticated;
+
+
+--
+-- Name: TABLE slot_bookings; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE ON TABLE public.slot_bookings TO anon;
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE ON TABLE public.slot_bookings TO authenticated;
+GRANT ALL ON TABLE public.slot_bookings TO service_role;
+
+
+--
+-- Name: TABLE wallets; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE ON TABLE public.wallets TO anon;
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE ON TABLE public.wallets TO authenticated;
+GRANT ALL ON TABLE public.wallets TO service_role;
+
+
+--
+-- Name: TABLE wishlist; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.wishlist TO anon;
+GRANT ALL ON TABLE public.wishlist TO authenticated;
+GRANT ALL ON TABLE public.wishlist TO service_role;
+
+
+--
+-- Name: DEFAULT PRIVILEGES FOR SEQUENCES; Type: DEFAULT ACL; Schema: public; Owner: -
+--
+
+
+
+--
+-- Name: DEFAULT PRIVILEGES FOR FUNCTIONS; Type: DEFAULT ACL; Schema: public; Owner: -
+--
+
+
+
+--
+-- Name: DEFAULT PRIVILEGES FOR TABLES; Type: DEFAULT ACL; Schema: public; Owner: -
+--
+
+
+
+--
+-- PostgreSQL database dump complete
+--
+
+\unrestrict w4ukmpxY0uc1RYw9pbImtqDi1eyk6sZ43iZ2o0etA9lgsDRQPTiNGfl5rOlVqWF
+
+-- ---------------------------------------------------------------------------------------------
+-- Neon-only pieces: sign-up through Clerk, email and WhatsApp sent by the Cloudflare worker,
+-- keys kept in private.secrets, and Data API grants.
+-- ---------------------------------------------------------------------------------------------
+
+grant usage on schema public to anon, authenticated;
+revoke truncate, trigger, references on all tables in schema public from anon, authenticated;
+grant execute on function public.uid(), public.jwt() to anon, authenticated;
+
+-- Clerk user id, kept for support look-ups
+alter table public.profiles add column if not exists clerk_id text unique;
+
+-- First visit after Google sign-in: create the profile and wallet from the Clerk token.
+-- The token carries email, name and picture (Clerk session token claims).
+create or replace function public.ensure_profile() returns public.profiles
+language plpgsql security definer set search_path = '' as $$
+declare
+  me public.profiles;
+  c jsonb := public.jwt();
+  u uuid := public.uid();
+  em text := lower(nullif(btrim(coalesce(c->>'email', '')), ''));
+begin
+  if u is null then raise exception 'Sign in required' using errcode = '28000'; end if;
+  select * into me from public.profiles where id = u;
+  if found then
+    if me.avatar_url is null and nullif(c->>'picture', '') is not null then
+      update public.profiles set avatar_url = c->>'picture' where id = u returning * into me;
+    end if;
+    return me;
+  end if;
+  if em is null then raise exception 'Your Google account has no email address'; end if;
+  insert into public.profiles (id, email, name, avatar_url, role, referral_code, clerk_id)
+  values (u, em, nullif(btrim(coalesce(c->>'name', '')), ''), nullif(c->>'picture', ''),
+          case when em = 'premiumservice9366@gmail.com' then 'admin'::public.user_role else 'customer'::public.user_role end,
+          public.gen_referral_code(), (auth.jwt()->>'sub'))
+  on conflict (id) do nothing;
+  insert into public.wallets (user_id) values (u) on conflict do nothing;
+  select * into me from public.profiles where id = u;
+  return me;
+end $$;
+revoke all on function public.ensure_profile() from public, anon;
+grant execute on function public.ensure_profile() to authenticated;
+
+-- Email goes into the outbox; the worker sends it through Resend within a minute.
+create or replace function public._send_email(p_to text, p_name text, p_subject text, p_html text) returns boolean
+language plpgsql security definer set search_path = '' as $$
+begin
+  if coalesce(p_to, '') = '' then return false; end if;
+  insert into public.outbox (channel, to_addr, to_name, subject, body, html)
+  values ('email', p_to, p_name, p_subject, p_subject, p_html);
+  return true;
+end $$;
+
+-- Worker: claim the next paced batch for one channel (daily caps and per-minute pace respected)
+create or replace function public._outbox_take(p_channel text, p_limit int default 20) returns setof public.outbox
+language plpgsql security definer set search_path = '' as $$
+declare m public.messaging_settings; sent_today int; n int;
+begin
+  select * into m from public.messaging_settings where id = 1;
+  update public.outbox set status = 'failed', error = 'No answer from the gateway'
+   where status = 'sending' and sent_at < now() - interval '30 minutes';
+  select count(*) into sent_today from public.outbox
+   where channel = p_channel and status in ('sending', 'sent')
+     and sent_at >= date_trunc('day', now() at time zone 'Asia/Kolkata') at time zone 'Asia/Kolkata';
+  if p_channel = 'email' then
+    n := least(p_limit, m.email_per_minute, greatest(m.email_daily_cap - sent_today, 0));
+  elsif p_channel = 'whatsapp' then
+    if not m.wa_enabled or m.wa_base_url is null then return; end if;
+    n := least(p_limit, m.wa_per_minute, greatest(m.wa_daily_cap - sent_today, 0));
+  else
+    return;
+  end if;
+  return query
+    update public.outbox o set status = 'sending', sent_at = now()
+     where o.id in (select x.id from public.outbox x where x.channel = p_channel and x.status = 'queued'
+                    order by x.id limit n for update skip locked)
+    returning o.*;
+end $$;
+
+create or replace function public._outbox_result(p_id bigint, p_ok boolean, p_error text default null) returns void
+language sql security definer set search_path = '' as $$
+  update public.outbox set
+    status = case when p_ok then 'sent' else 'failed' end,
+    error = case when p_ok then null else left(coalesce(p_error, 'Failed'), 300) end,
+    sent_at = case when p_ok then now() else sent_at end
+  where id = p_id;
+$$;
+revoke all on function public._outbox_take(text, int), public._outbox_result(bigint, boolean, text) from public, anon, authenticated;
+
+-- Keys saved from Admin, Messages (write-only from the app)
+create or replace function public.admin_set_secret(p_name text, p_value text) returns void
+language plpgsql security definer set search_path = '' as $$
+begin
+  if not public.is_admin() then raise exception 'Admins only'; end if;
+  if p_name not in ('resend_api_key', 'openwa_api_key') then raise exception 'Unknown key'; end if;
+  if length(coalesce(btrim(p_value), '')) < 8 then raise exception 'That key looks too short'; end if;
+  insert into private.secrets (name, decrypted_secret) values (p_name, btrim(p_value))
+  on conflict (name) do update set decrypted_secret = excluded.decrypted_secret, updated_at = now();
+end $$;
+
+create or replace function public.admin_messaging_status() returns jsonb
+language plpgsql stable security definer set search_path = '' as $$
+declare m public.messaging_settings; today timestamptz := date_trunc('day', now() at time zone 'Asia/Kolkata') at time zone 'Asia/Kolkata';
+begin
+  if not public.is_admin() then raise exception 'Admins only'; end if;
+  select * into m from public.messaging_settings where id = 1;
+  return jsonb_build_object(
+    'email_key', exists (select 1 from private.secrets where name = 'resend_api_key'),
+    'openwa_key', exists (select 1 from private.secrets where name = 'openwa_api_key'),
+    'sender', (select support_email from public.settings where id = 1),
+    'settings', to_jsonb(m),
+    'email', jsonb_build_object(
+      'queued', (select count(*) from public.outbox where channel = 'email' and status = 'queued'),
+      'sent_today', (select count(*) from public.outbox where channel = 'email' and status = 'sent' and sent_at >= today),
+      'failed_today', (select count(*) from public.outbox where channel = 'email' and status = 'failed' and created_at >= today)),
+    'whatsapp', jsonb_build_object(
+      'queued', (select count(*) from public.outbox where channel = 'whatsapp' and status = 'queued'),
+      'sent_today', (select count(*) from public.outbox where channel = 'whatsapp' and status = 'sent' and sent_at >= today),
+      'failed_today', (select count(*) from public.outbox where channel = 'whatsapp' and status = 'failed' and created_at >= today)),
+    'last_error', (select jsonb_build_object('channel', channel, 'error', error, 'at', created_at)
+                     from public.outbox where status = 'failed' order by id desc limit 1));
+end $$;
+
+-- Resend's free plan allows 100 emails a day
+alter table public.messaging_settings alter column email_daily_cap set default 100;
+
+-- Live updates without websockets: the app asks "anything new since X?" every few seconds
+create or replace function public.live_stamp(p_keys text[]) returns jsonb
+language plpgsql stable security definer set search_path = '' as $$
+declare u uuid := public.uid(); adm boolean := public.is_admin(); r jsonb := '{}'::jsonb; k text;
+begin
+  foreach k in array p_keys loop
+    r := r || jsonb_build_object(k, case k
+      when 'notifications' then (select max(created_at) from public.notifications where user_id = u)
+      when 'my_orders' then (select max(updated_at) from public.orders where user_id = u)
+      when 'agent_orders' then (select max(updated_at) from public.orders where agent_id = u or (public.is_agent() and status in ('packed', 'agent_assigned')))
+      when 'wallet' then (select updated_at from public.wallets where user_id = u)
+      when 'cart' then (select max(added_at) from public.cart_items where user_id = u)
+      when 'all_orders' then case when adm then (select max(updated_at) from public.orders) end
+      when 'returns' then case when adm then (select max(updated_at) from public.returns) end
+      when 'payments' then case when adm then (select max(created_at) from public.payments) end
+      when 'reviews' then case when adm then (select max(created_at) from public.reviews) end
+      when 'stock' then (select max(updated_at) from public.products)
+      when 'settings' then (select updated_at from public.settings where id = 1)
+      else null end);
+  end loop;
+  return r;
+end $$;
+grant execute on function public.live_stamp(text[]) to anon, authenticated;
+
+-- Cashfree: the worker records the gateway order, and marks it paid when the signed webhook arrives.
+create or replace function public._gateway_started(p_order uuid, p_ref text, p_upi text) returns void
+language sql security definer set search_path = '' as $$
+  update public.payments set gateway_ref = p_ref, raw = coalesce(raw, '{}'::jsonb) || jsonb_build_object('collect_upi', p_upi, 'collect_at', now()), updated_at = now()
+   where order_id = p_order and status = 'pending';
+$$;
+
+create or replace function public._gateway_paid(p_order uuid, p_utr text, p_amount_paise int, p_raw jsonb) returns boolean
+language plpgsql security definer set search_path = '' as $$
+declare o public.orders; msg text[];
+begin
+  select * into o from public.orders where id = p_order for update;
+  if not found then return false; end if;
+  if o.payment_status = 'paid' then return true; end if;
+  if p_amount_paise < o.payable_paise then
+    update public.payments set raw = coalesce(raw, '{}'::jsonb) || jsonb_build_object('short_payment', p_raw) where order_id = o.id;
+    perform public.notify_admins('payment', 'Short UPI payment on ' || o.order_no, 'Paid ' || public._inr(p_amount_paise) || ' of ' || public._inr(o.payable_paise) || '. Check it in Cashfree.', '/admin/orders/' || o.id);
+    return false;
+  end if;
+  update public.payments set status = 'success', utr = coalesce(nullif(trim(p_utr), ''), utr), raw = coalesce(raw, '{}'::jsonb) || jsonb_build_object('gateway', p_raw), updated_at = now()
+   where order_id = o.id;
+  update public.orders set payment_status = 'paid', paid_at = now(),
+    status = case when status = 'placed' then 'confirmed' else status end,
+    confirmed_at = case when status = 'placed' then now() else confirmed_at end
+   where id = o.id returning * into o;
+  insert into public.order_events (order_id, status, actor_id, note) values (o.id, 'payment_verified', null, 'Confirmed by Cashfree');
+  if o.status = 'confirmed' then
+    insert into public.order_events (order_id, status, actor_id, note) values (o.id, 'confirmed', null, null);
+  end if;
+  msg := public._status_message('confirmed', o);
+  perform public.notify(o.user_id, 'order', 'Payment received for ' || o.order_no, msg[2], '/orders/' || o.id);
+  return true;
+end $$;
+revoke all on function public._gateway_started(uuid, text, text), public._gateway_paid(uuid, text, int, jsonb) from public, anon, authenticated;
+-- Server-only helper: read a key from private.secrets (service_role only, i.e. the shop's server).
+create or replace function public._secret_get(p_name text) returns text
+language sql stable security definer set search_path = '' as $$
+  select decrypted_secret from private.secrets where name = p_name
+$$;
+revoke all on function public._secret_get(text) from public, anon, authenticated;
+grant execute on function public._secret_get(text) to service_role;
+-- Server jobs run as service_role through the API.
+grant execute on function public._outbox_take(text, int), public._outbox_result(bigint, boolean, text),
+  public._gateway_started(uuid, text, text), public._gateway_paid(uuid, text, int, jsonb) to service_role;

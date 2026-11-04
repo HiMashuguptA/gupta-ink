@@ -12,12 +12,13 @@
 	// Keep variables added in the dashboard when a new build deploys (secrets are always kept).
 	"keep_vars": true,
 	// Public settings. Secrets are added in the Cloudflare dashboard (Settings, Variables and Secrets):
-	// CLERK_SECRET_KEY, DATABASE_URL, GOOGLE_MAPS_KEY, SUPABASE_SECRET_KEY (file storage), and later payment keys.
+	// CLERK_SECRET_KEY, GOOGLE_MAPS_KEY, SUPABASE_SECRET_KEY (database jobs and file storage), and later payment keys.
 	// The Resend key and distance key live in the database (private.secrets).
 	"vars": {
 		"NEXT_PUBLIC_SITE_URL": "https://guptaenterpriseskohima.com",
 		"NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_live_Y2xlcmsuZ3VwdGFlbnRlcnByaXNlc2tvaGltYS5jb20k",
-		"NEXT_PUBLIC_DATA_API_URL": "https://ep-delicate-glitter-aov8b6tz.apirest.c-2.ap-southeast-1.aws.neon.tech/neondb/rest/v1",
+		"NEXT_PUBLIC_SUPABASE_URL": "https://tctsibxbatywwzqoaweu.supabase.co",
+		"NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_fJ347zXVRV0AMJdVaaLNRw_0gHE9PmA",
 		"EMAIL_FROM": "orders@guptaenterpriseskohima.com",
 		"SUPABASE_URL": "https://tctsibxbatywwzqoaweu.supabase.co"
 	}

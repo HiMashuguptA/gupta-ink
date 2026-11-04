@@ -59,11 +59,11 @@ let cachedKey: string | null = null;
 async function distanceKey() {
   if (process.env.DISTANCE_SIGNING_KEY) return process.env.DISTANCE_SIGNING_KEY;
   if (cachedKey) return cachedKey;
-  // Same key the database uses in _distance_sig_ok(), read with the server-only owner connection
-  const { sql } = await import("@/lib/jobs");
-  const r = (await sql()`select decrypted_secret from private.secrets where name = 'distance_hmac'`) as { decrypted_secret: string }[];
-  if (!r[0]) throw new Error("The distance signing key is missing in the database");
-  return (cachedKey = r[0].decrypted_secret);
+  // Same key the database uses in _distance_sig_ok(), read with the server-only secret key
+  const { secret } = await import("@/lib/admin-db");
+  const k = await secret("distance_hmac");
+  if (!k) throw new Error("The distance signing key is missing in the database");
+  return (cachedKey = k);
 }
 
 export async function signDistance(id: string, lat: number, lng: number, km: number) {
