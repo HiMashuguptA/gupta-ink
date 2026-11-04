@@ -8,9 +8,21 @@ import { PollChannel } from "@/lib/db/poll";
  * Supabase Storage through /api/files, and live updates are polled (see PollChannel).
  */
 type ClerkGlobal = { session?: { getToken: () => Promise<string | null> } | null };
+let guest: { token: string; exp: number } | null = null;
+async function guestToken() {
+  if (guest && guest.exp - 120 > Date.now() / 1000) return guest.token;
+  try {
+    const r = await fetch("/api/anon-token", { cache: "no-store" });
+    if (r.ok) guest = (await r.json()) as { token: string; exp: number };
+  } catch {}
+  return guest?.token ?? null;
+}
+// Signed in: Clerk session token. Signed out: the shop's guest token (anonymous role).
 const clerkToken = async () => {
   const c = (globalThis as unknown as { Clerk?: ClerkGlobal }).Clerk;
-  try { return (await c?.session?.getToken()) ?? null; } catch { return null; }
+  let t: string | null = null;
+  try { t = (await c?.session?.getToken()) ?? null; } catch {}
+  return t ?? (await guestToken());
 };
 
 export type UploadResult = { data: { path: string } | null; error: { message: string } | null };
