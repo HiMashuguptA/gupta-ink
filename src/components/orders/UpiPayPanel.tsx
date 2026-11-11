@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import QRCode from "qrcode";
-import { Clock, CheckCircle2, AtSign, Loader2, ChevronDown, Smartphone } from "lucide-react";
+import { Clock, CheckCircle2, AtSign, Loader2, ChevronDown, Smartphone, ShieldCheck } from "lucide-react";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { useToast } from "@/components/providers/ToastProvider";
 import { Sheet } from "@/components/ui/Sheet";
@@ -17,6 +17,21 @@ const APPS = [
   { id: "paytm", name: "Paytm", pkg: "net.one97.paytm", ios: "paytmmp://pay", bg: "#00baf2", fg: "#ffffff", mark: "P" },
   { id: "bhim", name: "BHIM", pkg: "in.org.npci.upiapp", ios: "bhim://pay", bg: "#ffffff", fg: "#ee7623", mark: "B" },
 ];
+
+type CashfreeSdk = (o: { mode: string }) => { checkout: (o: { paymentSessionId: string; redirectTarget: string }) => Promise<unknown> };
+
+/** Cashfree's checkout script, loaded only when the customer taps Pay. */
+function loadCashfree(): Promise<CashfreeSdk> {
+  const w = window as unknown as { Cashfree?: CashfreeSdk };
+  if (w.Cashfree) return Promise.resolve(w.Cashfree);
+  return new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = "https://sdk.cashfree.com/js/v3/cashfree.js";
+    s.onload = () => (w.Cashfree ? resolve(w.Cashfree) : reject(new Error("Payment page didn't load")));
+    s.onerror = () => reject(new Error("Payment page didn't load. Check your internet and try again."));
+    document.head.appendChild(s);
+  });
+}
 
 function platform() {
   if (typeof navigator === "undefined") return "desktop";
@@ -39,7 +54,7 @@ export function UpiPayPanel({ order, upi, utr, onSubmitted }: { order: OrderRow;
   const [qr, setQr] = useState<string | null>(null);
   const [ref, setRef] = useState("");
   const [vpa, setVpa] = useState("");
-  const [busy, setBusy] = useState<"" | "utr" | "collect">("");
+  const [busy, setBusy] = useState<"" | "utr" | "collect" | "checkout" | "verify">("");
   const [requested, setRequested] = useState<string | null>(null);
   const [showUtr, setShowUtr] = useState(!upi.collect);
   const [left, setLeft] = useState(0);
@@ -48,6 +63,42 @@ export function UpiPayPanel({ order, upi, utr, onSubmitted }: { order: OrderRow;
   const link = `upi://pay?${query}`;
 
   useEffect(() => setOs(platform()), []);
+
+  // Back from Cashfree's page: ask the server to check with Cashfree and confirm the order
+  useEffect(() => {
+    const cfId = new URLSearchParams(window.location.search).get("cf");
+    if (!cfId || !upi.collect) return;
+    setBusy("verify");
+    void fetch("/api/pay/cashfree-verify", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ order: order.id, cf: cfId }) })
+      .then((r) => r.json() as Promise<{ paid?: boolean; status?: string }>)
+      .then((j) => {
+        window.history.replaceState(null, "", window.location.pathname);
+        if (j.paid) {
+          toast({ kind: "ok", title: "Payment received", body: "Your order is confirmed. We've emailed you a receipt." });
+          window.location.reload();
+        } else if (j.status && j.status !== "ACTIVE") {
+          toast({ kind: "error", title: "Payment not completed", body: "No money was taken. You can try again." });
+        } else {
+          toast({ kind: "info", title: "Waiting for your bank", body: "This page updates on its own as soon as the payment is confirmed." });
+        }
+      })
+      .catch(() => {})
+      .finally(() => setBusy(""));
+  }, [order.id, upi.collect, toast]);
+
+  const payOnline = async () => {
+    setBusy("checkout");
+    try {
+      const r = await fetch("/api/pay/cashfree-session", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ order: order.id }) });
+      const j = (await r.json()) as { session?: string; mode?: string; error?: string };
+      if (!r.ok || !j.session) throw new Error(j.error || "Couldn't start the payment");
+      const Cashfree = await loadCashfree();
+      await Cashfree({ mode: j.mode ?? "production" }).checkout({ paymentSessionId: j.session, redirectTarget: "_self" });
+    } catch (err) {
+      toast({ kind: "error", title: "Payment didn't start", body: err instanceof Error ? err.message : undefined });
+      setBusy("");
+    }
+  };
   useEffect(() => {
     void QRCode.toDataURL(link, { margin: 1, width: 220, color: { dark: "#0a3329", light: "#ffffff" } }).then(setQr);
   }, [link]);
@@ -120,6 +171,17 @@ export function UpiPayPanel({ order, upi, utr, onSubmitted }: { order: OrderRow;
             <button onClick={() => setRequested(null)} className="mt-1 text-xs font-semibold underline">Use a different UPI ID</button>
           </div>
         </div>
+      ) : upi.collect ? (
+        <>
+          <button onClick={payOnline} disabled={busy === "checkout" || busy === "verify"} className="press mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-[10px] bg-ink font-semibold text-on-ink disabled:opacity-60">
+            {busy === "checkout" || busy === "verify" ? <Loader2 className="size-5 animate-spin" /> : <ShieldCheck className="size-5" />}
+            {busy === "verify" ? "Checking your payment…" : `Pay ${rupees(order.payable_paise)} now`}
+          </button>
+          <p className="mt-1.5 text-center text-xs text-muted">UPI, cards, netbanking or wallets, secured by Cashfree. Confirmed instantly.</p>
+          <button onClick={() => setOpen(true)} className="mt-2 w-full text-center text-sm font-semibold text-ink underline underline-offset-2">
+            Or pay to the store&apos;s UPI ID directly
+          </button>
+        </>
       ) : (
         <button onClick={() => setOpen(true)} className="press mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-[10px] bg-ink font-semibold text-on-ink">
           <Smartphone className="size-5" /> Pay {rupees(order.payable_paise)} now
