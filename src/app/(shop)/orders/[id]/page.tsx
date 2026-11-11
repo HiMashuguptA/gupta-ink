@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { getSessionProfile } from "@/lib/supabase/server";
 import { getSettings, productLinks } from "@/lib/catalog";
 import { LiveRefresh } from "@/components/live/LiveRefresh";
-import { OrderLive } from "@/components/orders/OrderLive";
+import { OrderLive, type GatewayRefund } from "@/components/orders/OrderLive";
 import type { OrderEvent, OrderItem, OrderRow } from "@/lib/orders";
 import type { ReturnRow } from "@/lib/returns";
 import { cashfreeReady } from "@/lib/cashfree";
@@ -16,12 +16,15 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
   if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
   const { data: order } = await supabase.from("orders").select("*").eq("id", id).eq("user_id", user.id).single();
   if (!order) notFound();
-  const [items, events, payment, rets, revs] = await Promise.all([
+  const [items, events, payment, rets, revs, refunds] = await Promise.all([
     supabase.from("order_items").select("id, product_id, name, variant_label, image_url, price_paise, mrp_paise, qty").eq("order_id", id),
     supabase.from("order_events").select("id, status, note, created_at").eq("order_id", id).order("created_at"),
-    supabase.from("payments").select("utr, status").eq("order_id", id).maybeSingle(),
+    supabase.from("payments").select("utr, status, gateway_ref").eq("order_id", id).maybeSingle(),
     supabase.from("returns").select("*").eq("order_id", id).order("created_at", { ascending: false }),
     supabase.from("reviews").select("order_item_id, stars, comment, photos").eq("user_id", user.id),
+    // Not in the generated types yet: refunds sent back through Cashfree
+    (supabase.from("gateway_refunds" as never) as unknown as { select: (s: string) => { eq: (c: string, v: string) => { order: (c: string) => Promise<{ data: GatewayRefund[] | null }> } } })
+      .select("id, amount_paise, status, return_id, updated_at").eq("order_id", id).order("created_at"),
   ]);
   // Refund screenshots live in a private bucket; signed links last an hour
   const sign = async (path: string | null | undefined) =>
@@ -37,9 +40,12 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
     <LiveRefresh at={Date.now()} id={`order-${id}`} watch={[
       { table: "orders", filter: `id=eq.${id}` }, { table: "returns", filter: `order_id=eq.${id}` },
       { table: "payments", filter: `order_id=eq.${id}` }, { table: "reviews", filter: `user_id=eq.${user.id}` },
+      { table: "gateway_refunds", filter: `order_id=eq.${id}` },
     ]} />
     <OrderLive
       links={links}
+      paidOnline={!!payment.data?.gateway_ref && ["success", "refunded"].includes(payment.data?.status ?? "")}
+      refunds={refunds.data ?? []}
       initialOrder={o}
       items={(items.data ?? []) as OrderItem[]}
       initialEvents={(events.data ?? []) as OrderEvent[]}

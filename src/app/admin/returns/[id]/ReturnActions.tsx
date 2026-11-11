@@ -6,7 +6,10 @@ import { supabaseBrowser } from "@/lib/supabase/client";
 import type { ReturnRow } from "@/lib/returns";
 import { RefundProofForm } from "../../RefundProofForm";
 
-export function ReturnActions({ ret, isPickupOrder, agents }: { ret: ReturnRow; isPickupOrder: boolean; agents: { id: string; name: string | null; agent_online: boolean }[] }) {
+export function ReturnActions({ ret, isPickupOrder, agents, paidOnline = false, gatewayRefund = null }: {
+  ret: ReturnRow; isPickupOrder: boolean; agents: { id: string; name: string | null; agent_online: boolean }[];
+  paidOnline?: boolean; gatewayRefund?: { id: string; status: string; error: string | null } | null;
+}) {
   const sb = supabaseBrowser();
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -67,9 +70,28 @@ export function ReturnActions({ ret, isPickupOrder, agents }: { ret: ReturnRow; 
           </div>
         )}
 
-        {s === "received" && (
-          <RefundProofForm customerId={ret.user_id} amountPaise={ret.refund_amount_paise} upiId={ret.refund_upi_id}
-            submit={(path, utr) => sb.rpc("admin_refund_return", { p_return: ret.id, p_proof_path: path, p_utr: utr })} />
+        {s === "received" && paidOnline && (!gatewayRefund || gatewayRefund.status === "failed") && (
+          <div>
+            {gatewayRefund?.status === "failed" && <p className="mb-2 rounded-[8px] bg-margin/10 px-3 py-2 text-margin">Cashfree refused the last try: {gatewayRefund.error ?? "no reason given"}.</p>}
+            <p className="text-muted">Paid online, so the money goes back to the customer&apos;s own UPI app, card or bank. No screenshot needed.</p>
+            <button disabled={busy} onClick={() => run(() => gatewayRefund?.status === "failed"
+                ? sb.rpc("admin_retry_refund" as never, { p_id: gatewayRefund.id } as never) as unknown as PromiseLike<{ error: { message: string } | null }>
+                : sb.rpc("admin_refund_return_gateway" as never, { p_return: ret.id } as never) as unknown as PromiseLike<{ error: { message: string } | null }>,
+              "Refund started. It's sent to Cashfree within a minute and the customer is told.")}
+              className={`${btn} mt-2 bg-ok text-white`}>
+              {gatewayRefund?.status === "failed" ? "Try the refund again" : `Refund ${(ret.refund_amount_paise / 100).toLocaleString("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 })} via Cashfree`}
+            </button>
+          </div>
+        )}
+        {s === "received" && gatewayRefund && gatewayRefund.status !== "failed" && (
+          <p className="rounded-[8px] bg-ink-soft px-3 py-2">Refund {gatewayRefund.status === "success" ? "sent" : "in progress with Cashfree"}. The customer sees it on their order.</p>
+        )}
+        {s === "received" && (!paidOnline || gatewayRefund?.status === "failed") && (
+          <div className={paidOnline ? "border-t border-dashed border-line pt-3" : ""}>
+            {paidOnline && <p className="mb-2 font-semibold">Or refund by UPI yourself</p>}
+            <RefundProofForm customerId={ret.user_id} amountPaise={ret.refund_amount_paise} upiId={ret.refund_upi_id}
+              submit={(path, utr) => sb.rpc("admin_refund_return", { p_return: ret.id, p_proof_path: path, p_utr: utr })} />
+          </div>
         )}
         {(s === "refunded" || s === "rejected") && <p className="text-muted">Nothing more to do.</p>}
         {msg && <p className={`font-semibold ${msg.ok ? "text-ok" : "text-margin"}`} role="status">{msg.text}</p>}

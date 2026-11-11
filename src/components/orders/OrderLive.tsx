@@ -6,21 +6,27 @@ import { BuyAgain } from "./BuyAgain";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import confetti from "canvas-confetti";
-import { MapPin, Store, Phone, ChevronLeft, CalendarClock, Bike, XCircle, ReceiptText } from "lucide-react";
+import { MapPin, Store, Phone, ChevronLeft, CalendarClock, Bike, XCircle, ReceiptText, RotateCcw } from "lucide-react";
 import clsx from "clsx";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { rupees } from "@/lib/format";
-import { CANCELLABLE, STATUS_LABEL, statusTone, stepsFor, when, type OrderEvent, type OrderItem, type OrderRow } from "@/lib/orders";
+import { awaitingPayment, CANCELLABLE, STATUS_LABEL, statusTone, stepsFor, when, type OrderEvent, type OrderItem, type OrderRow } from "@/lib/orders";
+import { verifyOnlinePayment } from "@/lib/pay-client";
+import { OnlinePayPanel } from "./OnlinePayPanel";
+import { PaymentSuccess, PaymentWait } from "./PaymentSuccess";
 import { UpiPayPanel } from "./UpiPayPanel";
 import { CancelDialog } from "./CancelDialog";
 import { DeliveryTracker } from "./DeliveryTracker";
 import { OrderAfterCare, type ReturnWithProof } from "./OrderAfterCare";
 import type { MyReview } from "./ReviewDialog";
 
-export function OrderLive({ initialOrder, items, initialEvents, initialUtr, upi, storePhone, shop, returns, reviews, cancelProofUrl, links }: {
+export type GatewayRefund = { id: string; amount_paise: number; status: "queued" | "pending" | "success" | "failed"; return_id: string | null; updated_at: string };
+
+export function OrderLive({ initialOrder, items, initialEvents, initialUtr, upi, storePhone, shop, returns, reviews, cancelProofUrl, links, paidOnline = false, refunds = [] }: {
   initialOrder: OrderRow; items: OrderItem[]; initialEvents: OrderEvent[]; initialUtr: string | null;
   upi: { vpa: string; name: string; collect?: boolean }; storePhone: string; shop: { lat: number; lng: number };
   returns: ReturnWithProof[]; reviews: MyReview[]; cancelProofUrl: string | null; links: Record<string, string>;
+  paidOnline?: boolean; refunds?: GatewayRefund[];
 }) {
   const [order, setOrder] = useSynced(initialOrder);
   const [events, setEvents] = useSynced(initialEvents);
@@ -28,7 +34,11 @@ export function OrderLive({ initialOrder, items, initialEvents, initialUtr, upi,
   const [cancelOpen, setCancelOpen] = useState(false);
   const params = useSearchParams();
   const router = useRouter();
-  const [celebrate, setCelebrate] = useState(params.get("placed") === "1");
+  // Online payments celebrate the payment, not the order form
+  const [celebrate, setCelebrate] = useState(params.get("placed") === "1" && !awaitingPayment(initialOrder));
+  const [verifying, setVerifying] = useState(false);
+  const [paidNow, setPaidNow] = useState(false);
+  const [payFailed, setPayFailed] = useState(params.get("payfail") === "1");
   const sb = supabaseBrowser();
 
   // Live updates: the timeline moves as the store and delivery partner act
@@ -41,6 +51,39 @@ export function OrderLive({ initialOrder, items, initialEvents, initialUtr, upi,
       .subscribe();
     return () => { void sb.removeChannel(ch); };
   }, [sb, order.id, setOrder, setEvents]);
+
+  // Back from Cashfree's page: check the result with the shop's server
+  useEffect(() => {
+    const cf = params.get("cf");
+    if (!cf || !upi.collect) return;
+    setVerifying(true);
+    let stop = false;
+    (async () => {
+      // The bank can take a few seconds to report; ask up to 4 times
+      for (let i = 0; i < 4 && !stop; i++) {
+        const r = await verifyOnlinePayment(order.id, cf).catch(() => ({ paid: false, status: "ERROR" }));
+        if (r.paid) {
+          setOrder((o) => ({ ...o, status: o.status === "awaiting_payment" || o.status === "placed" ? "confirmed" : o.status, payment_status: "paid" }));
+          setPaidNow(true);
+          break;
+        }
+        if (r.status && !["ACTIVE", "ERROR"].includes(r.status)) { setPayFailed(true); break; }
+        if (i === 3) setPayFailed(true);
+        else await new Promise((res) => setTimeout(res, 2500));
+      }
+      if (!stop) { setVerifying(false); router.replace(`/orders/${order.id}`, { scroll: false }); }
+    })();
+    return () => { stop = true; };
+    // Run once per return from the payment page
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Paid while this page was open (the bank's confirmation came by webhook): celebrate too
+  const [wasAwaiting, setWasAwaiting] = useState(awaitingPayment(initialOrder));
+  useEffect(() => {
+    if (wasAwaiting && order.payment_status === "paid" && order.status !== "cancelled") { setPaidNow(true); setPayFailed(false); }
+    setWasAwaiting(awaitingPayment(order));
+  }, [order, wasAwaiting]);
 
   // Order placed: one celebration, then tidy the URL
   useEffect(() => {
@@ -66,11 +109,13 @@ export function OrderLive({ initialOrder, items, initialEvents, initialUtr, upi,
   }, [order.status, events]);
 
   const cancelled = order.status === "cancelled";
-  const awaitingUpi = order.payment_method === "upi" && order.status === "placed";
+  const awaitingUpi = awaitingPayment(order);
   const fmt = (t: string) => new Date(t).toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour: "numeric", minute: "2-digit" });
 
   return (
     <div className="mx-auto max-w-3xl px-4 pt-4">
+      <PaymentWait open={verifying} title="Confirming your payment" body="Checking with your bank. This takes a few seconds." />
+      <PaymentSuccess open={paidNow} amountPaise={order.payable_paise} orderNo={order.order_no} onDone={() => setPaidNow(false)} />
       <AnimatePresence>
         {celebrate && (
           <motion.div className="fixed inset-0 z-[70] grid place-items-center bg-scrim p-6" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setCelebrate(false)}>
@@ -104,14 +149,40 @@ export function OrderLive({ initialOrder, items, initialEvents, initialUtr, upi,
           <h1 className="t-h3 uppercase">Order {order.order_no}</h1>
           <p className="text-xs text-muted">{new Date(order.created_at).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", dateStyle: "medium", timeStyle: "short" })}</p>
         </div>
-        <span className={clsx("ml-auto rounded-full px-3 py-1 text-xs font-bold", statusTone(order.status))}>{awaitingUpi ? "Awaiting payment" : STATUS_LABEL[order.status]}</span>
+        <span className={clsx("ml-auto rounded-full px-3 py-1 text-xs font-bold", statusTone(order.status))}>{awaitingUpi ? "Payment pending" : STATUS_LABEL[order.status]}</span>
       </div>
 
-      {awaitingUpi && <div className="mt-4"><UpiPayPanel order={order} upi={upi} utr={utr} onSubmitted={setUtr} /></div>}
+      {awaitingUpi && (
+        <div className="mt-4">
+          {upi.collect
+            ? <OnlinePayPanel order={order} failed={payFailed} onCancel={() => setCancelOpen(true)} />
+            : <UpiPayPanel order={order} upi={upi} utr={utr} onSubmitted={setUtr} />}
+        </div>
+      )}
+
+      {refunds.length > 0 && (
+        <section className="mt-4 grid gap-2" aria-label="Refunds">
+          {refunds.map((r) => (
+            <div key={r.id} className={clsx("flex gap-3 rounded-[12px] p-4 text-sm", r.status === "success" ? "bg-ok/10" : r.status === "failed" ? "bg-margin/10" : "bg-nib-soft")}>
+              <RotateCcw className={clsx("mt-0.5 size-5 shrink-0", r.status === "success" ? "text-ok" : r.status === "failed" ? "text-margin" : "text-ink")} />
+              <div>
+                <p className="font-bold">
+                  {r.status === "success" ? `Refund of ${rupees(r.amount_paise)} sent` : r.status === "failed" ? `Refund of ${rupees(r.amount_paise)} needs a hand` : `Refund of ${rupees(r.amount_paise)} on its way`}
+                </p>
+                <p className="text-muted">
+                  {r.status === "success" ? "It goes back to the UPI app, card or bank you paid with. Banks usually show it within 3 to 7 working days."
+                    : r.status === "failed" ? "The bank didn't accept it. The store has been told and will send it to you directly."
+                    : "We've asked the bank to return it to the account you paid from."}
+                </p>
+              </div>
+            </div>
+          ))}
+        </section>
+      )}
 
       {(order.status === "agent_accepted" || order.status === "out_for_delivery") && <DeliveryTracker order={order} shop={shop} />}
 
-      {cancelled ? (
+      {awaitingUpi ? null : cancelled ? (
         <div className="mt-4 flex gap-3 rounded-[12px] bg-margin-soft p-4">
           <XCircle className="size-6 shrink-0 text-margin" />
           <div className="text-sm">
@@ -206,8 +277,8 @@ export function OrderLive({ initialOrder, items, initialEvents, initialUtr, upi,
           {order.fine_paise > 0 && <div className="flex justify-between"><dt className="text-muted">Cancellation fine</dt><dd>{rupees(order.fine_paise)}</dd></div>}
           <div className="flex justify-between border-t border-dashed border-line pt-2 font-extrabold"><dt>Total</dt><dd>{rupees(order.payable_paise)}</dd></div>
           <p className="text-xs text-muted">
-            {order.payment_method === "upi" ? "Paid by UPI" : order.payment_method === "cod" ? "Cash on delivery" : "Pay at the counter"}
-            {order.payment_status === "paid" ? ", received" : ""}
+            {order.payment_method === "upi" ? (paidOnline || upi.collect ? "Paid online" : "Paid by UPI") : order.payment_method === "cod" ? "Cash on delivery" : "Pay at the counter"}
+            {order.payment_status === "paid" ? ", received" : order.payment_status === "refunded" ? ", refunded" : order.payment_status === "pending" && order.payment_method === "upi" ? ", not paid yet" : ""}
           </p>
         </dl>
       </section>
@@ -216,12 +287,12 @@ export function OrderLive({ initialOrder, items, initialEvents, initialUtr, upi,
         <Link href={`/bill/${order.id}`} className="inline-flex h-11 items-center gap-2 rounded-[10px] border border-ink bg-card px-4 text-sm font-semibold text-ink"><ReceiptText className="size-4" /> View bill</Link>
         <a href={`tel:+91${storePhone}`} className="inline-flex h-11 items-center gap-2 rounded-[10px] border border-line bg-card px-4 text-sm font-semibold"><Phone className="size-4" /> Call the store</a>
         {["delivered", "collected", "completed", "cancelled"].includes(order.status) && <BuyAgain items={items.map((i) => ({ product_id: i.product_id, qty: i.qty }))} />}
-        {CANCELLABLE.includes(order.status) && (
+        {CANCELLABLE.includes(order.status) && !awaitingUpi && (
           <button onClick={() => setCancelOpen(true)} className="inline-flex h-11 items-center rounded-[10px] border border-margin/40 px-4 text-sm font-semibold text-margin">Cancel order</button>
         )}
       </div>
 
-      <CancelDialog open={cancelOpen} onClose={() => setCancelOpen(false)} order={order}
+      <CancelDialog open={cancelOpen} onClose={() => setCancelOpen(false)} order={order} paidOnline={paidOnline}
         onCancelled={() => setOrder((o) => ({ ...o, status: "cancelled" }))} />
     </div>
   );

@@ -7,6 +7,7 @@ import { productLinks } from "@/lib/catalog";
 import { rupees } from "@/lib/format";
 import { RETURN_LABEL, returnTone, type ReturnRow } from "@/lib/returns";
 import { ReturnActions } from "./ReturnActions";
+import { gatewayRefunds, paidOnline } from "@/lib/refunds";
 
 export const metadata = { title: "Return" };
 
@@ -25,6 +26,7 @@ export default async function AdminReturn({ params }: { params: Promise<{ id: st
     r.refund_proof_path ? supabase.storage.from("refund-proofs").createSignedUrl(r.refund_proof_path, 3600) : Promise.resolve({ data: null }),
   ]);
   const a = r.pickup_address;
+  const [online, gRefunds] = await Promise.all([paidOnline(supabase, r.order_id), gatewayRefunds(supabase, r.order_id)]);
   const { data: oi } = await supabase.from("order_items").select("id, product_id").in("id", r.items.map((i) => i.order_item_id));
   const byProduct = await productLinks((oi ?? []).map((x) => x.product_id));
   const itemLinks: Record<string, string> = Object.fromEntries((oi ?? []).filter((x) => byProduct[x.product_id]).map((x) => [x.id, byProduct[x.product_id]]));
@@ -79,7 +81,7 @@ export default async function AdminReturn({ params }: { params: Promise<{ id: st
         </div>
 
         <div className="space-y-5">
-          <ReturnActions ret={r} isPickupOrder={o?.type === "pickup"} agents={(agents.data ?? []) as { id: string; name: string | null; agent_online: boolean }[]} />
+          <ReturnActions ret={r} isPickupOrder={o?.type === "pickup"} paidOnline={online} gatewayRefund={gRefunds.filter((g) => g.return_id === r.id).at(-1) ?? null} agents={(agents.data ?? []) as { id: string; name: string | null; agent_online: boolean }[]} />
           <section className="rounded-[12px] bg-card p-4 text-sm">
             <h2 className="font-bold">Customer</h2>
             <p className="mt-2 font-semibold">{customer.data?.name ?? "Customer"}</p>

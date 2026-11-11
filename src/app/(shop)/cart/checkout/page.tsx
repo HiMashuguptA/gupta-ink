@@ -3,6 +3,7 @@ import { getSessionProfile } from "@/lib/supabase/server";
 import { getSettings } from "@/lib/catalog";
 import { CheckoutView, type Slot, type CouponOffer } from "@/components/checkout/CheckoutView";
 import type { SavedAddress } from "@/app/actions/addresses";
+import { cashfreeReady } from "@/lib/cashfree";
 
 export const metadata = { title: "Checkout", robots: { index: false, follow: true } };
 
@@ -26,6 +27,7 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
       buyNow={buy}
       profileName={profile?.name ?? null}
       profilePhone={profile?.phone ?? null}
+      online={cashfreeReady()}
       storeHours={`${settings?.store_open?.slice(0, 5) ?? "10:00"} to ${settings?.store_close?.slice(0, 5) ?? "17:30"}`}
     />
   );

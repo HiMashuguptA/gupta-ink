@@ -2245,6 +2245,7 @@ export type Database = {
         | "adjust"
       coupon_type: "percent" | "flat" | "free_delivery"
       order_status:
+        | "awaiting_payment"
         | "placed"
         | "confirmed"
         | "getting_ready"
@@ -2404,6 +2405,7 @@ export const Constants = {
       coin_entry: ["earn", "spend", "expire", "referral", "restore", "adjust"],
       coupon_type: ["percent", "flat", "free_delivery"],
       order_status: [
+        "awaiting_payment",
         "placed",
         "confirmed",
         "getting_ready",

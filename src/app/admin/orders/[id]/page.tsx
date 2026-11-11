@@ -7,6 +7,7 @@ import { productLinks } from "@/lib/catalog";
 import { rupees } from "@/lib/format";
 import { STATUS_LABEL, statusTone, when, type OrderRow } from "@/lib/orders";
 import { AdminOrderActions } from "./AdminOrderActions";
+import { gatewayRefunds, paidOnline } from "@/lib/refunds";
 
 export const metadata = { title: "Order" };
 
@@ -26,6 +27,7 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
   ]);
   const links = await productLinks((items.data ?? []).map((i) => i.product_id));
 
+  const [online, gRefunds] = await Promise.all([paidOnline(supabase, id), gatewayRefunds(supabase, id)]);
   return (
     <div className="max-w-5xl">
       <div className="flex flex-wrap items-center gap-2">
@@ -75,7 +77,7 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
         </div>
 
         <div className="space-y-5">
-          <AdminOrderActions order={o} utr={payment.data?.utr ?? null} agents={(agents.data ?? []) as { id: string; name: string | null; phone: string | null; agent_online: boolean }[]} />
+          <AdminOrderActions order={o} paidOnline={online} refunds={gRefunds} utr={payment.data?.utr ?? null} agents={(agents.data ?? []) as { id: string; name: string | null; phone: string | null; agent_online: boolean }[]} />
 
           <section className="rounded-[12px] bg-card p-4 text-sm">
             <h2 className="font-bold">Customer</h2>

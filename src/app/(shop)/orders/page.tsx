@@ -11,7 +11,7 @@ import { STATUS_LABEL, statusTone, when, type OrderRow } from "@/lib/orders";
 
 export const metadata = { title: "Orders", robots: { index: false, follow: true } };
 
-type Row = Pick<OrderRow, "id" | "order_no" | "status" | "type" | "payable_paise" | "created_at" | "slot_date" | "slot_start" | "slot_end" | "payment_method"> & {
+type Row = Pick<OrderRow, "id" | "order_no" | "status" | "type" | "payable_paise" | "created_at" | "slot_date" | "slot_start" | "slot_end" | "payment_method" | "payment_status"> & {
   order_items: { product_id: string; name: string; image_url: string | null; qty: number }[];
 };
 
@@ -19,7 +19,7 @@ export default async function OrdersPage() {
   const { supabase, user } = await getSessionProfile();
   if (!user) redirect("/login?next=/orders");
   const { data } = await supabase.from("orders")
-    .select("id, order_no, status, type, payable_paise, created_at, slot_date, slot_start, slot_end, payment_method, order_items(product_id, name, image_url, qty)")
+    .select("id, order_no, status, type, payable_paise, created_at, slot_date, slot_start, slot_end, payment_method, payment_status, order_items(product_id, name, image_url, qty)")
     .eq("user_id", user.id).order("created_at", { ascending: false }).limit(50);
   const orders = (data ?? []) as unknown as Row[];
   const links = await productLinks([...new Set(orders.flatMap((o) => o.order_items.map((i) => i.product_id)))]);
@@ -31,7 +31,7 @@ export default async function OrdersPage() {
       {orders.length ? (
         <ul className="grid gap-3">
           {orders.map((o) => {
-            const awaiting = o.payment_method === "upi" && o.status === "placed";
+            const awaiting = o.payment_method === "upi" && o.payment_status === "pending" && (o.status === "placed" || o.status === "awaiting_payment");
             const n = o.order_items.reduce((a, i) => a + i.qty, 0);
             return (
               <li key={o.id} className="overflow-hidden rounded-[12px] bg-card">
@@ -39,7 +39,7 @@ export default async function OrdersPage() {
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center gap-2">
                       <span className="font-bold">{o.order_no}</span>
-                      <span className={clsx("rounded-full px-2 py-0.5 text-[11px] font-bold", statusTone(o.status))}>{awaiting ? "Awaiting payment" : STATUS_LABEL[o.status]}</span>
+                      <span className={clsx("rounded-full px-2 py-0.5 text-[11px] font-bold", statusTone(o.status))}>{awaiting ? "Payment pending" : STATUS_LABEL[o.status]}</span>
                     </span>
                     <span className="block truncate text-sm text-muted">{n} {n === 1 ? "item" : "items"}, {rupees(o.payable_paise)}, {when(o)}</span>
                     <span className="block text-xs text-muted">{new Date(o.created_at).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", year: "numeric" })}</span>

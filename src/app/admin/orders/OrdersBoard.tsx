@@ -15,7 +15,8 @@ const TABS = [
   { key: "action", label: "Needs action", test: (o: BoardOrder) => o.status === "confirmed" || (o.status === "placed" && !!o.payments[0]?.utr) || o.status === "packed" },
   { key: "progress", label: "In progress", test: (o: BoardOrder) => ["getting_ready", "agent_assigned", "agent_accepted"].includes(o.status) },
   { key: "out", label: "Out / ready", test: (o: BoardOrder) => ["out_for_delivery", "ready_for_pickup"].includes(o.status) },
-  { key: "unpaid", label: "Awaiting UPI", test: (o: BoardOrder) => o.status === "placed" && !o.payments[0]?.utr },
+  // Not real orders yet: the customer is still paying online (stock is held for 25 minutes)
+  { key: "unpaid", label: "Awaiting payment", test: (o: BoardOrder) => o.status === "awaiting_payment" || (o.status === "placed" && !o.payments[0]?.utr) },
   { key: "done", label: "Done", test: (o: BoardOrder) => ["delivered", "collected", "completed"].includes(o.status) },
   { key: "cancelled", label: "Cancelled", test: (o: BoardOrder) => o.status === "cancelled" },
 ] as const;

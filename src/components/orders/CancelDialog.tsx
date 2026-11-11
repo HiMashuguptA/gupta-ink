@@ -11,7 +11,7 @@ import type { OrderRow } from "@/lib/orders";
 
 const REASONS = ["Ordered by mistake", "Need to change items", "Delivery time is too long", "Found it elsewhere", "Other"];
 
-export function CancelDialog({ open, onClose, order, onCancelled }: { open: boolean; onClose: () => void; order: OrderRow; onCancelled: () => void }) {
+export function CancelDialog({ open, onClose, order, onCancelled, paidOnline = false }: { open: boolean; onClose: () => void; order: OrderRow; onCancelled: () => void; paidOnline?: boolean }) {
   const toast = useToast();
   const [mounted, setMounted] = useState(false);
   const [reason, setReason] = useState(REASONS[0]);
@@ -20,6 +20,10 @@ export function CancelDialog({ open, onClose, order, onCancelled }: { open: bool
   const [preview, setPreview] = useState<{ free_left: number; fine_paise: number } | null>(null);
   const sb = supabaseBrowser();
   const paid = order.payment_status === "paid";
+  // Paid online: the money goes back to the same account automatically, no UPI ID needed
+  const askUpi = paid && !paidOnline;
+  // Not paid yet: nothing was taken, so no fine and no refund
+  const unpaidOnline = order.status === "awaiting_payment";
 
   useEffect(() => setMounted(true), []);
   useEffect(() => {
@@ -29,7 +33,7 @@ export function CancelDialog({ open, onClose, order, onCancelled }: { open: bool
 
   const confirm = async () => {
     setBusy(true);
-    const { data, error } = await sb.rpc("cancel_order", { p_order: order.id, p_reason: reason, p_refund_upi: paid ? upi : undefined });
+    const { data, error } = await sb.rpc("cancel_order", { p_order: order.id, p_reason: reason, p_refund_upi: askUpi ? upi : undefined });
     setBusy(false);
     if (error) return toast({ kind: "error", title: "Couldn't cancel", body: error.message });
     const r = data as { fine_paise: number; refund_paise: number };
@@ -50,7 +54,9 @@ export function CancelDialog({ open, onClose, order, onCancelled }: { open: bool
             initial={{ y: 60 }} animate={{ y: 0 }} exit={{ y: 60 }} transition={{ type: "spring", stiffness: 380, damping: 34 }}
             className="w-full max-w-md rounded-t-3xl bg-card p-5 sm:rounded-[16px]">
             <h2 id="cancel-title" className="text-lg font-bold">Cancel order {order.order_no}?</h2>
-            {preview && (
+            {unpaidOnline ? (
+              <p className="mt-2 rounded-[10px] bg-ok/10 px-3 py-2 text-sm text-ok">You haven&apos;t paid for this order, so cancelling is free and doesn&apos;t count towards your weekly limit.</p>
+            ) : preview && (
               <p className={clsx("mt-2 rounded-[10px] px-3 py-2 text-sm", fined ? "bg-margin/10 text-margin" : "bg-ok/10 text-ok")}>
                 {fined
                   ? `You've used your 3 free cancellations this week. Cancelling adds a ${rupees(preview.fine_paise)} fine to your next order.`
@@ -67,7 +73,10 @@ export function CancelDialog({ open, onClose, order, onCancelled }: { open: bool
                 ))}
               </div>
             </fieldset>
-            {paid && (
+            {paid && paidOnline && (
+              <p className="mt-4 rounded-[10px] bg-ink-soft px-3 py-2 text-sm">{rupees(order.payable_paise)} goes back to the UPI app, card or bank you paid with. Banks usually show it in 3 to 7 working days.</p>
+            )}
+            {askUpi && (
               <div className="mt-4">
                 <label htmlFor="refund-upi" className="text-sm font-semibold">UPI ID for your refund</label>
                 <input id="refund-upi" value={upi} onChange={(e) => setUpi(e.target.value.trim())} placeholder="name@okaxis"
@@ -77,7 +86,7 @@ export function CancelDialog({ open, onClose, order, onCancelled }: { open: bool
             )}
             <div className="mt-5 flex gap-2">
               <button onClick={onClose} className="h-12 flex-1 rounded-[10px] border border-line font-semibold">Keep order</button>
-              <button onClick={confirm} disabled={busy || (paid && !/^[\w.-]{2,64}@[a-zA-Z]{2,64}$/.test(upi))} className="h-12 flex-1 rounded-[10px] bg-margin font-semibold text-white disabled:opacity-50">
+              <button onClick={confirm} disabled={busy || (askUpi && !/^[\w.-]{2,64}@[a-zA-Z]{2,64}$/.test(upi))} className="h-12 flex-1 rounded-[10px] bg-margin font-semibold text-white disabled:opacity-50">
                 {busy ? "Cancelling…" : "Cancel order"}
               </button>
             </div>

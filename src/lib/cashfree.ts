@@ -22,7 +22,7 @@ async function cf<T>(path: string, init: { method?: string; body?: unknown } = {
     body: init.body ? JSON.stringify(init.body) : undefined,
   });
   const j = (await res.json().catch(() => ({}))) as T & { message?: string };
-  if (!res.ok) throw new Error(j.message || `Cashfree error ${res.status}`);
+  if (!res.ok) throw Object.assign(new Error(j.message || `Cashfree error ${res.status}`), { status: res.status });
   return j;
 }
 
@@ -42,6 +42,8 @@ async function createCfOrder(o: Buyer, methods?: string) {
       order_meta: { return_url: o.return_url, notify_url: new URL("/api/pay/cashfree-webhook", o.return_url).toString(), ...(methods ? { payment_methods: methods } : {}) },
       order_tags: { order: o.id },
       order_note: o.order_no,
+      // The payment page closes after 20 minutes; the shop releases unpaid stock at 25
+      order_expiry_time: new Date(Date.now() + 20 * 60 * 1000).toISOString(),
     },
   });
 }
@@ -60,6 +62,18 @@ export async function createUpiCollect(o: Buyer & { upi_id: string }) {
 }
 
 export const getCfOrder = (id: string) => cf<CfOrder>(`/orders/${encodeURIComponent(id)}`);
+
+export type CfRefund = { refund_id: string; cf_refund_id?: string | number; refund_status: "SUCCESS" | "PENDING" | "CANCELLED" | "ONHOLD" | string; status_description?: string };
+
+/** Send money back to the account that paid (Cashfree refunds to the original UPI app, card or bank). */
+export const createRefund = (cfOrderId: string, refundId: string, amountPaise: number, note: string) =>
+  cf<CfRefund>(`/orders/${encodeURIComponent(cfOrderId)}/refunds`, {
+    method: "POST",
+    body: { refund_amount: Number((amountPaise / 100).toFixed(2)), refund_id: refundId, refund_note: note.slice(0, 100) || "Refund" },
+  });
+
+export const getRefund = (cfOrderId: string, refundId: string) =>
+  cf<CfRefund>(`/orders/${encodeURIComponent(cfOrderId)}/refunds/${encodeURIComponent(refundId)}`);
 
 /** Webhook signature: base64(HMAC-SHA256(timestamp + raw body, secret key)). */
 export function verifyWebhook(raw: string, ts: string | null, sig: string | null) {

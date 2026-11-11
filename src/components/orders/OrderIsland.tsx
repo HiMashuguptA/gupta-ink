@@ -15,6 +15,7 @@ const DONE = ["delivered", "collected", "completed", "cancelled"];
 
 function line(o: Mini) {
   switch (o.status) {
+    case "awaiting_payment": return "Waiting for your payment";
     case "placed": return "Waiting for the store to confirm";
     case "confirmed": case "getting_ready": return o.type === "scheduled" ? when(o) : "Your items are being picked";
     case "packed": return o.type === "pickup" ? "Packed, getting ready for the counter" : "Packed, finding a delivery partner";

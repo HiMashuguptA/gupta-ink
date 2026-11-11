@@ -18,7 +18,10 @@ const NEXT: Partial<Record<OrderStatus, { to: OrderStatus; label: string }[]>> =
   ready_for_pickup: [{ to: "collected", label: "Customer collected it" }],
 };
 
-export function AdminOrderActions({ order, utr, agents }: { order: OrderRow; utr: string | null; agents: Agent[] }) {
+export function AdminOrderActions({ order, utr, agents, paidOnline = false, refunds = [] }: {
+  order: OrderRow; utr: string | null; agents: Agent[];
+  paidOnline?: boolean; refunds?: { id: string; amount_paise: number; status: string; return_id: string | null; error: string | null }[];
+}) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
@@ -103,7 +106,21 @@ export function AdminOrderActions({ order, utr, agents }: { order: OrderRow; utr
         <button disabled={busy} onClick={cancel} className="mt-3 h-10 w-full rounded-[8px] border border-margin/40 font-semibold text-margin disabled:opacity-50">Cancel order</button>
       )}
       {terminal && <p className="mt-2 text-sm text-muted">{s === "cancelled" ? `Cancelled${order.cancelled_by ? ` by ${order.cancelled_by}` : ""}.` : "Nothing more to do here. Returns are under Returns and refunds."}</p>}
-      {s === "cancelled" && order.refund_due_paise > 0 && (order.refunded_at
+      {refunds.filter((g) => !g.return_id).map((g) => (
+        <div key={g.id} className={`mt-3 rounded-[8px] px-3 py-2 text-sm ${g.status === "success" ? "bg-ok/10 text-ok" : g.status === "failed" ? "bg-margin/10 text-margin" : "bg-ink-soft"}`}>
+          <p className="font-semibold">Cashfree refund {rupees(g.amount_paise)}: {g.status === "success" ? "sent" : g.status === "failed" ? "failed" : g.status === "pending" ? "with the bank" : "queued"}</p>
+          {g.status === "failed" && (
+            <>
+              <p className="text-xs">{g.error}</p>
+              <button disabled={busy} onClick={async () => {
+                const { error } = await (sb.rpc("admin_retry_refund" as never, { p_id: g.id } as never) as unknown as PromiseLike<{ error: { message: string } | null }>);
+                setMsg(error ? { ok: false, text: error.message } : { ok: true, text: "Refund queued again." });
+              }} className="mt-1 h-9 rounded-[8px] bg-ink px-3 text-xs font-semibold text-on-ink">Try again</button>
+            </>
+          )}
+        </div>
+      ))}
+      {s === "cancelled" && order.refund_due_paise > 0 && (!paidOnline || refunds.some((g) => !g.return_id && g.status === "failed")) && (order.refunded_at
         ? <p className="mt-2 text-sm font-semibold text-ok">Refund of {rupees(order.refund_due_paise)} sent{order.refund_utr ? `, UTR ${order.refund_utr}` : ""}.</p>
         : <div className="mt-3"><RefundProofForm customerId={order.user_id} amountPaise={order.refund_due_paise} upiId={order.refund_upi_id}
             submit={(path, utr) => sb.rpc("admin_mark_refund_paid", { p_order: order.id, p_proof_path: path, p_utr: utr })} /></div>)}

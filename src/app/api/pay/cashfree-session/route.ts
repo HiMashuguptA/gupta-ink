@@ -16,7 +16,7 @@ export async function POST(req: Request) {
   const { data: o } = await me.supabase.from("orders")
     .select("id, order_no, payable_paise, payment_method, payment_status, status, address")
     .eq("id", body.order ?? "").maybeSingle();
-  if (!o || o.payment_method !== "upi" || o.payment_status === "paid" || o.status !== "placed") {
+  if (!o || o.payment_method !== "upi" || o.payment_status === "paid" || !["awaiting_payment", "placed"].includes(o.status)) {
     return NextResponse.json({ error: "This order isn't waiting for a payment" }, { status: 409 });
   }
   const addr = o.address as { contact_phone?: string } | null;

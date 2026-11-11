@@ -1,5 +1,5 @@
 export type OrderStatus =
-  | "placed" | "confirmed" | "getting_ready" | "packed" | "agent_assigned" | "agent_accepted"
+  | "awaiting_payment" | "placed" | "confirmed" | "getting_ready" | "packed" | "agent_assigned" | "agent_accepted"
   | "out_for_delivery" | "delivered" | "ready_for_pickup" | "collected" | "completed" | "cancelled";
 
 export type OrderRow = {
@@ -16,7 +16,7 @@ export type OrderItem = { id: string; product_id: string; name: string; variant_
 export type OrderEvent = { id: number; status: string; note: string | null; created_at: string };
 
 export const STATUS_LABEL: Record<OrderStatus, string> = {
-  placed: "Placed", confirmed: "Confirmed", getting_ready: "Getting ready", packed: "Packed",
+  awaiting_payment: "Payment pending", placed: "Placed", confirmed: "Confirmed", getting_ready: "Getting ready", packed: "Packed",
   agent_assigned: "Partner assigned", agent_accepted: "Partner on the way", out_for_delivery: "Out for delivery",
   delivered: "Delivered", ready_for_pickup: "Ready for pickup", collected: "Collected", completed: "Completed", cancelled: "Cancelled",
 };
@@ -34,14 +34,18 @@ export function stepsFor(type: OrderRow["type"]): { key: OrderStatus; label: str
     { key: "out_for_delivery", label: "Out for delivery" }, { key: "delivered", label: "Delivered", also: ["completed"] }];
 }
 
-export const CANCELLABLE: OrderStatus[] = ["placed", "confirmed", "getting_ready", "packed", "agent_assigned", "agent_accepted", "ready_for_pickup"];
+export const CANCELLABLE: OrderStatus[] = ["awaiting_payment", "placed", "confirmed", "getting_ready", "packed", "agent_assigned", "agent_accepted", "ready_for_pickup"];
 
 export function statusTone(s: OrderStatus) {
   if (s === "cancelled") return "bg-margin/10 text-margin";
   if (s === "delivered" || s === "collected" || s === "completed") return "bg-ok/10 text-ok";
-  if (s === "placed") return "bg-nib-soft text-ink-deep";
+  if (s === "placed" || s === "awaiting_payment") return "bg-nib-soft text-ink-deep";
   return "bg-ink-soft text-ink";
 }
+
+/** An online-payment order that hasn't been paid yet (the store doesn't treat it as an order until it is). */
+export const awaitingPayment = (o: Pick<OrderRow, "status" | "payment_method" | "payment_status">) =>
+  o.payment_method === "upi" && o.payment_status === "pending" && (o.status === "awaiting_payment" || o.status === "placed");
 
 export function when(o: Pick<OrderRow, "type" | "slot_date" | "slot_start" | "slot_end">) {
   if (o.type === "pickup") return "Store pickup";

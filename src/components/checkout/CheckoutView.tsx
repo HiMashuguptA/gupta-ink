@@ -18,6 +18,8 @@ import { AddressForm } from "@/components/address/AddressForm";
 import { startNav } from "@/components/layout/NavProgress";
 import type { SavedAddress } from "@/app/actions/addresses";
 import { petSay } from "@/lib/pet";
+import { startOnlinePayment } from "@/lib/pay-client";
+import { PaymentWait } from "@/components/orders/PaymentSuccess";
 
 export type Slot = { slot_date: string; window_start: string; window_end: string; available: number; open: boolean; reason: string | null };
 export type CouponOffer = { code: string; title: string; description: string | null; min_order_paise: number; type: string };
@@ -41,9 +43,11 @@ function dayLabel(d: string, i: number) {
   return new Date(d + "T12:00:00+05:30").toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", weekday: "short", day: "numeric", month: "short" });
 }
 
-export function CheckoutView({ addresses: initialAddresses, slots, coupons, radiusKm, storeAddress, storeHours, buyNow, profileName, profilePhone }: {
+export function CheckoutView({ addresses: initialAddresses, slots, coupons, radiusKm, storeAddress, storeHours, buyNow, profileName, profilePhone, online = false }: {
   addresses: SavedAddress[]; slots: Slot[]; coupons: CouponOffer[]; radiusKm: number; storeAddress: string; storeHours: string;
   buyNow?: { productId: string; qty: number } | null; profileName?: string | null; profilePhone?: string | null;
+  /** Cashfree is switched on: "upi" means pay online now, and the order only counts once paid */
+  online?: boolean;
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -88,6 +92,7 @@ export function CheckoutView({ addresses: initialAddresses, slots, coupons, radi
   const [quote, setQuote] = useState<Quote | null>(null);
   const [quoting, setQuoting] = useState(true);
   const [placing, setPlacing] = useState(false);
+  const [toPayment, setToPayment] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [showItems, setShowItems] = useState(false);
   const [bump, setBump] = useState(0);
@@ -162,13 +167,26 @@ export function CheckoutView({ addresses: initialAddresses, slots, coupons, radi
       setBump((b) => b + 1); // re-price: stock, slots or coupons may have changed
       return;
     }
-    const r = data as { order_id: string };
+    const r = data as { order_id: string; status?: string };
     removeMany(lines.map((l) => l.product_id));
+    void catalogChanged(); // stock moved (held for this order)
+    if (method === "upi" && online && r.status === "awaiting_payment") {
+      // Straight on to the secure payment page. The order only reaches the store once it's paid.
+      setToPayment(true);
+      try {
+        await startOnlinePayment(r.order_id);
+        return; // the browser is leaving for Cashfree
+      } catch (e) {
+        toast({ kind: "error", title: "Payment didn't open", body: e instanceof Error ? `${e.message}. You can pay from the order page.` : undefined });
+        startNav();
+        router.replace(`/orders/${r.order_id}?payfail=1`);
+        return;
+      }
+    }
     petSay({ kind: "order" });
-    void catalogChanged(); // stock moved
     startNav();
     router.replace(`/orders/${r.order_id}?placed=1`);
-  }, [quote, blocking, method, sb, payload, note, toast, removeMany, lines, router, kind, pickName, pickPhone]);
+  }, [quote, blocking, method, sb, payload, note, toast, removeMany, lines, router, kind, pickName, pickPhone, online]);
 
   if (buyNow && !buyLine && !buyMissing) {
     return <div className="mx-auto max-w-5xl px-4 pt-4"><div className="skeleton h-10 w-48 rounded-[10px]" /><div className="skeleton mt-4 h-64 rounded-[12px]" /></div>;
@@ -194,6 +212,7 @@ export function CheckoutView({ addresses: initialAddresses, slots, coupons, radi
 
   return (
     <div className="grid gap-6 px-4 pb-36 pt-4 lg:grid-cols-[1fr_380px] lg:pb-8">
+      <PaymentWait open={toPayment} title="Opening secure payment" body="Your items are held for you while you pay." />
       <div className="space-y-5">
         <h1 className="t-h1 uppercase">Checkout</h1>
 
@@ -383,7 +402,7 @@ export function CheckoutView({ addresses: initialAddresses, slots, coupons, radi
         <Section title="Pay with">
           <div className="grid gap-2" role="radiogroup" aria-label="Payment method">
             {([
-              { key: "upi", title: "UPI", sub: "GPay, PhonePe, Paytm or any UPI app", icon: Smartphone, hide: false,
+              { key: "upi", title: online ? "Pay online now" : "UPI", sub: online ? "UPI, cards, netbanking or wallets. Secured by Cashfree" : "GPay, PhonePe, Paytm or any UPI app", icon: Smartphone, hide: false,
                 off: quote && !quote.methods.upi ? "UPI is busy today. Choose another option." : null },
               { key: "cod", title: "Cash on delivery", sub: "Pay the delivery partner in cash or UPI", icon: Banknote, hide: kind === "pickup",
                 off: quote && !quote.methods.cod ? `Available for orders up to ${rupees(quote.cod_limit_paise)}` : null },
@@ -438,7 +457,7 @@ export function CheckoutView({ addresses: initialAddresses, slots, coupons, radi
               {errors.map((e) => <li key={e} className="flex gap-2 text-sm text-margin"><AlertCircle className="mt-0.5 size-4 shrink-0" />{e}</li>)}
             </ul>
           )}
-          <SlideToConfirm className="mt-4 hidden lg:block" label="Slide to place order" onConfirm={place}
+          <SlideToConfirm className="mt-4 hidden lg:block" label={method === "upi" && online ? "Slide to pay" : "Slide to place order"} onConfirm={place}
             disabled={blocking && !placing} busy={placing} disabledLabel={quoting ? "Updating your bill" : errors[0] ?? (couponError ? "Remove the coupon" : !pickupOk ? "Add who will collect it" : "Choose how to pay")}
             sub={quote ? <>Pay <Price paise={quote.payable_paise} /></> : undefined} />
           <p className="mt-2 text-center text-xs text-muted">
@@ -449,7 +468,7 @@ export function CheckoutView({ addresses: initialAddresses, slots, coupons, radi
 
       {/* Mobile sticky bar */}
       <div data-pet-avoid className="fixed inset-x-0 bottom-[calc(57px+env(safe-area-inset-bottom))] z-30 border-t border-line bg-card px-3 py-2.5 lg:hidden">
-        <SlideToConfirm label="Slide to place order" onConfirm={place}
+        <SlideToConfirm label={method === "upi" && online ? "Slide to pay" : "Slide to place order"} onConfirm={place}
           disabled={blocking && !placing} busy={placing} disabledLabel={quoting ? "Updating your bill" : errors[0] ?? (couponError ? "Remove the coupon" : !pickupOk ? "Add who will collect it" : "Choose how to pay")}
           sub={quote ? <>Pay <Price paise={quote.payable_paise} /></> : undefined} />
       </div>
