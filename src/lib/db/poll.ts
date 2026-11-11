@@ -21,6 +21,7 @@ export class PollChannel {
   private handlers: Handler[] = [];
   private timer: ReturnType<typeof setTimeout> | null = null;
   private stopped = false;
+  private idle = 0;
   constructor(private rest: Rest) {}
 
   on(_kind: "postgres_changes", spec: Spec, cb: (p: Change) => void) {
@@ -42,6 +43,7 @@ export class PollChannel {
   private async tick() {
     if (this.stopped) return;
     let next = 15000;
+    let changed = false;
     if (typeof document === "undefined" || document.visibilityState === "visible") {
       await Promise.all(this.handlers.map(async (h) => {
         next = Math.min(next, EVERY[h.table] ?? 12000);
@@ -55,9 +57,13 @@ export class PollChannel {
         for (const row of (data ?? []) as Record<string, unknown>[]) {
           h.last = String(row[col]);
           h.cb({ eventType: h.event === "*" || !h.event ? "UPDATE" : h.event, new: row });
+          changed = true;
         }
       })).catch(() => {});
     }
+    // Slow down gently while nothing changes (up to 4x), back to normal as soon as something does
+    this.idle = changed ? 0 : Math.min(this.idle + 1, 30);
+    next = Math.round(next * (1 + Math.min(this.idle, 30) / 10));
     if (!this.stopped) this.timer = setTimeout(() => void this.tick(), next);
   }
 

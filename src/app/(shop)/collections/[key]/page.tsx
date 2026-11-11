@@ -10,7 +10,13 @@ export function generateStaticParams() {
 
 export async function generateMetadata({ params }: { params: Promise<{ key: string }> }) {
   const { key } = await params;
-  return { title: COLLECTIONS[key]?.title ?? "Collection" };
+  const c = COLLECTIONS[key];
+  if (!c) return { title: "Collection" };
+  return {
+    title: `${c.title}: stationery in Kohima`,
+    description: `${c.title} at Gupta Enterprises, Kohima. Notebooks, pens, office and exam supplies delivered in 45-60 minutes or ready for pickup.`,
+    alternates: { canonical: `/collections/${key}` },
+  };
 }
 
 export default async function CollectionPage({ params }: { params: Promise<{ key: string }> }) {

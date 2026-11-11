@@ -7,7 +7,7 @@ import type { OrderEvent, OrderItem, OrderRow } from "@/lib/orders";
 import type { ReturnRow } from "@/lib/returns";
 import { cashfreeReady } from "@/lib/cashfree";
 
-export const metadata = { title: "Order" };
+export const metadata = { title: "Order", robots: { index: false, follow: true } };
 
 export default async function OrderPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

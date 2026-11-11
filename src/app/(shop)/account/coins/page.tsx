@@ -8,7 +8,7 @@ import { LiveRefresh } from "@/components/live/LiveRefresh";
 import { getSettings } from "@/lib/catalog";
 import { ReferralCard } from "@/components/account/ReferralCard";
 
-export const metadata = { title: "SuperCoins" };
+export const metadata = { title: "SuperCoins", robots: { index: false, follow: true } };
 
 type Entry = { id: string; entry: "earn" | "spend" | "expire" | "referral" | "restore" | "adjust"; amount: number; remaining: number; note: string | null; expires_at: string | null; created_at: string };
 

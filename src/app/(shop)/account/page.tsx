@@ -11,7 +11,7 @@ import { BuddySettings } from "@/components/account/BuddySettings";
 import { MessagePrefs } from "@/components/account/MessagePrefs";
 import { Num } from "@/components/ui/Num";
 
-export const metadata = { title: "Account" };
+export const metadata = { title: "Account", robots: { index: false, follow: true } };
 
 export default async function AccountPage() {
   const { supabase, user, profile } = await getSessionProfile();

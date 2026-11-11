@@ -5,7 +5,7 @@ import { groupCards } from "@/lib/format";
 import { Grid } from "@/components/shop/Rail";
 import type { ProductCard } from "@/lib/types";
 
-export const metadata = { title: "Wishlist" };
+export const metadata = { title: "Wishlist", robots: { index: false, follow: true } };
 
 export default async function WishlistPage() {
   const { supabase, user } = await getSessionProfile();

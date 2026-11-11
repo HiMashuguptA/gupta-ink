@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { LogoMark } from "@/components/brand/Logo";
 
-export const metadata = { title: "Account suspended" };
+export const metadata = { title: "Account suspended", robots: { index: false, follow: true } };
 
 export default function BlockedPage() {
   return (

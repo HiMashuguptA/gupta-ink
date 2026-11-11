@@ -5,7 +5,8 @@ import { Rail } from "@/components/shop/Rail";
 
 export async function generateMetadata({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const { q } = await searchParams;
-  return { title: q ? `Search: ${q}` : "Search" };
+  // Search results stay out of Google (thin, endless URLs); product and category pages are indexed instead
+  return { title: q ? `Search: ${q}` : "Search", robots: { index: false, follow: true } };
 }
 
 export default async function SearchPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {

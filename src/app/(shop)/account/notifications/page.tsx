@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { getSessionProfile } from "@/lib/supabase/server";
 import { NotificationList } from "@/components/account/NotificationList";
 
-export const metadata = { title: "Notifications" };
+export const metadata = { title: "Notifications", robots: { index: false, follow: true } };
 
 export default async function NotificationsPage() {
   const { supabase, user } = await getSessionProfile();

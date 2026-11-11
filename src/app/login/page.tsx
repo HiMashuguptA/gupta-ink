@@ -3,7 +3,7 @@ import { getSessionProfile } from "@/lib/supabase/server";
 import { safeNext } from "@/lib/safe-redirect";
 import { LoginScreen } from "./LoginScreen";
 
-export const metadata = { title: "Sign in" };
+export const metadata = { title: "Sign in", robots: { index: false, follow: true } };
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string; error?: string }> }) {
   const sp = await searchParams;

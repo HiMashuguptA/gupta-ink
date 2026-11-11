@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { breadcrumbJsonLd, JsonLd, productDescription, productJsonLd, SITE } from "@/lib/seo";
 import { Star } from "lucide-react";
 import { getProduct, getCollection } from "@/lib/catalog";
 
@@ -17,7 +18,14 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const p = await getProduct(slug);
   if (!p) return { title: "Product" };
-  return { title: p.card.name, description: p.description ?? undefined };
+  const title = `${p.card.name}: ₹${Math.round(p.card.price_paise / 100)} in Kohima`;
+  const image = p.card.images[0];
+  return {
+    title,
+    description: productDescription(p.card, p.description),
+    alternates: { canonical: `/p/${p.card.slug}` },
+    openGraph: { title: `${p.card.name} | Gupta Enterprises`, url: `/p/${p.card.slug}`, ...(image ? { images: [{ url: image }] } : {}) },
+  };
 }
 
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -27,6 +35,8 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
 
   return (
     <div className="pt-4">
+      <JsonLd data={productJsonLd(p.card, p.description, `${SITE}/p/${p.card.slug}`)} />
+      <JsonLd data={breadcrumbJsonLd([{ name: "Home", path: "/" }, { name: p.card.category_name, path: `/c/${p.card.category_slug}` }, { name: p.card.name, path: `/p/${p.card.slug}` }])} />
       {/* New reviews and stock changes show without reloading */}
       <LiveRefresh id={`product-${p.card.group_id}`} waitMs={1500}
         watch={[{ table: "reviews", filter: `group_id=eq.${p.card.group_id}` }, { table: "products", filter: `group_id=eq.${p.card.group_id}` }]} />

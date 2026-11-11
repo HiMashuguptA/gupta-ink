@@ -20,20 +20,15 @@ import type { StoreHours } from "@/lib/hours";
  * and comes back when you scroll up; search always stays.
  */
 export function Header({ hours }: { hours: StoreHours | null }) {
-  const { location, status, dismissed, dismiss } = useLocation();
+  const { location, status, dismiss } = useLocation();
   const { count } = useCart();
   const { user, profile, ready } = useSession();
   const [sheet, setSheet] = useState(false);
   const [tucked, setTucked] = useState(false);
   const last = useRef(0);
 
-  // Ask for location on first open, unless already set or dismissed
-  useEffect(() => {
-    if (!location && !dismissed) {
-      const t = setTimeout(() => setSheet(true), 700);
-      return () => clearTimeout(t);
-    }
-  }, [location, dismissed]);
+  // No pop-up on first open: shoppers browse freely and set the address at checkout
+  // (or tap "Deliver to" in the header whenever they like).
 
   useEffect(() => {
     let frame = 0;

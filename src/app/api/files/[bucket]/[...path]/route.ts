@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getSessionProfile } from "@/lib/supabase/server";
 import { mediaBucket, PRIVATE_BUCKETS, PUBLIC_BUCKETS } from "@/lib/media";
+import { allow, clientIp, tooMany } from "@/lib/rate-limit";
 
 const ADMIN_ONLY = new Set(["products", "banners", "categories", "refund-proofs"]);
 const OWN_FOLDER = new Set(["reviews", "returns"]);
@@ -13,6 +14,7 @@ const MAX = 5 * 1024 * 1024;
  * the uploader's own folder. Photos only, 5 MB at most.
  */
 export async function PUT(req: NextRequest, ctx: { params: Promise<{ bucket: string; path: string[] }> }) {
+  if (!allow(`upload:${clientIp(req)}`, 30, 600)) return tooMany();
   const { bucket, path } = await ctx.params;
   const key = path.join("/");
   if (![...PUBLIC_BUCKETS, ...PRIVATE_BUCKETS].includes(bucket as never) || !/^[\w-]+(\/[\w.-]+)+$/.test(key) || key.includes("..")) {

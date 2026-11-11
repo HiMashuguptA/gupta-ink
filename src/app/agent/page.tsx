@@ -5,7 +5,7 @@ import { istNow } from "@/lib/hours";
 import { AGENT_JOB_SELECT } from "@/lib/agent";
 import { AgentPortal, type Job, type Pickup } from "./AgentPortal";
 
-export const metadata = { title: "Deliveries" };
+export const metadata = { title: "Deliveries", robots: { index: false, follow: true } };
 
 export default async function AgentHome() {
   const { supabase, user, profile } = await getSessionProfile();

@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { breadcrumbJsonLd, clip, JsonLd } from "@/lib/seo";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { getCategories, getCategoryProducts } from "@/lib/catalog";
@@ -11,8 +12,14 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const cats = await getCategories();
-  return { title: cats.find((c) => c.slug === slug)?.name ?? "Category" };
+  const cat = (await getCategories()).find((c) => c.slug === slug);
+  if (!cat) return { title: "Category" };
+  return {
+    title: `${cat.name}: buy online in Kohima`,
+    description: clip(`Shop ${cat.name.toLowerCase()} at Gupta Enterprises, Khedi Market, Kohima. Order online for delivery in 45-60 minutes, a scheduled slot, or store pickup.`),
+    alternates: { canonical: `/c/${cat.slug}` },
+    openGraph: { title: `${cat.name} | Gupta Enterprises`, url: `/c/${cat.slug}` },
+  };
 }
 
 export default async function CategoryPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -22,6 +29,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
 
   return (
     <div className="px-4 pt-4">
+      <JsonLd data={breadcrumbJsonLd([{ name: "Home", path: "/" }, { name: "Categories", path: "/categories" }, { name: data.category.name, path: `/c/${data.category.slug}` }])} />
       {/* Aisle sign: the category painted on its own board */}
       <div className="keyline relative flex min-h-[112px] items-center overflow-hidden rounded-[14px] bg-sign py-4 pl-3 pr-28 text-on-sign" style={{ "--keyline": "rgb(245 184 0 / 0.5)", "--shade": "#04261d" } as React.CSSProperties}>
         <Link href="/categories" className="press mr-2 grid size-9 shrink-0 place-items-center rounded-full bg-white/10 hover:bg-white/20" aria-label="All categories"><ChevronLeft className="size-5" /></Link>

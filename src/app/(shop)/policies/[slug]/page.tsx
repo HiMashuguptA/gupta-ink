@@ -9,7 +9,7 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const p = getPolicy(slug);
-  return { title: p?.title ?? "Policy", description: p?.summary };
+  return { title: p?.title ?? "Policy", description: p?.summary, alternates: { canonical: `/policies/${slug}` } };
 }
 
 export default async function PolicyPage({ params }: { params: Promise<{ slug: string }> }) {

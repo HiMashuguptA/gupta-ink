@@ -1,4 +1,5 @@
 import { getHome, getSettings } from "@/lib/catalog";
+import { JsonLd, storeJsonLd } from "@/lib/seo";
 import { HeroCarousel } from "@/components/home/HeroCarousel";
 import { CategoryGrid } from "@/components/home/CategoryGrid";
 import { PromoTiles } from "@/components/home/PromoTiles";
@@ -9,6 +10,12 @@ import { PickedForYou, RecentlyViewed } from "@/components/home/PersonalRails";
 // Same page for everyone, rebuilt every 5 minutes (and right after admin edits), served
 // from the CDN. Personal rails fill in from the browser.
 export const revalidate = 300;
+
+export const metadata = {
+  title: { absolute: "Stationery shop in Kohima: notebooks, pens, delivered in 60 min | Gupta Enterprises" },
+  description: "Order notebooks, pens, files, office and exam supplies from Gupta Enterprises, Khedi Market, Kohima. Delivery in 45-60 minutes, scheduled slots, or store pickup.",
+  alternates: { canonical: "/" },
+};
 
 const RAIL_LINKS: Record<string, string> = {
   featured: "/collections/featured",
@@ -29,6 +36,8 @@ export default async function Home() {
 
   return (
     <>
+      <JsonLd data={storeJsonLd(settings)} />
+      <h1 className="sr-only">Gupta Enterprises: stationery shop in Kohima, delivered in 45-60 minutes</h1>
       <HeroCarousel banners={home.hero} />
       <FactsTicker s={settings} />
       {sections.map((s) => {

@@ -4,7 +4,7 @@ import { getSettings } from "@/lib/catalog";
 import { CheckoutView, type Slot, type CouponOffer } from "@/components/checkout/CheckoutView";
 import type { SavedAddress } from "@/app/actions/addresses";
 
-export const metadata = { title: "Checkout" };
+export const metadata = { title: "Checkout", robots: { index: false, follow: true } };
 
 export default async function CheckoutPage({ searchParams }: { searchParams: Promise<{ buy?: string; qty?: string }> }) {
   const sp = await searchParams;

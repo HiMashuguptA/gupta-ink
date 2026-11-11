@@ -14,39 +14,38 @@ import type { Banner, Category, GroupCard, HomeSection, ProductCard, StoreSettin
 // Edits, orders and reviews refresh this cache on purpose (see app/actions/admin.ts); the timer is a backstop.
 const CACHE = { revalidate: 300, tags: ["catalog"] };
 
-const allCards = unstable_cache(
-  async (): Promise<ProductCard[]> => {
-    const sb = supabasePublic();
-    const out: ProductCard[] = [];
-    // Page through in 1000-row chunks (PostgREST's default cap)
-    for (let from = 0; ; from += 1000) {
-      const { data, error } = await sb.from("product_cards").select("*").order("sold_count", { ascending: false }).range(from, from + 999);
-      if (error) {
-        // A build that can't reach the database still succeeds; pages refill on their 5-minute refresh
-        if (process.env.NEXT_PHASE === "phase-production-build") return out;
-        throw error;
-      }
-      out.push(...((data ?? []) as ProductCard[]));
-      if (!data || data.length < 1000) break;
-    }
-    return out;
-  },
-  ["all-cards-v2"],
-  CACHE,
-);
+type Q = ReturnType<ReturnType<typeof supabasePublic>["from"]>;
+type Sel = ReturnType<Q["select"]>;
 
-const groupInfo = unstable_cache(
-  async () => {
-    const { data } = await supabasePublic().from("product_groups").select("id, description, returnable");
-    return Object.fromEntries((data ?? []).map((g) => [g.id, g])) as Record<string, { id: string; description: string | null; returnable: boolean }>;
-  },
-  ["group-info-v1"],
-  CACHE,
-);
+/**
+ * Product rows straight from the database, filtered and limited there. Pages never load the
+ * whole catalogue: a Cloudflare Worker gets very little CPU time per request, and parsing all
+ * products on every page was what pushed requests over the limit (Error 1102).
+ */
+async function cardRows(build: (q: Sel) => Sel): Promise<ProductCard[]> {
+  const { data, error } = await build(supabasePublic().from("product_cards").select("*"));
+  if (error) {
+    // A build that can't reach the database still succeeds; pages refill on their 5-minute refresh
+    if (process.env.NEXT_PHASE === "phase-production-build") return [];
+    throw error;
+  }
+  return (data ?? []) as ProductCard[];
+}
+
+/** Groups in the order given, each with all of its variants. */
+async function groupsInOrder(groupIds: string[], face: "default" | "first" = "default"): Promise<GroupCard[]> {
+  const ids = [...new Set(groupIds)];
+  if (!ids.length) return [];
+  const rows = await cardRows((q) => q.in("group_id", ids));
+  const byGroup = new Map(groupCards(rows, face).map((g) => [g.group_id, g]));
+  return ids.map((id) => byGroup.get(id)).filter(Boolean) as GroupCard[];
+}
 
 export const getSettings = unstable_cache(
   async (): Promise<StoreSettings | null> => {
-    const { data } = await supabasePublic().from("settings").select("*").eq("id", 1).single();
+    const { data, error } = await supabasePublic().from("settings").select("*").eq("id", 1).single();
+    // Errors are thrown (not cached as empty), so one slow moment can't blank the shop for 5 minutes
+    if (error && process.env.NEXT_PHASE !== "phase-production-build") throw error;
     return data as StoreSettings | null;
   },
   ["settings-v1"],
@@ -55,7 +54,8 @@ export const getSettings = unstable_cache(
 
 export const getCategories = unstable_cache(
   async (): Promise<Category[]> => {
-    const { data } = await supabasePublic().from("categories").select("id, name, slug, image_url, icon, sort").order("sort");
+    const { data, error } = await supabasePublic().from("categories").select("id, name, slug, image_url, icon, sort").order("sort");
+    if (error && process.env.NEXT_PHASE !== "phase-production-build") throw error;
     return (data ?? []) as Category[];
   },
   ["categories-v1"],
@@ -69,32 +69,37 @@ const homeContent = unstable_cache(
       sb.from("home_sections").select("*").eq("visible", true).order("position"),
       sb.from("banners").select("*").order("position"),
     ]);
+    if ((sections.error || banners.error) && process.env.NEXT_PHASE !== "phase-production-build") throw sections.error ?? banners.error;
     return { sections: (sections.data ?? []) as HomeSection[], banners: (banners.data ?? []) as Banner[] };
   },
   ["home-content-v1"],
   CACHE,
 );
 
-type Collection = { title: string; pick: (c: ProductCard) => boolean; sort: (a: ProductCard, b: ProductCard) => number };
+type Collection = { title: string; query: (q: Sel) => Sel };
 export const COLLECTIONS: Record<string, Collection> = {
-  featured: { title: "Picked for you", pick: (c) => c.featured, sort: (a, b) => b.sold_count - a.sold_count },
-  top_discounts: { title: "Biggest savings", pick: (c) => c.discount_pct > 0, sort: (a, b) => b.discount_pct - a.discount_pct },
-  top_rated: { title: "Top rated", pick: () => true, sort: (a, b) => Number(b.rating_avg) - Number(a.rating_avg) || b.rating_count - a.rating_count },
-  most_purchased: { title: "Most bought in Kohima", pick: () => true, sort: (a, b) => b.sold_count - a.sold_count },
-  trending: { title: "Trending this week", pick: () => true, sort: (a, b) => b.view_count - a.view_count },
-  monsoon: { title: "Monsoon ready", pick: (c) => c.seasonal_tag === "monsoon", sort: (a, b) => b.sold_count - a.sold_count },
+  featured: { title: "Picked for you", query: (q) => q.eq("featured", true).order("sold_count", { ascending: false }) },
+  top_discounts: { title: "Biggest savings", query: (q) => q.gt("discount_pct", 0).order("discount_pct", { ascending: false }) },
+  top_rated: { title: "Top rated", query: (q) => q.order("rating_avg", { ascending: false }).order("rating_count", { ascending: false }) },
+  most_purchased: { title: "Most bought in Kohima", query: (q) => q.order("sold_count", { ascending: false }) },
+  trending: { title: "Trending this week", query: (q) => q.order("view_count", { ascending: false }) },
+  monsoon: { title: "Monsoon ready", query: (q) => q.eq("seasonal_tag", "monsoon").order("sold_count", { ascending: false }) },
 };
 
-function collectionFrom(cards: ProductCard[], key: string, limit: number): GroupCard[] {
-  const c = COLLECTIONS[key];
-  if (!c) return [];
-  // Group first so every card shows its default variant, then rank groups
-  const groups = groupCards(cards).filter((g) => g.variants.some(c.pick));
-  return groups.sort(c.sort).slice(0, limit);
-}
+/** One shelf: the best rows by the shelf's rule (in the database), then their groups with all variants. */
+const collectionFrom = unstable_cache(
+  async (key: string, limit: number): Promise<GroupCard[]> => {
+    const c = COLLECTIONS[key];
+    if (!c) return [];
+    const rows = await cardRows((q) => c.query(q).limit(limit * 3));
+    return groupsInOrder(rows.map((r) => r.group_id).slice(0, limit * 3)).then((g) => g.slice(0, limit));
+  },
+  ["collection-v3"],
+  CACHE,
+);
 
 export async function getCollection(key: string, limit = 12) {
-  return collectionFrom(await allCards(), key, limit);
+  return collectionFrom(key, limit);
 }
 
 /** Stable per-day shuffle (India time), so the shop looks different each day but not on every refresh. */
@@ -105,12 +110,16 @@ function dailyShuffle<T extends { group_id: string }>(list: T[]): T[] {
 }
 
 export async function getHome() {
-  const [cards, content, categories] = await Promise.all([allCards(), homeContent(), getCategories()]);
+  const keys = ["top_discounts", "top_rated", "most_purchased", "trending"] as const;
+  const [content, categories, featured, seasonal, ...shelves] = await Promise.all([
+    homeContent(), getCategories(), collectionFrom("featured", 40), collectionFrom("monsoon", 12),
+    ...keys.map((k) => collectionFrom(k, 12)),
+  ]);
   const rails: Record<string, GroupCard[]> = {};
-  for (const key of ["top_discounts", "top_rated", "most_purchased", "trending"]) rails[key] = collectionFrom(cards, key, 12);
+  keys.forEach((k, i) => (rails[k] = shelves[i]));
   // Featured pool: shuffled daily; signed-in shoppers then get their own picks in the browser
-  rails.featured = dailyShuffle(collectionFrom(cards, "featured", 40)).slice(0, 12);
-  rails.seasonal = collectionFrom(cards, "monsoon", 12);
+  rails.featured = dailyShuffle(featured).slice(0, 12);
+  rails.seasonal = seasonal;
   return {
     sections: content.sections,
     hero: content.banners.filter((b) => b.placement === "hero"),
@@ -122,19 +131,20 @@ export async function getHome() {
 
 export async function getRecentlyViewed(userId: string): Promise<GroupCard[]> {
   const sb = await supabaseServer();
-  const [{ data: recent }, cards] = await Promise.all([
-    sb.from("recently_viewed").select("group_id, viewed_at").eq("user_id", userId).order("viewed_at", { ascending: false }).limit(12),
-    allCards(),
-  ]);
-  const groups = groupCards(cards);
-  return (recent ?? []).map((r) => groups.find((g) => g.group_id === r.group_id)).filter(Boolean) as GroupCard[];
+  const { data: recent } = await sb.from("recently_viewed").select("group_id, viewed_at").eq("user_id", userId).order("viewed_at", { ascending: false }).limit(12);
+  return groupsInOrder((recent ?? []).map((r) => r.group_id));
 }
 
+const categoryCards = unstable_cache(
+  async (categoryId: string) => groupCards(await cardRows((q) => q.eq("category_id", categoryId).order("sold_count", { ascending: false }).limit(1000))),
+  ["category-cards-v1"],
+  CACHE,
+);
+
 export async function getCategoryProducts(slug: string) {
-  const [categories, cards] = await Promise.all([getCategories(), allCards()]);
-  const category = categories.find((c) => c.slug === slug);
+  const category = (await getCategories()).find((c) => c.slug === slug);
   if (!category) return null;
-  return { category, products: groupCards(cards.filter((c) => c.category_id === category.id)) };
+  return { category, products: await categoryCards(category.id) };
 }
 
 const reviewsFor = unstable_cache(
@@ -148,18 +158,25 @@ const reviewsFor = unstable_cache(
   { revalidate: 300, tags: ["catalog", "reviews"] },
 );
 
+const productBySlug = unstable_cache(
+  async (slug: string) => {
+    const rows = await cardRows((q) => q.eq("slug", slug));
+    if (!rows.length) return null;
+    const card = groupCards(rows)[0];
+    const [{ data: info }, near] = await Promise.all([
+      supabasePublic().from("product_groups").select("description").eq("id", card.group_id).maybeSingle(),
+      cardRows((q) => q.eq("category_id", card.category_id).neq("group_id", card.group_id).order("sold_count", { ascending: false }).limit(40)),
+    ]);
+    return { card, description: (info?.description as string | null) ?? null, similar: groupCards(near).slice(0, 10) };
+  },
+  ["product-v3"],
+  CACHE,
+);
+
 export async function getProduct(slug: string) {
-  const [cards, info] = await Promise.all([allCards(), groupInfo()]);
-  const rows = cards.filter((c) => c.slug === slug);
-  if (!rows.length) return null;
-  const card = groupCards(rows)[0];
-  const reviews = await reviewsFor(card.group_id);
-  return {
-    card,
-    description: info[card.group_id]?.description ?? null,
-    similar: groupCards(cards.filter((c) => c.category_id === card.category_id && c.group_id !== card.group_id)).slice(0, 10),
-    reviews,
-  };
+  const p = await productBySlug(slug);
+  if (!p) return null;
+  return { ...p, reviews: await reviewsFor(p.card.group_id) };
 }
 
 const searchIds = unstable_cache(
@@ -175,27 +192,30 @@ const searchIds = unstable_cache(
 /** Search with exact/fuzzy matches first, then same-category suggestions. */
 export async function searchCatalog(q: string) {
   const term = q.trim().toLowerCase().slice(0, 80);
-  const [ids, cards, session] = await Promise.all([searchIds(term).catch(() => [] as string[]), allCards(), getSessionProfile()]);
+  const [ids, session] = await Promise.all([searchIds(term).catch(() => [] as string[]), getSessionProfile()]);
   // Hydrate full product rows (stock limits, units, etc.) in the ranked order
-  const byId = new Map(cards.map((c) => [c.id, c]));
+  const found = ids.length ? await cardRows((q) => q.in("id", ids)) : [];
+  const byId = new Map(found.map((c) => [c.id, c]));
   const rows = ids.map((id) => byId.get(id)).filter(Boolean) as ProductCard[];
   const matches = groupCards(rows, "first");
   let related: GroupCard[] = [];
   if (matches.length) {
-    const catIds = new Set(matches.slice(0, 3).map((m) => m.category_id));
+    const catIds = [...new Set(matches.slice(0, 3).map((m) => m.category_id))];
     const seen = new Set(matches.map((m) => m.group_id));
-    related = groupCards(cards.filter((c) => catIds.has(c.category_id) && !seen.has(c.group_id))).slice(0, 12);
+    const near = await cardRows((q) => q.in("category_id", catIds).order("sold_count", { ascending: false }).limit(80));
+    related = groupCards(near.filter((c) => !seen.has(c.group_id))).slice(0, 12);
   }
   // Search terms are logged for signed-in shoppers only (rate limited on the server)
   if (session.user) await session.supabase.rpc("log_search", { p_term: term, p_results: matches.length });
   return { matches, related };
 }
 
-/** Shop links for ordered items (from the cached catalogue; items no longer on sale get none). */
+/** Shop links for ordered items (items no longer on sale get none). */
 export async function productLinks(ids: string[]): Promise<Record<string, string>> {
-  if (!ids.length) return {};
-  const want = new Set(ids);
+  const want = [...new Set(ids)];
+  if (!want.length) return {};
+  const { data } = await supabasePublic().from("product_cards").select("id, slug").in("id", want);
   const links: Record<string, string> = {};
-  for (const c of await allCards()) if (want.has(c.id)) links[c.id] = `/p/${c.slug}?v=${c.id}`;
+  for (const c of (data ?? []) as { id: string; slug: string }[]) links[c.id] = `/p/${c.slug}?v=${c.id}`;
   return links;
 }

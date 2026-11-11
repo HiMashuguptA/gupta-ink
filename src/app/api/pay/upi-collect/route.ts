@@ -2,11 +2,13 @@ import { NextResponse } from "next/server";
 import { getSessionProfile } from "@/lib/supabase/server";
 import { cashfreeReady, createUpiCollect } from "@/lib/cashfree";
 import { rpc } from "@/lib/admin-db";
+import { allow, clientIp, tooMany } from "@/lib/rate-limit";
 
 const UPI_ID = /^[a-z0-9._-]{2,256}@[a-z][a-z0-9.-]{1,63}$/i;
 
 /** Customer enters their UPI ID; Cashfree sends a payment request to their UPI app. */
 export async function POST(req: Request) {
+  if (!allow(`upi-collect:${clientIp(req)}`, 5, 300)) return tooMany();
   if (!cashfreeReady()) return NextResponse.json({ error: "UPI requests are not switched on yet" }, { status: 503 });
   const me = await getSessionProfile();
   if (!me.user || !me.profile) return NextResponse.json({ error: "Please sign in again" }, { status: 401 });

@@ -7,7 +7,7 @@ import { rupeesWhole as rupees } from "@/lib/format";
 import { ColumnChart } from "@/components/charts/ColumnChart";
 import { BarList } from "@/components/charts/BarList";
 
-export const metadata = { title: "My spending" };
+export const metadata = { title: "My spending", robots: { index: false, follow: true } };
 
 type Spending = { spent: number; orders: number; saved: number; coins_earned: number;
   months: { month: string; spent: number; orders: number }[]; categories: { name: string; spent: number }[] };

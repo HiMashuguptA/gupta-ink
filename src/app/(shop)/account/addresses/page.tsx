@@ -4,7 +4,7 @@ import { getSettings } from "@/lib/catalog";
 import { AddressBook } from "./AddressBook";
 import type { SavedAddress } from "@/app/actions/addresses";
 
-export const metadata = { title: "Saved addresses" };
+export const metadata = { title: "Saved addresses", robots: { index: false, follow: true } };
 
 export default async function AddressesPage() {
   const [{ supabase, user }, settings] = await Promise.all([getSessionProfile(), getSettings()]);

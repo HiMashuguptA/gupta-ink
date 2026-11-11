@@ -1,7 +1,7 @@
 import { getSettings } from "@/lib/catalog";
 import { CartView } from "@/components/cart/CartView";
 
-export const metadata = { title: "Cart" };
+export const metadata = { title: "Cart", robots: { index: false, follow: true } };
 
 export default async function CartPage() {
   const s = await getSettings();

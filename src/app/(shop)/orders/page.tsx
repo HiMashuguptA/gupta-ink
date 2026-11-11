@@ -9,7 +9,7 @@ import { BuyAgain } from "@/components/orders/BuyAgain";
 import { rupees } from "@/lib/format";
 import { STATUS_LABEL, statusTone, when, type OrderRow } from "@/lib/orders";
 
-export const metadata = { title: "Orders" };
+export const metadata = { title: "Orders", robots: { index: false, follow: true } };
 
 type Row = Pick<OrderRow, "id" | "order_no" | "status" | "type" | "payable_paise" | "created_at" | "slot_date" | "slot_start" | "slot_end" | "payment_method"> & {
   order_items: { product_id: string; name: string; image_url: string | null; qty: number }[];

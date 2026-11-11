@@ -26,7 +26,7 @@ export function ProductTile({ card, className, highlight = false, index = 0 }: {
       <div className="relative aspect-square overflow-hidden border-b border-line bg-white">
         <Link href={href} tabIndex={-1} aria-hidden onClick={nameHero}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img data-hero src={card.images[0] ?? "/brand/logo.svg"} alt="" loading="lazy" decoding="async"
+          <img data-hero src={card.images[0] ?? "/brand/logo.svg"} alt={card.name} loading="lazy" decoding="async"
             className="size-full object-cover transition-transform duration-500 ease-[var(--ease-out)] group-hover:scale-[1.05] group-active:scale-[1.05]" />
         </Link>
         {card.discount_pct >= 5 && (

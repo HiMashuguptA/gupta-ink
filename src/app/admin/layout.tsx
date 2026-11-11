@@ -6,7 +6,7 @@ import { StaffProviders } from "@/components/providers/StaffProviders";
 import type { Profile } from "@/lib/types";
 import { LiveRefresh } from "@/components/live/LiveRefresh";
 
-export const metadata = { title: { default: "Admin", template: "%s | Gupta Enterprises admin" } };
+export const metadata = { title: { default: "Admin", template: "%s | Gupta Enterprises admin" }, robots: { index: false, follow: false } };
 
 const NAV = [
   { href: "/admin", label: "Overview" },

@@ -12,7 +12,7 @@ import { PetLayer } from "@/components/pet/PetLayer";
 export default async function ShopLayout({ children }: { children: React.ReactNode }) {
   // No cookies here on purpose: shop pages can then be built once and served from the
   // CDN to everyone. Sign-in info is filled in by the browser (SessionProvider).
-  const settings = await getSettings();
+  const settings = await getSettings().catch(() => null);
   // Opening hours go to the browser; the hanging sign works out OPEN / CLOSED from the live clock
   const hours = settings ? {
     store_open: settings.store_open, store_close: settings.store_close, delivery_start: settings.delivery_start,

@@ -217,7 +217,38 @@ export function CheckoutView({ addresses: initialAddresses, slots, coupons, radi
           )}
         </Section>
 
-        {/* 2. Where */}
+        {/* 2. When (scheduled delivery: pick the slot first, then the address) */}
+        {kind === "scheduled" && (
+          <Section title="Choose a slot">
+            <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 pb-2">
+              {days.map((d, i) => {
+                const anyOpen = slots.some((s) => s.slot_date === d && s.open);
+                return (
+                  <button key={d} type="button" onClick={() => { setDay(d); setSlot(null); }} aria-pressed={day === d} disabled={!anyOpen}
+                    className={clsx("press shrink-0 rounded-[10px] px-3.5 py-2 text-sm font-semibold disabled:opacity-40",
+                      day === d ? "bg-sign text-on-sign" : "bg-card text-graphite hover:bg-sunk")}>
+                    {dayLabel(d, i)}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {daySlots.map((s) => {
+                const on = slot?.slot_date === s.slot_date && slot.window_start === s.window_start;
+                return (
+                  <button key={s.window_start} type="button" disabled={!s.open} onClick={() => setSlot(s)} aria-pressed={on}
+                    className={clsx("press rounded-[10px] px-3 py-2.5 text-left ring-2 disabled:opacity-45",
+                      on ? "bg-nib-soft ring-nib" : "bg-card ring-transparent hover:bg-sunk")}>
+                    <span className="num block text-sm font-bold">{time12(s.window_start)} to {time12(s.window_end)}</span>
+                    <span className={clsx("block text-xs", s.open && s.available <= 3 ? "font-semibold text-margin" : "text-muted")}>{s.open ? (s.available <= 3 ? `${s.available} left` : "Available") : s.reason}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </Section>
+        )}
+
+        {/* 3. Where */}
         {kind !== "pickup" ? (
           <Section title="Deliver to">
             <div className="grid gap-2">
@@ -262,37 +293,6 @@ export function CheckoutView({ addresses: initialAddresses, slots, coupons, radi
                 </label>
               </div>
               {!pickupOk && <p className="mt-2 text-xs font-semibold text-margin">Add the name and a 10-digit mobile number so the store can call when it&apos;s ready.</p>}
-            </div>
-          </Section>
-        )}
-
-        {/* 3. When */}
-        {kind === "scheduled" && (
-          <Section title="Choose a slot">
-            <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 pb-2">
-              {days.map((d, i) => {
-                const anyOpen = slots.some((s) => s.slot_date === d && s.open);
-                return (
-                  <button key={d} type="button" onClick={() => { setDay(d); setSlot(null); }} aria-pressed={day === d} disabled={!anyOpen}
-                    className={clsx("press shrink-0 rounded-[10px] px-3.5 py-2 text-sm font-semibold disabled:opacity-40",
-                      day === d ? "bg-sign text-on-sign" : "bg-card text-graphite hover:bg-sunk")}>
-                    {dayLabel(d, i)}
-                  </button>
-                );
-              })}
-            </div>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {daySlots.map((s) => {
-                const on = slot?.slot_date === s.slot_date && slot.window_start === s.window_start;
-                return (
-                  <button key={s.window_start} type="button" disabled={!s.open} onClick={() => setSlot(s)} aria-pressed={on}
-                    className={clsx("press rounded-[10px] px-3 py-2.5 text-left ring-2 disabled:opacity-45",
-                      on ? "bg-nib-soft ring-nib" : "bg-card ring-transparent hover:bg-sunk")}>
-                    <span className="num block text-sm font-bold">{time12(s.window_start)} to {time12(s.window_end)}</span>
-                    <span className={clsx("block text-xs", s.open && s.available <= 3 ? "font-semibold text-margin" : "text-muted")}>{s.open ? (s.available <= 3 ? `${s.available} left` : "Available") : s.reason}</span>
-                  </button>
-                );
-              })}
             </div>
           </Section>
         )}
