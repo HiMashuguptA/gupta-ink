@@ -43,7 +43,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 try{if(sessionStorage.getItem("ge-splash"))document.documentElement.classList.add("no-splash");else sessionStorage.setItem("ge-splash","1")}catch(e){}
 if("IntersectionObserver" in window&&"MutationObserver" in window){document.documentElement.classList.add("js");
 var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.setAttribute("data-in","");io.unobserve(e.target)}})},{rootMargin:"0px 0px -6% 0px",threshold:0.05});
-var see=function(n){if(n.nodeType!==1)return;if(n.matches(".reveal:not([data-in]),.reveal-clip:not([data-in])"))io.observe(n);n.querySelectorAll&&n.querySelectorAll(".reveal:not([data-in]),.reveal-clip:not([data-in])").forEach(function(x){io.observe(x)})};
+var see=function(n){if(n.nodeType!==1)return;if(n.matches(".reveal:not([data-in])"))io.observe(n);n.querySelectorAll&&n.querySelectorAll(".reveal:not([data-in])").forEach(function(x){io.observe(x)})};
 new MutationObserver(function(ms){ms.forEach(function(m){m.addedNodes.forEach(see)})}).observe(document.documentElement,{childList:true,subtree:true});
 setInterval(function(){document.body&&see(document.body)},1500);}` }} />
         </head>

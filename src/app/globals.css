@@ -222,11 +222,16 @@ input[type="search"]::-webkit-search-decoration { -webkit-appearance: none; appe
 /* Scroll reveals: visible by default, hidden only when the observer is running (html.js) */
 html.js .reveal:not([data-in]) { opacity: 0; transform: translateY(18px); }
 html.js .reveal { transition: opacity 480ms var(--ease-out), transform 620ms var(--ease-out); transition-delay: calc(var(--i, 0) * 55ms); }
-html.js .reveal-clip:not([data-in]) { clip-path: inset(0 0 100% 0 round 12px); }
-html.js .reveal-clip { transition: clip-path 700ms var(--ease-out); transition-delay: calc(var(--i, 0) * 60ms); }
+/* Category boards wipe open from the top. Pure CSS: the end state is always fully visible,
+   so a missed scroll event or a React re-render can never leave a tile hidden. */
+@keyframes reveal-clip { from { clip-path: inset(0 0 100% 0 round 12px); } to { clip-path: inset(0 0 0 0 round 12px); } }
+.reveal-clip { animation: reveal-clip 700ms var(--ease-out) both; animation-delay: calc(var(--i, 0) * 60ms); }
+@supports (animation-timeline: view()) {
+  .reveal-clip { animation-delay: 0s; animation-timeline: view(); animation-range: entry 0% entry 60%; }
+}
 @media (prefers-reduced-motion: reduce) {
   html.js .reveal:not([data-in]) { transform: none; }
-  html.js .reveal-clip:not([data-in]) { clip-path: none; }
+  .reveal-clip { animation: none; }
 }
 
 /* Theme switch: the new look spreads in a circle (the old one stays put underneath) */
