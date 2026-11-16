@@ -31,22 +31,32 @@ export function fit(candidates: string[], max: number) {
 
 /**
  * Marketplace-style names ("Indian Economy by N. Singhania | 5th edition | for UPSC …") cut down
- * to the part people actually search for: the text before the first "|".
+ * to the part people actually search for: the text before the first "|", plus any following
+ * parts that still fit ("Marker Ink | BLACK INK" keeps its colour, so variants stay distinct).
  */
 export function shortName(name: string, max = 200) {
-  const lead = name.split("|")[0].replace(/\s+/g, " ").trim() || name.replace(/\s+/g, " ").trim();
+  const parts = name.split("|").map((x) => x.replace(/\s+/g, " ").trim()).filter(Boolean);
+  let lead = parts[0] ?? name.replace(/\s+/g, " ").trim();
+  for (const part of parts.slice(1)) {
+    if (`${lead}, ${part}`.length > 60) break;
+    lead = `${lead}, ${part}`;
+  }
   return clip(lead, max);
 }
 
 const rupees = (paise: number) => (paise / 100).toFixed(2);
 const inr = (paise: number) => `₹${Math.round(paise / 100)}`;
 
-/** "Classmate Notebook 172 pages: ₹60 in Kohima | Gupta Enterprises", always within the visible title length. */
+/**
+ * "Classmate Notebook 172 pages: ₹60 in Kohima | Gupta Enterprises" when that fits the visible
+ * title length. Long names drop the extras instead of the words that tell two books apart
+ * (Google shortens what it shows, but still reads the whole title).
+ */
 export function productTitle(card: GroupCard) {
   const name = shortName(card.name);
-  const tail = `: ${inr(card.price_paise)} in Kohima`;
-  const whole = [`${name}${tail} | ${BRAND}`, `${name}${tail}`].find((t) => t.length <= TITLE_MAX);
-  return whole ?? `${clip(name, TITLE_MAX - tail.length)}${tail}`;
+  const price = `: ${inr(card.price_paise)}`;
+  const whole = [`${name}${price} in Kohima | ${BRAND}`, `${name}${price} in Kohima`, `${name}${price}`].find((t) => t.length <= TITLE_MAX);
+  return whole ?? `${clip(name, 90)}${price}`;
 }
 
 /** Price first, then what it is, then how to get it. Built from whole sentences so it is never cut mid-way. */
