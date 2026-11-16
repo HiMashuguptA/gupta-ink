@@ -1,7 +1,7 @@
 // Store policies for Gupta Enterprises, Kohima.
 // Drafted to be conservative. Have them reviewed by a lawyer before launch.
 
-export const POLICY_UPDATED = "25 October 2026";
+export const POLICY_UPDATED = "16 November 2026";
 
 export type PolicySection = { heading: string; body: string[] };
 export type Policy = { slug: string; title: string; summary: string; sections: PolicySection[] };
@@ -38,7 +38,7 @@ export const POLICIES: Policy[] = [
       { heading: "Who we share it with", body: [
         "We never sell or rent your personal data, and we do not use advertising trackers.",
         "Store staff see the order details they need to pack and dispatch it. The delivery agent assigned to your order sees your name, phone, address and pin, from when they accept the order until it is delivered.",
-        "Service providers who process data for us under contract: Neon (database), Cloudflare (website hosting, file storage and security), Clerk (sign-in with Google), Resend (sending order emails), Google (sign-in and maps) and OpenStreetMap services (maps and address lookup).",
+        "Service providers who process data for us under contract: Supabase (database and file storage), Cloudflare (website hosting and security), Clerk (sign-in with Google), Resend (sending order emails), Google (sign-in and maps) and OpenStreetMap services (maps and address lookup).",
         "Government or courts, only when the law requires it.",
       ] },
       { heading: "How long we keep it", body: [

@@ -5,6 +5,8 @@
 	"name": "gupta-ink",
 	"compatibility_date": "2026-10-01",
 	"compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+	// Before each deploy: copy the pages built with it into the static files (see cloudflare/copy-prerendered.mjs)
+	"build": { "command": "node cloudflare/copy-prerendered.mjs" },
 	"assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
 	"services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "gupta-ink" }],
 	"triggers": { "crons": ["* * * * *"] },

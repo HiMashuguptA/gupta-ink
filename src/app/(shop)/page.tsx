@@ -1,5 +1,7 @@
 import { getHome, getSettings } from "@/lib/catalog";
-import { JsonLd, storeJsonLd } from "@/lib/seo";
+import Link from "next/link";
+import { MapPin } from "lucide-react";
+import { JsonLd, MAPS_URL, STREET, storeJsonLd, websiteJsonLd } from "@/lib/seo";
 import { HeroCarousel } from "@/components/home/HeroCarousel";
 import { CategoryGrid } from "@/components/home/CategoryGrid";
 import { PromoTiles } from "@/components/home/PromoTiles";
@@ -12,8 +14,8 @@ import { PickedForYou, RecentlyViewed } from "@/components/home/PersonalRails";
 export const revalidate = 300;
 
 export const metadata = {
-  title: { absolute: "Stationery shop in Kohima: notebooks, pens, delivered in 60 min | Gupta Enterprises" },
-  description: "Order notebooks, pens, files, office and exam supplies from Gupta Enterprises, Khedi Market, Kohima. Delivery in 45-60 minutes, scheduled slots, or store pickup.",
+  title: { absolute: "Stationery Shop in Kohima: 60-Min Delivery | Gupta Enterprises" },
+  description: "Stationery shop in Khedi Market, Kohima. Notebooks, pens, files, textbooks and office supplies online: delivered in 45-60 minutes, or pick up in store.",
   alternates: { canonical: "/" },
 };
 
@@ -37,6 +39,7 @@ export default async function Home() {
   return (
     <>
       <JsonLd data={storeJsonLd(settings)} />
+      <JsonLd data={websiteJsonLd()} />
       <h1 className="sr-only">Gupta Enterprises: stationery shop in Kohima, delivered in 45-60 minutes</h1>
       <HeroCarousel banners={home.hero} />
       <FactsTicker s={settings} />
@@ -56,6 +59,30 @@ export default async function Home() {
           }
         }
       })}
+      {/* Who we are and where, in plain words: for a first-time visitor and for local search */}
+      {home.categories.length > 0 && (
+        <section className="mt-9 px-4" aria-labelledby="about-shop">
+          <div className="rounded-[14px] bg-card p-5 sm:p-6">
+            <h2 id="about-shop" className="t-h3 uppercase leading-none text-graphite">Your stationery shop in Kohima</h2>
+            <p className="mt-3 max-w-[68ch] text-muted">
+              Gupta Enterprises is a stationery shop at {STREET}, Kohima. Order online and we bring it to your door in{" "}
+              {settings?.quick_eta_min ?? 45}-{settings?.quick_eta_max ?? 60} minutes, anywhere within {Number(settings?.delivery_radius_km ?? 15)} km of the shop, or keep it ready for you at the counter.
+            </p>
+            <p className="mt-2 max-w-[68ch] text-muted">
+              On the shelves:{" "}
+              {home.categories.map((c, i) => (
+                <span key={c.id}>
+                  <Link href={`/c/${c.slug}`} className="font-semibold text-ink hover:underline">{c.name}</Link>
+                  {i < home.categories.length - 1 ? ", " : "."}
+                </span>
+              ))}
+            </p>
+            <a href={MAPS_URL} target="_blank" rel="noopener" className="press mt-4 inline-flex h-10 items-center gap-1.5 rounded-[9px] bg-sign px-3.5 text-sm font-bold text-on-sign hover:bg-ink">
+              <MapPin className="size-4 text-nib" aria-hidden /> Find us on Google Maps
+            </a>
+          </div>
+        </section>
+      )}
       {!home.categories.length && (
         <div className="mx-4 mt-8 rounded-[14px] bg-card p-8">
           <h2 className="text-xl font-bold">The shelves are empty</h2>

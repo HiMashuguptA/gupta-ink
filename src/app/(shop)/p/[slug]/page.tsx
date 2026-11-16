@@ -1,14 +1,16 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
-import { breadcrumbJsonLd, JsonLd, productDescription, productJsonLd, SITE } from "@/lib/seo";
-import { Star } from "lucide-react";
-import { getProduct, getCollection } from "@/lib/catalog";
+import { BRAND, breadcrumbJsonLd, JsonLd, NOT_FOUND, productDescription, productJsonLd, productTitle, shortName, SITE } from "@/lib/seo";
+import { ChevronRight, Star } from "lucide-react";
+import { allProductSlugs, getProduct } from "@/lib/catalog";
 
-// Built once per product and cached at the edge; refreshed every 5 minutes or right after
-// an admin edit, order or review. Stock and reviews also update live in the open page.
+// Every product page is built with the deploy, so it is always there for shoppers and search
+// engines without waiting on the server. It is refreshed every 5 minutes or right after an admin
+// edit, order or review; stock and reviews also update live in the open page. Products added
+// after a deploy are built on their first visit.
 export const revalidate = 300;
 export async function generateStaticParams() {
-  // Pre-build the 40 best sellers; the rest are built on first visit, then cached
-  try { return (await getCollection("most_purchased", 40)).map((g) => ({ slug: g.slug })); } catch { return []; }
+  return (await allProductSlugs()).map((p) => ({ slug: p.slug }));
 }
 import { ProductDetail } from "@/components/shop/ProductDetail";
 import { Rail } from "@/components/shop/Rail";
@@ -17,14 +19,13 @@ import { LiveRefresh } from "@/components/live/LiveRefresh";
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const p = await getProduct(slug);
-  if (!p) return { title: "Product" };
-  const title = `${p.card.name}: ₹${Math.round(p.card.price_paise / 100)} in Kohima`;
+  if (!p) return NOT_FOUND;
   const image = p.card.images[0];
   return {
-    title,
+    title: { absolute: productTitle(p.card) },
     description: productDescription(p.card, p.description),
     alternates: { canonical: `/p/${p.card.slug}` },
-    openGraph: { title: `${p.card.name} | Gupta Enterprises`, url: `/p/${p.card.slug}`, ...(image ? { images: [{ url: image }] } : {}) },
+    openGraph: { title: `${shortName(p.card.name, 70)} | ${BRAND}`, url: `/p/${p.card.slug}`, ...(image ? { images: [{ url: image }] } : {}) },
   };
 }
 
@@ -40,6 +41,14 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
       {/* New reviews and stock changes show without reloading */}
       <LiveRefresh id={`product-${p.card.group_id}`} waitMs={1500}
         watch={[{ table: "reviews", filter: `group_id=eq.${p.card.group_id}` }, { table: "products", filter: `group_id=eq.${p.card.group_id}` }]} />
+      {/* The way back up to the aisle, for shoppers and for search engines */}
+      <nav aria-label="Breadcrumb" className="px-4 pb-3">
+        <ol className="flex flex-wrap items-center gap-1 text-[13px] font-semibold text-muted">
+          <li><Link href="/" className="hover:text-ink">Home</Link></li>
+          <li aria-hidden><ChevronRight className="size-3.5" /></li>
+          <li><Link href={`/c/${p.card.category_slug}`} className="hover:text-ink">{p.card.category_name}</Link></li>
+        </ol>
+      </nav>
       <div className="px-4">
         <ProductDetail card={p.card} description={p.description} returnable={p.card.returnable} />
       </div>

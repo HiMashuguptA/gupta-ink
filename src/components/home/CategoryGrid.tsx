@@ -3,10 +3,10 @@ import type { Category } from "@/lib/types";
 import { SectionHead } from "@/components/ui/SectionHead";
 
 /** Category boards: each picture wipes open from the top as it scrolls in (Skiper "Image reveal"). */
-export function CategoryGrid({ categories, title = "Shop by category", showAll = true }: { categories: Category[]; title?: string; showAll?: boolean }) {
+export function CategoryGrid({ categories, title = "Shop by category", showAll = true, as }: { categories: Category[]; title?: string; showAll?: boolean; as?: "h1" | "h2" }) {
   return (
     <section className="mt-9 px-4" aria-label={title}>
-      <SectionHead title={title} href={showAll ? "/categories" : undefined} action="All aisles" />
+      <SectionHead title={title} href={showAll ? "/categories" : undefined} action="All aisles" as={as} />
       <ul className="grid grid-cols-3 gap-2.5 min-[420px]:grid-cols-4 sm:grid-cols-5 lg:grid-cols-10">
         {categories.map((c, k) => (
           <li key={c.id} className="reveal-clip" style={{ "--i": k % 10 } as React.CSSProperties}>

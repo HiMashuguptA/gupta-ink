@@ -1,20 +1,21 @@
 import { notFound } from "next/navigation";
 import { COLLECTIONS, getCollection } from "@/lib/catalog";
 import { FilteredGrid } from "@/components/shop/FilteredGrid";
+import { BRAND, NOT_FOUND } from "@/lib/seo";
 
+// Built with the deploy (see the product page for why), refreshed every 5 minutes
 export const revalidate = 300;
-// Built on first visit, then cached for 5 minutes (keeps builds independent of the database)
 export function generateStaticParams() {
-  return [] as { key: string }[];
+  return Object.keys(COLLECTIONS).map((key) => ({ key }));
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ key: string }> }) {
   const { key } = await params;
   const c = COLLECTIONS[key];
-  if (!c) return { title: "Collection" };
+  if (!c) return NOT_FOUND;
   return {
-    title: `${c.title}: stationery in Kohima`,
-    description: `${c.title} at Gupta Enterprises, Kohima. Notebooks, pens, office and exam supplies delivered in 45-60 minutes or ready for pickup.`,
+    title: c.seo,
+    description: `${c.seo} from ${BRAND}: notebooks, pens and office supplies, delivered in 45-60 minutes or ready for pickup.`,
     alternates: { canonical: `/collections/${key}` },
   };
 }

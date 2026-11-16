@@ -18,18 +18,43 @@ type Q = ReturnType<ReturnType<typeof supabasePublic>["from"]>;
 type Sel = ReturnType<Q["select"]>;
 
 /**
+ * While the site is being built, every public page is rendered once and shipped with the deploy.
+ * That copy is what visitors and search engines get whenever nothing fresher is cached, so a query
+ * that fails during the build must not bake an empty shelf or a "not found" product into it:
+ * the build retries, then stops (the previous deploy stays live). On the live site a failed query
+ * throws straight away, so one slow moment is never cached as empty.
+ */
+export const BUILDING = process.env.NEXT_PHASE === "phase-production-build";
+async function settled<T>(run: () => PromiseLike<{ data: T | null; error: unknown }>): Promise<T | null> {
+  for (let attempt = 0; ; attempt++) {
+    const { data, error } = await run();
+    if (!error) return data;
+    if (!BUILDING || attempt >= 3) throw error;
+    await new Promise((r) => setTimeout(r, 600 * 2 ** attempt));
+  }
+}
+
+/**
  * Product rows straight from the database, filtered and limited there. Pages never load the
  * whole catalogue: a Cloudflare Worker gets very little CPU time per request, and parsing all
  * products on every page was what pushed requests over the limit (Error 1102).
  */
 async function cardRows(build: (q: Sel) => Sel): Promise<ProductCard[]> {
-  const { data, error } = await build(supabasePublic().from("product_cards").select("*"));
-  if (error) {
-    // A build that can't reach the database still succeeds; pages refill on their 5-minute refresh
-    if (process.env.NEXT_PHASE === "phase-production-build") return [];
-    throw error;
+  return ((await settled(() => build(supabasePublic().from("product_cards").select("*")))) ?? []) as ProductCard[];
+}
+
+/** Every product page address, for the build (each is rendered once and shipped with the deploy) and the sitemap. */
+export async function allProductSlugs(): Promise<{ slug: string; created_at: string; category_slug: string; image: string | null }[]> {
+  type Row = { slug: string; created_at: string; category_slug: string; images: string[] | null };
+  const seen = new Map<string, { slug: string; created_at: string; category_slug: string; image: string | null }>();
+  // The API returns at most 1000 rows per request, so read in pages
+  const PAGE = 1000;
+  for (let from = 0; from < 20 * PAGE; from += PAGE) {
+    const rows = ((await settled(() => supabasePublic().from("product_cards").select("slug, created_at, category_slug, images").order("slug").order("id").range(from, from + PAGE - 1))) ?? []) as Row[];
+    for (const r of rows) if (!seen.has(r.slug)) seen.set(r.slug, { slug: r.slug, created_at: r.created_at, category_slug: r.category_slug, image: r.images?.[0] ?? null });
+    if (rows.length < PAGE) break;
   }
-  return (data ?? []) as ProductCard[];
+  return [...seen.values()];
 }
 
 /** Groups in the order given, each with all of its variants. */
@@ -43,10 +68,8 @@ async function groupsInOrder(groupIds: string[], face: "default" | "first" = "de
 
 export const getSettings = unstable_cache(
   async (): Promise<StoreSettings | null> => {
-    const { data, error } = await supabasePublic().from("settings").select("*").eq("id", 1).single();
     // Errors are thrown (not cached as empty), so one slow moment can't blank the shop for 5 minutes
-    if (error && process.env.NEXT_PHASE !== "phase-production-build") throw error;
-    return data as StoreSettings | null;
+    return (await settled(() => supabasePublic().from("settings").select("*").eq("id", 1).single())) as StoreSettings | null;
   },
   ["settings-v1"],
   CACHE,
@@ -54,9 +77,7 @@ export const getSettings = unstable_cache(
 
 export const getCategories = unstable_cache(
   async (): Promise<Category[]> => {
-    const { data, error } = await supabasePublic().from("categories").select("id, name, slug, image_url, icon, sort").order("sort");
-    if (error && process.env.NEXT_PHASE !== "phase-production-build") throw error;
-    return (data ?? []) as Category[];
+    return ((await settled(() => supabasePublic().from("categories").select("id, name, slug, image_url, icon, sort").order("sort"))) ?? []) as Category[];
   },
   ["categories-v1"],
   CACHE,
@@ -66,24 +87,24 @@ const homeContent = unstable_cache(
   async () => {
     const sb = supabasePublic();
     const [sections, banners] = await Promise.all([
-      sb.from("home_sections").select("*").eq("visible", true).order("position"),
-      sb.from("banners").select("*").order("position"),
+      settled(() => sb.from("home_sections").select("*").eq("visible", true).order("position")),
+      settled(() => sb.from("banners").select("*").order("position")),
     ]);
-    if ((sections.error || banners.error) && process.env.NEXT_PHASE !== "phase-production-build") throw sections.error ?? banners.error;
-    return { sections: (sections.data ?? []) as HomeSection[], banners: (banners.data ?? []) as Banner[] };
+    return { sections: (sections ?? []) as HomeSection[], banners: (banners ?? []) as Banner[] };
   },
   ["home-content-v1"],
   CACHE,
 );
 
-type Collection = { title: string; query: (q: Sel) => Sel };
+/** `title` is the shelf's sign in the shop; `seo` is how the shelf reads in a search result. */
+type Collection = { title: string; seo: string; query: (q: Sel) => Sel };
 export const COLLECTIONS: Record<string, Collection> = {
-  featured: { title: "Picked for you", query: (q) => q.eq("featured", true).order("sold_count", { ascending: false }) },
-  top_discounts: { title: "Biggest savings", query: (q) => q.gt("discount_pct", 0).order("discount_pct", { ascending: false }) },
-  top_rated: { title: "Top rated", query: (q) => q.order("rating_avg", { ascending: false }).order("rating_count", { ascending: false }) },
-  most_purchased: { title: "Most bought in Kohima", query: (q) => q.order("sold_count", { ascending: false }) },
-  trending: { title: "Trending this week", query: (q) => q.order("view_count", { ascending: false }) },
-  monsoon: { title: "Monsoon ready", query: (q) => q.eq("seasonal_tag", "monsoon").order("sold_count", { ascending: false }) },
+  featured: { title: "Picked for you", seo: "Popular stationery picks in Kohima", query: (q) => q.eq("featured", true).order("sold_count", { ascending: false }) },
+  top_discounts: { title: "Biggest savings", seo: "Stationery offers and discounts in Kohima", query: (q) => q.gt("discount_pct", 0).order("discount_pct", { ascending: false }) },
+  top_rated: { title: "Top rated", seo: "Top-rated stationery in Kohima", query: (q) => q.order("rating_avg", { ascending: false }).order("rating_count", { ascending: false }) },
+  most_purchased: { title: "Most bought in Kohima", seo: "Best-selling stationery in Kohima", query: (q) => q.order("sold_count", { ascending: false }) },
+  trending: { title: "Trending this week", seo: "Trending stationery in Kohima this week", query: (q) => q.order("view_count", { ascending: false }) },
+  monsoon: { title: "Monsoon ready", seo: "Monsoon-ready stationery in Kohima", query: (q) => q.eq("seasonal_tag", "monsoon").order("sold_count", { ascending: false }) },
 };
 
 /** One shelf: the best rows by the shelf's rule (in the database), then their groups with all variants. */

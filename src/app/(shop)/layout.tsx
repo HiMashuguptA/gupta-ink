@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { getSettings } from "@/lib/catalog";
+import { BUILDING, getSettings } from "@/lib/catalog";
 import { AppProviders } from "@/components/providers/AppProviders";
 import { Header } from "@/components/layout/Header";
 import { BottomNav } from "@/components/layout/BottomNav";
@@ -12,7 +12,8 @@ import { PetLayer } from "@/components/pet/PetLayer";
 export default async function ShopLayout({ children }: { children: React.ReactNode }) {
   // No cookies here on purpose: shop pages can then be built once and served from the
   // CDN to everyone. Sign-in info is filled in by the browser (SessionProvider).
-  const settings = await getSettings().catch(() => null);
+  // (During a build an error stops the build instead, so no page ships without its opening hours.)
+  const settings = await getSettings().catch((e) => { if (BUILDING) throw e; return null; });
   // Opening hours go to the browser; the hanging sign works out OPEN / CLOSED from the live clock
   const hours = settings ? {
     store_open: settings.store_open, store_close: settings.store_close, delivery_start: settings.delivery_start,

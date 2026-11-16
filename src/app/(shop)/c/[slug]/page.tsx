@@ -1,25 +1,20 @@
 import { notFound } from "next/navigation";
-import { breadcrumbJsonLd, clip, JsonLd } from "@/lib/seo";
+import { breadcrumbJsonLd, categoryMeta, JsonLd, NOT_FOUND } from "@/lib/seo";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { getCategories, getCategoryProducts } from "@/lib/catalog";
 import { UrlFilteredGrid } from "@/components/shop/FilteredGrid";
 
+// Built with the deploy (see the product page for why), refreshed every 5 minutes
 export const revalidate = 300;
 export async function generateStaticParams() {
-  try { return (await getCategories()).map((c) => ({ slug: c.slug })); } catch { return []; }
+  return (await getCategories()).map((c) => ({ slug: c.slug }));
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const cat = (await getCategories()).find((c) => c.slug === slug);
-  if (!cat) return { title: "Category" };
-  return {
-    title: `${cat.name}: buy online in Kohima`,
-    description: clip(`Shop ${cat.name.toLowerCase()} at Gupta Enterprises, Khedi Market, Kohima. Order online for delivery in 45-60 minutes, a scheduled slot, or store pickup.`),
-    alternates: { canonical: `/c/${cat.slug}` },
-    openGraph: { title: `${cat.name} | Gupta Enterprises`, url: `/c/${cat.slug}` },
-  };
+  const data = await getCategoryProducts(slug);
+  return data ? categoryMeta(data.category, data.products) : NOT_FOUND;
 }
 
 export default async function CategoryPage({ params }: { params: Promise<{ slug: string }> }) {

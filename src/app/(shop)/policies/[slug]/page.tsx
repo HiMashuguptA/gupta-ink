@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { POLICIES, POLICY_UPDATED, getPolicy } from "@/content/policies";
+import { NOT_FOUND } from "@/lib/seo";
 
 export function generateStaticParams() {
   return POLICIES.map((p) => ({ slug: p.slug }));
@@ -9,7 +10,8 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const p = getPolicy(slug);
-  return { title: p?.title ?? "Policy", description: p?.summary, alternates: { canonical: `/policies/${slug}` } };
+  if (!p) return NOT_FOUND;
+  return { title: p.title, description: p.summary, alternates: { canonical: `/policies/${p.slug}` } };
 }
 
 export default async function PolicyPage({ params }: { params: Promise<{ slug: string }> }) {

@@ -10,6 +10,5 @@ export default function robots(): MetadataRoute.Robots {
       disallow: ["/admin", "/agent", "/account", "/cart", "/orders", "/wishlist", "/bill", "/api/", "/sso-callback", "/login", "/blocked", "/search"],
     }],
     sitemap: `${SITE}/sitemap.xml`,
-    host: SITE,
   };
 }

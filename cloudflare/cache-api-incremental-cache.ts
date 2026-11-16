@@ -1,7 +1,16 @@
-// Free page/data cache for OpenNext on Cloudflare, using the Workers Cache API (no R2 or KV needed).
-// Entries live in each Cloudflare data centre for up to a day; stale ones are refreshed by the memory queue.
-// Note: the Cache API only works on a custom domain, not on *.workers.dev (there it is simply a miss).
+// Free page/data cache for OpenNext on Cloudflare (no R2 or KV needed), in two layers:
+//
+// 1. The Workers Cache API holds pages and data refreshed on the live site. Entries live in each
+//    Cloudflare data centre for up to a day. (It only works on a custom domain, not on *.workers.dev.)
+// 2. When a page is not in that cache (first visit in a data centre, after a deploy, after a day),
+//    the copy that was built with the deploy is served from the Worker's static files. It counts
+//    as stale, so the visitor gets the page at once and the memory queue re-renders it in the
+//    background. Without this layer every such visit had to render the page on the spot, which
+//    regularly ran past the free plan's CPU limit (Error 1102, a 503 for people and search engines).
+//
+// cloudflare/copy-prerendered.mjs puts the built pages where layer 2 reads them.
 import { getCloudflareContext } from "@opennextjs/cloudflare";
+import builtPages from "@opennextjs/cloudflare/overrides/incremental-cache/static-assets-incremental-cache";
 
 const ORIGIN = "https://next-cache.internal/";
 const TTL = 60 * 60 * 24;
@@ -15,11 +24,18 @@ const cacheApiIncrementalCache = {
   name: "cache-api-incremental-cache",
   async get(key: string, cacheType?: string) {
     const c = store();
-    if (!c) return null;
+    if (c) {
+      try {
+        const r = await c.match(cacheKey(key, cacheType));
+        if (r) return (await r.json()) as Entry;
+      } catch {
+        // fall through to the built copy
+      }
+    }
+    // Pages only: catalogue data keeps its own rules (fetched fresh when not cached)
+    if (cacheType && cacheType !== "cache") return null;
     try {
-      const r = await c.match(cacheKey(key, cacheType));
-      if (!r) return null;
-      return (await r.json()) as Entry;
+      return ((await builtPages.get(key, "cache")) as Entry | null) ?? null;
     } catch {
       return null;
     }
