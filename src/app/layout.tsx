@@ -9,6 +9,8 @@ import { NavProgress } from "@/components/layout/NavProgress";
 import { Splash } from "@/components/layout/Splash";
 
 export const metadata: Metadata = {
+  // Google Merchant Center / Search Console ownership check
+  verification: { google: "0Mh2CxB26FeCWaQO5Iq1oV0D8y_aSAyFzSqliHLQpU4" },
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
   title: { default: "Gupta Enterprises: stationery in minutes, Kohima", template: "%s | Gupta Enterprises" },
   description:
